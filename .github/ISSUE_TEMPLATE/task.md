@@ -1,7 +1,7 @@
 ---
 name: Task
 about: Small implementation or documentation task
-labels: task
+labels: ""
 ---
 
 ## Goal
@@ -11,6 +11,9 @@ labels: task
 
 
 ## Scope
+
+
+## Files likely touched
 
 
 ## Acceptance criteria

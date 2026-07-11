@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "draft_05-bodyweight-kg-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "bodyweight",
+        "weightKg": 82.4
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "weighed in at 82.4kg",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

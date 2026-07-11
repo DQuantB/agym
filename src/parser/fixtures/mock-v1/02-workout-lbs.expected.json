@@ -1,0 +1,48 @@
+{
+  "events": [
+    {
+      "id": "draft_02-workout-lbs-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "workout",
+        "exercises": [
+          {
+            "name": "bench",
+            "sets": [
+              {
+                "reps": 8,
+                "weightKg": 83.9,
+                "rpe": null
+              },
+              {
+                "reps": 8,
+                "weightKg": 83.9,
+                "rpe": null
+              },
+              {
+                "reps": 8,
+                "weightKg": 83.9,
+                "rpe": null
+              }
+            ]
+          }
+        ],
+        "durationMin": null,
+        "notes": null
+      },
+      "uncertaintyFlags": [
+        {
+          "field": "payload.exercises.0.sets.weightKg",
+          "reason": "weight converted from lbs to kg"
+        }
+      ],
+      "sourceText": "bench 3x8 @ 185 lbs felt easy",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

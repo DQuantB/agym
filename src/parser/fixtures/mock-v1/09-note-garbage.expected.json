@@ -1,0 +1,25 @@
+{
+  "events": [
+    {
+      "id": "draft_09-note-garbage-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "note",
+        "text": "asdf qwerty 123 zzz"
+      },
+      "uncertaintyFlags": [
+        {
+          "field": "payload.kind",
+          "reason": "unparseable or out-of-domain text preserved as note"
+        }
+      ],
+      "sourceText": "asdf qwerty 123 zzz",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

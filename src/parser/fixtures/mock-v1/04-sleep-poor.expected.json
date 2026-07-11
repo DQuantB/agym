@@ -1,0 +1,21 @@
+{
+  "events": [
+    {
+      "id": "draft_04-sleep-poor-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "sleep",
+        "durationH": 6.5,
+        "quality": "poor"
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "slept 6.5h badly",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

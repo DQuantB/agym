@@ -1,0 +1,38 @@
+{
+  "events": [
+    {
+      "id": "draft_08-yesterday-workout-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-10",
+      "time": null,
+      "payload": {
+        "kind": "workout",
+        "exercises": [
+          {
+            "name": "deadlift",
+            "sets": [
+              {
+                "reps": 5,
+                "weightKg": 120,
+                "rpe": null
+              },
+              {
+                "reps": 5,
+                "weightKg": 120,
+                "rpe": null
+              }
+            ]
+          }
+        ],
+        "durationMin": null,
+        "notes": null
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "yesterday deadlift 2x5@120kg",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

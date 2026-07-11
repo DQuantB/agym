@@ -112,7 +112,15 @@ export function createAgymStore({ adapter: initialAdapter, parser }: CreateAgymS
 
     updateDraft(id, patch) {
       set((state) => ({
-        drafts: state.drafts.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)),
+        drafts: state.drafts.map((draft) => {
+          if (draft.id !== id) return draft;
+          const editedFields = Object.keys(patch);
+          return {
+            ...draft,
+            ...patch,
+            uncertaintyFlags: draft.uncertaintyFlags.filter((flag) => !editedFields.includes(flag.field)),
+          };
+        }),
       }));
     },
 

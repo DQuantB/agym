@@ -1,3 +1,1 @@
-import type { CanonicalEvent, RawLog } from '../domain/types';
-import type { StorageAdapter } from './StorageAdapter';
-export function createMemoryStorageAdapter(): StorageAdapter { let rawLogs: RawLog[]=[]; let events: CanonicalEvent[]=[]; return { async loadAll(){ return { rawLogs, events }; }, async saveRawLog(log){ rawLogs=[...rawLogs.filter(l=>l.id!==log.id), log]; }, async saveEvents(next){ const byId=new Map(events.map(e=>[e.id,e])); next.forEach(e=>byId.set(e.id,e)); events=[...byId.values()]; }, async deleteEvent(id){ events=events.filter(e=>e.id!==id); }, async exportAll(){ return JSON.stringify({ schemaVersion:1, exportedAt:new Date().toISOString(), rawLogs, events }, null, 2); }, async deleteAll(){ rawLogs=[]; events=[]; } }; }
+export { createInMemoryStorageAdapter as createMemoryStorageAdapter } from './inMemoryAdapter';

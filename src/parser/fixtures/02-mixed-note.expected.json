@@ -1,0 +1,25 @@
+{
+  "events": [
+    {
+      "id": "draft_fixture_1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "note",
+        "text": "slept badly; knee sore 3/10\n"
+      },
+      "uncertaintyFlags": [
+        {
+          "field": "payload.kind",
+          "reason": "placeholder parser preserves text as a note"
+        }
+      ],
+      "sourceText": "slept badly; knee sore 3/10\n",
+      "parserVersion": "placeholder-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "placeholder-v1",
+  "warnings": []
+}

@@ -44,8 +44,12 @@ For product implementation:
 For marketing and GTM:
 
 1. `docs/agents/marketing-agent.md`
-2. `docs/plans/2026-07-11-agent-operating-plan.md`
-3. Product positioning in `docs/plans/2026-07-11-v0-planning-handoff.md`
+2. `docs/marketing/README.md` — durable marketing memory, activity log, and asset naming/status rules.
+3. `docs/marketing/brand-system.md` — active visual and voice system.
+4. Current experiment briefs under `docs/marketing/experiments/`.
+5. Current campaign handoffs such as `docs/marketing/meta-ads-v1.md`.
+6. `docs/plans/2026-07-11-agent-operating-plan.md`
+7. Product positioning in `docs/plans/2026-07-11-v0-planning-handoff.md`
 
 ## Minimum workflow
 

@@ -108,6 +108,26 @@ Avoid:
 - fake user counts
 - claims that AGym gives advice
 
+## Marketing memory and iteration protocol
+
+Every marketing task must leave durable, reusable project memory in `docs/marketing/`. This is mandatory even when the output is only a draft or an internal review.
+
+Before work:
+
+1. Read `docs/marketing/README.md`, `docs/marketing/brand-system.md`, the current experiment brief under `docs/marketing/experiments/`, and relevant prior assets.
+2. Identify the task state: draft, internally reviewed, live test, or evidence-backed learning.
+3. Reuse the current campaign visual system unless the founder explicitly authorizes a visual-variable experiment.
+
+After work:
+
+1. Save exact copy, image prompts, source files, final assets, and asset paths under `docs/marketing/`.
+2. Add/update the active experiment record with the message/copy ID, asset ID, review status, and what variable is being tested.
+3. Add a dated entry to `docs/marketing/README.md` → `Activity log` recording what changed, what remains a hypothesis, and the next question.
+4. Keep observed results separate from hypotheses. An internal asset, click, or anecdote is not proof that a message works.
+5. For any live or founder-approved test, record the test window, channel, audience/geography, spend, exact asset/copy IDs, impressions, clicks, visits, completed signups, conversion, track split, qualitative themes, and founder decision.
+
+`docs/marketing/brand-system.md` and `docs/design/DESIGN.md` together are the current campaign visual source of truth. The founder selected Concept B: distorted-object translation. New internal assets must show fragmented/unstructured training reality resolving into confirmed, usable context and include at least two integrated training anchors. Concept C may contribute only its deep-teal/shell/coral palette or abstract motion energy while B's mechanism stays unmistakably clear. Earlier manga/comic and performance-interface v2 assets are historical internal work and must not be used for new marketing unless the founder explicitly revives them. The fallback below is used only if no design/brand system exists or the founder explicitly requests a new direction.
+
 ## Tool access and design inputs
 
 Default Hermes toolsets when spawning this agent:
@@ -137,7 +157,7 @@ Before producing visual assets, check whether a project design spec exists. Pref
 
 1. any AGym `DESIGN.md`, `design.md`, or design-token/spec file in the repo;
 2. files under `docs/design/`, `docs/brand/`, `docs/marketing/`, or `docs/marketing/assets/`;
-3. the current default AGym visual direction: premium AI SaaS, dark mode, glassmorphism cards, electric blue + lime green accents, crisp typography, technical/trustworthy, no medical/doctor/body-transformation imagery.
+3. the fallback AGym visual direction only when no `brand-system.md` exists: premium AI SaaS, dark mode, glassmorphism cards, electric blue + lime green accents, crisp typography, technical/trustworthy, no medical/doctor/body-transformation imagery.
 
 If the founder provides a `design.md`, treat it as the visual source of truth for future campaign assets.
 

@@ -77,8 +77,26 @@ Do not build these in the first MVP:
 
 ## Development status
 
-Implementation has not been scaffolded yet. The current repository contains the initial product and engineering specs imported from the AGym Fable planning pass.
+The local-first Vite/React MVP shell is scaffolded and implements the first vertical slice:
 
-Dev setup commands will be added when the Vite/React app is scaffolded in issue #3.
+```text
+raw text log → deterministic parsed draft → editable JSON preview → user confirmation → local canonical event → Coach Briefing markdown/JSON export
+```
+
+Run locally:
+
+```bash
+npm install
+npm run dev
+```
+
+Quality checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test:run
+npm run build
+```
 
 Follow `AGENTS.md` and `CONTRIBUTING.md` when using coding agents.

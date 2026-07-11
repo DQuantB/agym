@@ -1,7 +1,7 @@
 # AGym — MVP Product-Loop Specification (v0)
 **Component:** Unstructured Logger + Coach Briefing Generator
 **Intended path:** `docs/product/mvp.md`
-**Status:** Draft v0 — for build validation, not final architecture
+**Status:** REFERENCE ONLY — product-loop context. Where this doc implies backend, auth, API endpoints, LLM parsing, or plan intake for v0, it is superseded by `docs/plans/mvp-implementation-plan.md` (see `docs/adr/0001-v0-source-of-truth.md`).
 
 ---
 
@@ -503,8 +503,4 @@ Add the plan paste box (Stage 1) and a simple chronological history view of cano
 Build the aggregation + markdown generation for a 7-day window, including the plan-vs-actual delta where a `plan_ref` exists, and the mandatory disclaimer. Add JSON export alongside markdown.
 
 **Day 7 — Dogfood the full loop**
-Personally run the entire loop at least twice: paste a plan → log for a few days → confirm events → generate briefing → take briefing to ChatGPT/Claude → get next plan → paste it back in. Note every friction point. This is the actual validation, not the code.
-
----
-
-*End of v0 spec. Save as `docs/product/mvp.md`.*
+Personally run the entire loop at least twice: paste a plan → log for a few days → confirm events → generate briefing → take briefing to ChatG

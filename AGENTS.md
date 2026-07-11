@@ -20,7 +20,7 @@ First MVP: Unstructured Logger + Coach Briefing Generator.
 2. Every AGym micro-app must eventually let agents/LLMs read real outcomes back from the app.
 3. Preserve raw user input.
 4. Do not flatten uncertainty into truth.
-5. Distinguish raw self-report, LLM-parsed uncertain, user-confirmed, agent-written plan, human-specialist plan, imported-device, specialist-verified, derived metric, and AI hypothesis.
+5. Distinguish raw self-report, LLM-parsed uncertain, user-confirmed, agent-written plan, human-specialist plan, imported-device, specialist-verified, derived metric, and AI hypothesis. (Product principle — **v0 implements only `provenance: "user_confirmed"`**; the full taxonomy is future schema, see `docs/architecture/v0-schema-deltas.md` §2.)
 6. No medical diagnosis or treatment claims.
 7. Pain/injury/extreme dieting/eating-disorder-like signals require caution and human/specialist review language.
 8. User owns data. Export/delete must be supported.
@@ -43,7 +43,7 @@ First MVP: Unstructured Logger + Coach Briefing Generator.
 
 For each task:
 
-1. Read the relevant docs in `docs/`.
+1. Read the relevant docs in `docs/`, starting with `docs/adr/0001-v0-source-of-truth.md` (doc precedence) — expanded tickets and the schema deltas win over older doc text.
 2. Create or use a dedicated branch.
 3. Make the smallest change that satisfies the issue.
 4. Run relevant checks.
@@ -56,17 +56,4 @@ For each task:
 Build only:
 
 ```text
-raw text log → parsed JSON → editable preview → user confirmation → canonical event saved locally → Coach Briefing markdown generated → JSON export available
-```
-
-Out of scope for first MVP:
-
-- native mobile app;
-- wearable integrations;
-- trainer dashboard;
-- full auth;
-- full backend;
-- payment;
-- public launch;
-- proprietary model;
-- medical/clinical claims.
+raw text log → parsed JSON → editable preview → user confirmation →

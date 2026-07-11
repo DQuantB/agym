@@ -1,7 +1,7 @@
 # AGym — v0 Data Model / Object Schemas
 **Intended path:** `docs/architecture/schemas.md` (or `docs/architecture/data-model.md`)
 **Target stack:** TypeScript types + Postgres/Supabase, v0
-**Status:** Draft v0 — foundation for MVP build
+**Status:** REFERENCE ONLY — future backend (Supabase/Postgres) target, **not the v0 data model**. Do not implement these tables in v0. The v0 model is `docs/plans/mvp-implementation-plan.md` §4 + `docs/architecture/v0-schema-deltas.md`. See `docs/adr/0001-v0-source-of-truth.md`.
 
 ---
 
@@ -1043,8 +1043,4 @@ user_profile (1) ──< agent_run (N)
 | consent_record | ✅ (llm_parsing enforced; others schema-ready) | |
 | agent_run | ✅ (manual-paste logging only) | full API-scoped logging is later |
 
-No object in this list is purely "later" — everything is at least schema-present in v0, because retrofitting the *provenance* and *consent* model onto an existing dataset later is far more expensive than defining it correctly once, now, even if some computation (derived adherence %, device import, specialist dashboards) doesn't ship until v1+.
-
----
-
-*End of v0 schema spec. Save as `docs/architecture/schemas.md`.*
+No object in this list is purely "later" — everything is at least schema-present in v0, because retrofitting the *provenance* and *consent* model onto an existing dataset later is far

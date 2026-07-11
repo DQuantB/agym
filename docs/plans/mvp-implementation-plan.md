@@ -1,5 +1,8 @@
 # AGym MVP — Implementation Plan for Coding Agent
 
+> **AUTHORITATIVE for v0** (per `docs/adr/0001-v0-source-of-truth.md`), as amended by
+> `docs/architecture/v0-schema-deltas.md` — the deltas override §4/§8/§9 where they differ.
+
 Target: local-first vertical slice. Raw text log → parse → editable preview → confirm → canonical event → Coach Briefing markdown → JSON export.
 
 Stack: TypeScript, Vite, React. No backend, no auth, no deploy. Supabase later via storage adapter swap.
@@ -29,7 +32,7 @@ agym/
     │   ├── Parser.ts         # interface + ParseResult
     │   ├── mockParser.ts     # rule-based, MVP
     │   ├── mockParser.test.ts
-    │   └── fixtures/         # messy-log .txt + expected .json pairs
+    │   └── fixtures/         # invariant fixture specs (PF-*.fixture.ts) — see tickets-09-10
     ├── storage/
     │   ├── StorageAdapter.ts # async interface
     │   ├── localStorageAdapter.ts
@@ -77,6 +80,8 @@ No router. Tabs via store `ui.activeTab`.
 
 ## 4. Data model (`src/domain/schemas.ts`)
 
+> **⚠ SUPERSEDED IN PART.** The schema below is the original draft. The reconciled, authoritative v0 schema is **`docs/plans/tickets-03-06.md` Issue 6**, amended per `docs/architecture/v0-schema-deltas.md`. Do not implement this section directly. Key differences: **`occurredAt` does not exist in v0** — events use `date: YYYY-MM-DD` + `time: HH:mm | null`; **`pain` is a first-class payload kind**; `DraftEvent` requires `parserVersion`; `CanonicalEvent` additionally requires `provenance: "user_confirmed"` and `originalPayload`.
+
 Zod first, infer types. Everything carries `schemaVersion`.
 
 ```ts
@@ -89,7 +94,7 @@ export const RawLogSchema = z.object({
 });
 
 export const UncertaintyFlagSchema = z.object({
-  field: z.string(),                 // "occurredAt", "payload.weightKg", "type"
+  field: z.string(),                 // "date", "payload.weightKg", "type"
   reason: z.string(),                // human-readable
 });
 
@@ -124,7 +129,7 @@ export const EventPayloadSchema = z.discriminatedUnion("kind", [
 export const DraftEventSchema = z.object({
   id: z.string(),
   rawLogId: z.string(),
-  occurredAt: z.string().datetime(),
+  occurredAt: z.string().datetime(), // ⚠ STALE — do not implement; v0 uses date/time (deltas §3)
   payload: EventPayloadSchema,
   uncertaintyFlags: z.array(UncertaintyFlagSchema),
   sourceText: z.string(),            // the raw segment this came from
@@ -134,6 +139,8 @@ export const DraftEventSchema = z.object({
 export const CanonicalEventSchema = DraftEventSchema.extend({
   confirmedAt: z.string().datetime(),
   editedByUser: z.boolean(),         // true if user changed anything before confirm
+  // ⚠ INCOMPLETE — v0 also requires provenance: "user_confirmed" and originalPayload
+  //   (and parserVersion on DraftEvent). See deltas §2 / tickets-03-06 Issue 6.
 });
 ```
 
@@ -170,7 +177,7 @@ Contract:
 - Split text into segments on newlines and `;`.
 - Classify per segment by keyword/regex: `NxM` / `3x8@80kg` patterns + known exercise words → workout; `kcal|ate|breakfast|lunch|dinner|protein` → meal; `slept|sleep` → sleep; bare `82.4kg|181 lbs` → bodyweight; else → note.
 - Extract numbers where patterns match; missing values → `null` + uncertainty flag.
-- Relative dates ("yesterday") adjust `occurredAt` from `defaultDate`; ambiguous time → flag on `occurredAt`.
+- Relative dates ("yesterday") adjust the event `date` from `defaultDate`; ambiguous date → flag on `date`. (v0 has no `occurredAt` — deltas §3; `time` is null unless the user stated HH:mm.)
 
 Good enough to validate the loop UX. It will misparse — that's the point: it exercises the correction flow.
 
@@ -226,10 +233,10 @@ export interface StorageAdapter {
 
 Vitest + React Testing Library. No Playwright yet.
 
-1. **Parser golden tests** (highest value): ~10 fixture files of realistic messy logs (multi-line, mixed units, typos, ambiguous dates, pure garbage) with expected JSON. Assert events, payloads, and uncertainty flags. Add a fixture for every misparse found during dogfooding.
+1. **Parser fixture tests** (highest value). *(Superseded: v0 uses the invariant fixture harness — no expected-JSON deep equality. See `docs/plans/tickets-09-10.md` and the 25 fixtures in `docs/evals/parser-fixtures-v0.md`.)* Assert event kinds, key values, and uncertainty flags via invariants. Add a fixture for every misparse found during dogfooding.
 2. **Schema tests**: valid/invalid samples per event type; quarantine behavior on corrupt localStorage.
 3. **Storage tests**: round-trip save/load, upsert semantics, exportAll shape, deleteAll leaves keys empty (jsdom localStorage).
-4. **Briefing snapshot tests**: known event set → markdown snapshot; empty range → "no data" briefing; uncertainty flags appear in output.
+4. **Briefing tests**: semantic assertions per `docs/plans/tickets-15-16.md` (snapshots optional regression net); empty range → "no data" briefing; uncertainty flags appear in output.
 5. **Component tests**: EventEditor edit → confirm marks `editedByUser`; ParsePreview confirm-all; DataPanel delete-all requires typed confirmation.
 6. **Integration test**: render App with in-memory adapter, paste text → parse → edit one field → confirm → event in timeline → briefing contains it.
 
@@ -253,7 +260,7 @@ CI: single GitHub Actions workflow — `lint`, `tsc --noEmit`, `vitest run`, `vi
 - Corrupt record in localStorage does not crash load; lands in quarantine key
 
 **#4 Parser interface + mock parser + fixtures**
-- `Parser` interface as §5; mock parser passes ≥10 golden fixtures
+- `Parser` interface as §5; mock parser passes the invariant fixture set (PF-001…PF-025, `docs/evals/parser-fixtures-v0.md`)
 - Never throws: fuzz test with random strings always returns ≥1 event
 - Unmatched text becomes note event with uncertainty flag; lbs→kg conversion flagged
 
@@ -299,24 +306,4 @@ CI: single GitHub Actions workflow — `lint`, `tsc --noEmit`, `vitest run`, `vi
 
 Dependency chain: #1 → #2 → (#3, #4 in parallel) → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12.
 
-## 12. What NOT to build yet
-
-- Auth, accounts, Supabase, any backend or API routes
-- LLM parser (interface stub only), API-key settings UI
-- Plan intake micro-app / agent write endpoint (the other half of the contract — after the read loop is validated)
-- Charts, streaks, PRs, analytics dashboards, trainer dashboard
-- Mobile app, PWA/offline-sync machinery, wearable integrations
-- Multi-user, sharing, benchmarks
-- Router, i18n, design system, dark mode, Tailwind
-- Deployment, error tracking, telemetry
-- IndexedDB, service workers, encryption at rest
-
-Each of these delays the only question that matters: will a user paste messy logs, correct the parse, and get a briefing worth handing to their AI coach?
-
-## 13. Suggested first PR
-
-Issues #1 + #2 + #4 in one PR: **scaffold + domain schemas + mock parser with passing golden tests. No UI.**
-
-Why this slice: it front-loads the two riskiest design decisions (event schema shape, parser contract) where they're cheapest to change, gives CI from day one, and every later PR is thin UI/state over a tested core. Reviewable in under 30 minutes; `vitest run` green is the demo.
-
-PR description checklist: schemas match §4, parser contract matches §5, ≥10 fixtures, fuzz test included, CI green.
+## 12. Wh

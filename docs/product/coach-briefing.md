@@ -1,6 +1,6 @@
 # AGym — Coach Briefing v0
 **Intended path:** `docs/product/coach-briefing.md`
-**Status:** Draft v0 — this is the main BYOA (bring-your-own-agent) artifact
+**Status:** REFERENCE for templates/tone only. The **authoritative v0 output standard is `docs/briefing/coach-briefing-v0-standard.md`** (sections, order, disclaimer, quoting rules), with behavior rules in `docs/architecture/v0-schema-deltas.md` §5. Both win on any conflict with this doc (e.g. briefings are generated on demand, not stored).
 
 ---
 
@@ -374,12 +374,4 @@ This is the single highest-leverage sentence in the whole document — it's what
 3. Else if adherence data exists and diverges from plan → ask how to restructure given the actual completion pattern.
 4. Else (a clean, on-plan window with no flags) → ask a forward-looking progression question: *"Training has been consistent and on-plan this week — what's the right next step: progress load, add volume, or hold steady another week?"*
 
-**Generic fallback template**, used only if none of the above heuristics produce enough signal (e.g., a very sparse data window):
-
-```
-Based on this week's log, what would you adjust in my next training block, and is there anything here you'd want more detail on before making that call?
-```
-
----
-
-*End of v0 Coach Briefing spec. Save as `docs/product/coach-briefing.md`.*
+**Generic fallback template**, used only if none of the above heuristics produce enough signal (e.g., a very

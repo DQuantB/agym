@@ -16,4 +16,4 @@ Imported mapping:
 | `05-mvp-implementation-plan.md` | `docs/plans/mvp-implementation-plan.md` |
 | `06-github-issues.md` | `docs/plans/github-issues.md` |
 
-The imported files are the initial engineering source of truth for AGym v0. Treat them as living docs: tighten them through PRs as implementation reveals constraints.
+The imported Fable files are **historical/imported planning inputs**, not the current source of truth. Current v0 precedence is governed by `docs/adr/0001-v0-source-of

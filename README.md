@@ -22,10 +22,14 @@ The MVP should prove that messy real-world fitness/health behavior can become ag
 
 ## Source of truth
 
+**Precedence rule (`docs/adr/0001-v0-source-of-truth.md`):** for v0, `docs/plans/mvp-implementation-plan.md` + `docs/architecture/v0-schema-deltas.md` are authoritative; everything else is reference and loses on conflict. `docs/product/mvp.md` and `docs/architecture/data-model.md` describe the future backend target, not what to build now.
+
 Start here:
 
-- Product scope: `docs/product/mvp.md`
-- Data model: `docs/architecture/data-model.md`
+- **v0 precedence ADR: `docs/adr/0001-v0-source-of-truth.md`**
+- **v0 schema deltas: `docs/architecture/v0-schema-deltas.md`**
+- Product scope (reference): `docs/product/mvp.md`
+- Future data model (reference): `docs/architecture/data-model.md`
 - Parser/eval examples: `docs/evals/sample-logs.md`
 - Coach Briefing format: `docs/product/coach-briefing.md`
 - Implementation plan: `docs/plans/mvp-implementation-plan.md`
@@ -36,6 +40,7 @@ Start here:
 
 For v0, AGym is local-first.
 
+- v0 stores health/fitness data in browser localStorage: plaintext, unencrypted, and not guaranteed durable (browser eviction or "clear site data" destroys it). The app must request persistent storage and nudge users to export backups.
 - Raw user input must be preserved.
 - User-confirmed canonical events must remain exportable.
 - Export/delete must be available before the MVP is considered complete.
@@ -53,27 +58,4 @@ Pain, injury, extreme dieting, eating-disorder-like signals, or other safety-sen
 Do not build these in the first MVP:
 
 - full AI coach;
-- medical diagnosis, treatment, or clinical claims;
-- native mobile app;
-- wearable integrations;
-- trainer dashboard;
-- full auth;
-- full backend;
-- payments;
-- production deployment;
-- public launch;
-- proprietary model;
-- recommendation engine;
-- analytics dashboards;
-- social/community features;
-- API/MCP endpoint;
-- import from third-party fitness apps;
-- paid APIs without explicit approval.
-
-## Development status
-
-Implementation has not been scaffolded yet. The current repository contains the initial product and engineering specs imported from the AGym Fable planning pass.
-
-Dev setup commands will be added when the Vite/React app is scaffolded in issue #3.
-
-Follow `AGENTS.md` and `CONTRIBUTING.md` when using coding agents.
+- m

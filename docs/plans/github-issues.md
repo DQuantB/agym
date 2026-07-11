@@ -6,6 +6,8 @@ Label set used: `type:docs` `type:infra` `type:feature` `type:test` · `area:dom
 
 Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passes CI, and touches nothing outside its stated scope.
 
+> **Note:** Issues 3–6 have expanded agent-proof tickets in `docs/plans/tickets-03-06.md`, which **supersede** the summaries below (incl. the Issue 6 schema, which is amended by `docs/architecture/v0-schema-deltas.md`).
+
 ---
 
 ## Issue 1 — Add README with project charter and non-goals
@@ -47,6 +49,8 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 
 ## Issue 3 — Scaffold Vite + React + TypeScript + Vitest + lint
 
+> **Expanded authoritative ticket:** `docs/plans/tickets-03-06.md#issue-3--scaffold-vite--react--typescript--vitest--lint`. Use that ticket for implementation; this summary is not sufficient.
+
 **Labels:** `type:infra` `size:M` `mvp`
 **Goal:** A clean-cloning repo where dev, build, test, and lint all run green.
 **Background:** Foundation for everything; folder structure per IMPLEMENTATION_PLAN §1.
@@ -69,6 +73,8 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 
 ## Issue 4 — CI workflow: lint, typecheck, test, build on every PR
 
+> **Expanded authoritative ticket:** `docs/plans/tickets-03-06.md#issue-4--ci-lint-typecheck-test-build-on-every-pr`. Use that ticket for implementation; this summary is not sufficient.
+
 **Labels:** `type:infra` `size:S` `mvp`
 **Goal:** No PR merges unless the whole pipeline is green.
 **Background:** Agent-produced PRs need mechanical gating from day one.
@@ -86,6 +92,8 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 ---
 
 ## Issue 5 — App shell: tab navigation and placeholder screens
+
+> **Expanded authoritative ticket:** `docs/plans/tickets-03-06.md#issue-5--app-shell-tab-navigation-and-placeholder-screens`. Use that ticket for implementation; this summary is not sufficient.
 
 **Labels:** `type:feature` `area:ui` `size:S` `mvp`
 **Goal:** Navigable skeleton — Log | Timeline | Briefing | Data tabs — so every later UI issue lands into an existing slot.
@@ -105,6 +113,8 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 ---
 
 ## Issue 6 — Domain schemas: Zod models for logs, events, payloads, uncertainty
+
+> **Expanded authoritative ticket:** `docs/plans/tickets-03-06.md#issue-6--domain-schemas-zod-models-amended-by-v0-schema-deltas`. Use that ticket for implementation (its schema block is amended by `docs/architecture/v0-schema-deltas.md`); this summary is not sufficient.
 
 **Labels:** `type:feature` `area:domain` `size:M` `mvp`
 **Goal:** The single source of truth for all data shapes, with types inferred from schemas.
@@ -167,35 +177,40 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 
 ## Issue 9 — Parser interface and fixture test harness
 
+> **Expanded authoritative ticket:** `docs/plans/tickets-09-10.md#issue-9--parser-interface-and-invariant-fixture-harness`. Use that ticket for implementation; this summary is not sufficient. The harness is **invariant-based, not deep-equal golden JSON**.
+
 **Labels:** `type:feature` `type:test` `area:parser` `size:S` `mvp`
-**Goal:** The `Parser` contract plus a golden-fixture harness, before any parsing logic exists.
+**Goal:** The `Parser` contract plus an invariant fixture harness, before any parsing logic exists.
 **Background:** IMPLEMENTATION_PLAN §5. The interface must be identical for mock and future LLM parser. Contract: never throws; nothing silently dropped; low confidence → uncertainty flag.
 **Scope:**
 - `src/parser/Parser.ts`: `ParseInput` (`text`, `defaultDate`), `ParseResult` (`events`, `parserName`, `warnings`), `Parser` interface.
-- `src/parser/fixtures/`: harness that reads `NN-name.txt` / `NN-name.expected.json` pairs and asserts deep equality against a parser; 2 trivial seed fixtures wired to a placeholder parser that returns a single note event.
+- `src/parser/fixtures/`: **invariant fixture harness** — fixture specs carry raw input + `defaultDate` + invariant assertions (no throw, required DraftEvent fields, payload kinds, selected extracted values, uncertainty flags, sourceText coverage, `parserVersion` presence). No generated-ID or exact-full-JSON assertions. 2 seed fixtures wired to a placeholder parser that returns a single note event.
 **Files:** `src/parser/Parser.ts`, `src/parser/fixtures/*`, `src/parser/fixtureHarness.ts`, `src/parser/fixtureHarness.test.ts`
 **Acceptance criteria:**
 - [ ] Interface matches §5
-- [ ] Harness discovers fixture pairs automatically; adding a pair requires no code change
+- [ ] Harness discovers fixture specs automatically; adding one requires no code change
 - [ ] Placeholder parser + 2 seed fixtures pass
-**Tests/checks:** Harness test green; a mismatching expected.json fails with a readable diff.
+**Tests/checks:** Harness test green; a failing invariant reports the fixture id and which invariant failed.
 **Out of scope:** Real parsing rules (Issue 10), LLM anything.
 **Risk notes:** Low. Keep `ParseResult` free of UI concerns. Depends on Issue 6.
 
 ---
 
-## Issue 10 — Mock parser: rule-based parsing with golden fixtures and fuzz test
+## Issue 10 — Mock parser: rule-based parsing with invariant fixtures and fuzz test
+
+> **Expanded authoritative ticket:** `docs/plans/tickets-09-10.md#issue-10--mock-parser-deterministic-rules-against-the-invariant-fixtures--fuzz`. Use that ticket for implementation; this summary is not sufficient. Fixture set: `docs/evals/parser-fixtures-v0.md` (PF-001…PF-025).
 
 **Labels:** `type:feature` `area:parser` `size:M` `mvp`
 **Goal:** A deterministic parser good enough to exercise the full correction loop.
 **Background:** IMPLEMENTATION_PLAN §6. Misparses are acceptable — they feed the correction UX. What is not acceptable: throwing, or losing text.
 **Scope:**
-- `src/parser/mockParser.ts`: segment on newlines/`;`; classify via keyword/regex (workout `3x8@80kg` patterns, meal keywords, `slept`, bare bodyweight, else note); extract numbers; lbs→kg with uncertainty flag; relative dates from `defaultDate`; missing values → `null` + flag.
-- ≥10 realistic messy fixtures: multi-line mixed logs, typos, mixed units, ambiguous dates, pure garbage, empty-ish input.
-- Fuzz test: 500 random strings → always returns ≥1 event, never throws, concatenated `sourceText` covers input.
-**Files:** `src/parser/mockParser.ts`, `src/parser/mockParser.test.ts`, `src/parser/fixtures/*` (10+ pairs)
+- `src/parser/mockParser.ts`: segment on newlines/`;`; classify via keyword/regex (workout `3x8@80kg` patterns, meal keywords, `slept`, bare bodyweight, **pain/discomfort/injury language → `pain`**, else note); extract numbers; lbs→kg with uncertainty flag; relative dates from `defaultDate`; `time` null unless explicitly stated; missing values → `null` + flag; exercise names as-logged (no normalization).
+- Pain rules: severity only if user-stated; no diagnosis, cause, risk, or treatment output of any kind. Nutrition numbers user-stated only; never computed.
+- 25 realistic fixtures per `docs/evals/parser-fixtures-v0.md` (PF-001…PF-025), invariant-style.
+- Fuzz test: 500 seeded-random strings → never throws, ≥1 event for non-empty input, sourceText coverage preserved, garbage becomes note with uncertainty flag.
+**Files:** `src/parser/mockParser.ts`, `src/parser/mockParser.test.ts`, `src/parser/fixtures/*` (PF-001…PF-025)
 **Acceptance criteria:**
-- [ ] All fixtures pass via the Issue 9 harness
+- [ ] All 25 fixtures pass via the Issue 9 harness
 - [ ] Fuzz test passes; unclassifiable text → note event with uncertainty flag
 - [ ] Every parsed event carries `sourceText` and `rawLogId`
 - [ ] lbs inputs converted to kg with a flag on the converted field
@@ -223,7 +238,7 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 - [ ] Store contains no parsing or briefing logic
 **Tests/checks:** Store tests with in-memory adapter covering every action; integration: submit → edit → confirm → rehydrate → event present.
 **Out of scope:** Any React components, selectors optimization, devtools config beyond default.
-**Risk notes:** `editedByUser` comparison needs a stable definition (deep-equal payload + occurredAt) — pin it in a test. Depends on Issues 7, 8, 10.
+**Risk notes:** `editedByUser` comparison needs a stable definition (deep-equal of `payload` + `date` + `time`) — pin it in a test. Depends on Issues 7, 8, 10.
 
 ---
 
@@ -254,12 +269,12 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 **Background:** This screen is the product hypothesis. It must make uncertainty visible and correction cheap.
 **Scope:**
 - `ParsePreview.tsx`: lists drafts from the last parse; confirm-all / discard-all bar; explicit "nothing parsed" state with raw text shown.
-- `EventEditor.tsx`: per-draft editable type, occurredAt, payload fields; type change swaps the payload form, preserving mappable fields; per-event confirm/discard; shows `sourceText`.
+- `EventEditor.tsx`: per-draft editable type, `date`, `time`, payload fields; type change swaps the payload form, preserving mappable fields; per-event confirm/discard; shows `sourceText`.
 - `UncertaintyBadge.tsx`: renders flags per field; editing a flagged field clears its flag.
 **Files:** `src/components/{ParsePreview,EventEditor,UncertaintyBadge}.tsx` + tests
 **Acceptance criteria:**
 - [ ] Every payload field of every kind is editable
-- [ ] Type switch preserves `occurredAt` and `sourceText`, maps compatible fields, flags the rest
+- [ ] Type switch preserves `date`, `time`, `sourceText`, and `parserVersion`, maps compatible fields, flags the rest
 - [ ] Confirm sets `editedByUser` correctly (via store)
 - [ ] Editing a flagged field removes that flag; badge disappears
 - [ ] Zero-draft state shows raw text and a "save as note" escape hatch
@@ -284,26 +299,29 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 - [ ] Flags visible on canonical events
 **Tests/checks:** RTL with seeded store: grouping, delete flow, empty state.
 **Out of scope:** Editing canonical events, filtering, search, charts, pagination/virtualization.
-**Risk notes:** Low. Day-grouping timezone bugs are the classic trap — test with events near midnight. Depends on Issues 11, 13.
+**Risk notes:** Low. Group by the event's `date` field (string key) — never derive the day from a timestamp; there is no `occurredAt` in v0, so classic timezone-grouping bugs cannot occur unless someone reintroduces timestamp math. Depends on Issues 11, 13.
 
 ---
 
-## Issue 15 — Coach Briefing generator (pure function) with snapshot tests
+## Issue 15 — Coach Briefing generator (pure function)
+
+> **Expanded authoritative ticket:** `docs/plans/tickets-15-16.md#issue-15--coach-briefing-generator-pure-function`. Use that ticket for implementation; this summary is not sufficient. Output rules: `docs/briefing/coach-briefing-v0-standard.md`.
 
 **Labels:** `type:feature` `area:briefing` `size:M` `mvp`
 **Goal:** The payoff artifact: `(events, {from, to}) → markdown` a user hands to any AI coach.
 **Background:** IMPLEMENTATION_PLAN §9 issue 9. States gaps explicitly, never interpolates, carries a data-quality section and a fixed disclaimer.
 **Scope:**
-- `src/briefing/generateBriefing.ts`: sections — period summary, training (sessions, volume by exercise), nutrition (meals logged, kcal coverage incl. "no nutrition data N of M days"), bodyweight trend (first/last/delta), sleep, data quality (lists uncertainty flags), disclaimer: "Log data, not medical advice."
-- Pure function, no store/storage imports.
+- `src/briefing/generateBriefing.ts`: pure function `(events: CanonicalEvent[], { from, to, generatedAt }) → markdown`, implementing `docs/briefing/coach-briefing-v0-standard.md` — all 11 sections in order, incl. **⚠ Pain / discomfort immediately after Summary**, fixed disclaimer "User-reported log data only. Not medical advice.", raw user text quoted/marked, data-quality section, export metadata.
+- Filters and groups by `date` (YYYY-MM-DD string), never by timestamp. No store/storage/React imports; `generatedAt` from opts, not the clock.
 **Files:** `src/briefing/generateBriefing.ts`, `src/briefing/generateBriefing.test.ts`, `src/briefing/__snapshots__/`
 **Acceptance criteria:**
-- [ ] Known 14-day event fixture → stable markdown snapshot
-- [ ] Empty range → valid "no data" briefing with disclaimer
+- [ ] Known 14-day event fixture → stable markdown (deterministic; snapshot allowed as regression net)
+- [ ] Empty range → valid "no data" briefing with disclaimer and all sections present
 - [ ] Gaps stated explicitly; no invented averages over missing days
 - [ ] Flags from events appear in data-quality section
+- [ ] Semantic tests (not only snapshots) for: empty range, pain rendering, raw-text quoting, uncertainty flags, forbidden medical/advice language, no computed nutrition, no exercise normalization, `date`-based filtering
 - [ ] Zero React/storage imports
-**Tests/checks:** Snapshot tests + unit tests for volume math and gap counting (verify arithmetic by hand in test comments).
+**Tests/checks:** Semantic assertions per the expanded ticket + optional snapshots; volume math verified by hand in test comments.
 **Out of scope:** UI (Issue 16), PDF, JSON context export (Issue 17), trend charts, recommendations of any kind.
 **Risk notes:** Scope creep into "insights" — the briefing reports, it does not advise. Volume math errors are silent; hand-check test values. Depends on Issue 6.
 
@@ -311,10 +329,12 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 
 ## Issue 16 — Briefing view: date range, copy, download
 
+> **Expanded authoritative ticket:** `docs/plans/tickets-15-16.md#issue-16--briefing-view-date-range-copy-download`. Use that ticket for implementation; this summary is not sufficient.
+
 **Labels:** `type:feature` `area:ui` `area:briefing` `size:S` `mvp`
 **Goal:** Make the briefing usable: pick range, read it, copy or download the .md.
 **Scope:**
-- `BriefingView.tsx`: from/to date inputs (default last 14 days), rendered markdown (simple pre/basic renderer — no new deps without approval), copy-to-clipboard with confirmation, download as `agym-briefing-YYYY-MM-DD.md`.
+- `BriefingView.tsx`: from/to date inputs (default = last 14 **local** dates), generated markdown only — **no stored briefing model**, regenerate on range change; rendered via `<pre>`/basic output (no markdown-renderer dep unless already approved); copy-to-clipboard and download (`agym-briefing-YYYY-MM-DD.md`) carry the exact markdown; disclaimer visible in the UI; no medical/advice language in component copy.
 **Files:** `src/components/BriefingView.tsx`, `src/components/BriefingView.test.tsx`
 **Acceptance criteria:**
 - [ ] Default range = last 14 days; changing range regenerates
@@ -388,4 +408,4 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 | 17 | JSON export | privacy | 8, 11 |
 | 18 | Delete-all + privacy pass | privacy | 8, 11, 17 |
 
-Parallel tracks after Issue 6: storage (7→8), parser (9→10), and briefing generator (15) can proceed concurrently; UI serializes after 11.
+Parallel tracks after Issue 6: storage (7→8), parser (9→10), and briefing generator (15) can proceed concurrently; UI serializes after 

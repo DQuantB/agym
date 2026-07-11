@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExportSchema } from '../domain/schemas';
-import { makeCanonicalEvent, makeRawLog, runAdapterContract } from './adapterContract.test';
+import { makeCanonicalEvent, makeRawLog } from '../test/factories';
+import { runAdapterContract } from './adapterContract.test';
 import { localStorageAdapter, localStorageKeys } from './localStorageAdapter';
 
 runAdapterContract('localStorageAdapter', () => {

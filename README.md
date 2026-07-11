@@ -40,10 +40,11 @@ Start here:
 
 For v0, AGym is local-first.
 
-- v0 stores health/fitness data in browser localStorage: plaintext, unencrypted, and not guaranteed durable (browser eviction or "clear site data" destroys it). The app must request persistent storage and nudge users to export backups.
-- Raw user input must be preserved.
-- User-confirmed canonical events must remain exportable.
-- Export/delete must be available before the MVP is considered complete.
+- v0 stores health/fitness data in browser localStorage: plaintext, unencrypted, and not guaranteed durable (browser eviction or "clear site data" destroys it). The app requests persistent storage where the browser supports it and nudges users to export backups.
+- Raw user input is preserved before parsing.
+- User-confirmed canonical events are exportable as a complete JSON file containing `schemaVersion`, `exportedAt`, `rawLogs`, and `events`.
+- Delete-all wipes every `agym.*` localStorage key after typed confirmation plus a browser confirmation dialog.
+- The v0 app has no backend, no accounts, no analytics, and no source-code network calls such as `fetch`.
 - No opaque resale of user data.
 - Research, model training, fine-tuning, sharing, or external sync requires explicit consent and is out of scope for v0.
 

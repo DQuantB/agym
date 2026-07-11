@@ -1,0 +1,23 @@
+{
+  "events": [
+    {
+      "id": "draft_07-pain-severity-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "pain",
+        "bodyPart": "knee",
+        "description": "right knee pain 3/10 after squats",
+        "severity": 3,
+        "notes": null
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "right knee pain 3/10 after squats",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

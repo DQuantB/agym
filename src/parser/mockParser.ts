@@ -4,7 +4,12 @@ import type { ParseInput, ParseResult, Parser } from './Parser';
 
 const parserName = 'mock-v1';
 const lbToKg = (lb: number) => Math.round(lb * 0.453592 * 10) / 10;
-const addDays = (date: string, days: number) => { const d = new Date(`${date}T00:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0,10); };
+const addDays = (date: string, days: number) => {
+  const [year, month, day] = date.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0,10);
+};
 function dateFor(segment: string, defaultDate: string) { return /\byesterday\b/i.test(segment) ? addDays(defaultDate, -1) : defaultDate; }
 function timeFor(segment: string) { return segment.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/)?.[0].padStart(5,'0') ?? null; }
 function bodyPart(segment: string) { return segment.match(/\b(knee|shoulder|back|lower back|hamstring|ankle|elbow|wrist|hip|neck|quad|calf)\b/i)?.[0] ?? null; }
@@ -49,7 +54,7 @@ function parseBodyweight(input: ParseInput, segment: string): DraftEvent | null 
 }
 function parseSleep(input: ParseInput, segment: string): DraftEvent | null {
   if (!/\b(slept|sleep)\b/i.test(segment)) return null; const dur = segment.match(/(\d+(?:\.\d+)?)\s*h\b/i)?.[1];
-  let quality: 'poor'|'ok'|'good'|null = null; if (/\b(great|rested|good)\b/i.test(segment)) quality='good'; if (/\b(crap|bad|poor|awful)\b/i.test(segment)) quality='poor';
+  let quality: 'poor'|'ok'|'good'|null = null; if (/\b(great|rested|good)\b/i.test(segment)) quality='good'; if (/\b(crap|bad|badly|poor|awful)\b/i.test(segment)) quality='poor';
   return event(input, segment, { kind: 'sleep', durationH: dur ? Number(dur) : null, quality });
 }
 function parsePain(input: ParseInput, segment: string): DraftEvent | null {

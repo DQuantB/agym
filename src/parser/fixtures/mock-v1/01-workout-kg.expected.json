@@ -1,0 +1,43 @@
+{
+  "events": [
+    {
+      "id": "draft_01-workout-kg-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "workout",
+        "exercises": [
+          {
+            "name": "Squat",
+            "sets": [
+              {
+                "reps": 8,
+                "weightKg": 80,
+                "rpe": null
+              },
+              {
+                "reps": 8,
+                "weightKg": 80,
+                "rpe": null
+              },
+              {
+                "reps": 8,
+                "weightKg": 80,
+                "rpe": null
+              }
+            ]
+          }
+        ],
+        "durationMin": null,
+        "notes": null
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "Squat 3x8@80kg",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

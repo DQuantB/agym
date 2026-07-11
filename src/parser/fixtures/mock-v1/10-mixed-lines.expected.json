@@ -1,0 +1,44 @@
+{
+  "events": [
+    {
+      "id": "draft_10-mixed-lines-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "meal",
+        "description": "eggs 400 kcal",
+        "kcal": 400,
+        "proteinG": null
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "breakfast eggs 400 kcal",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    },
+    {
+      "id": "draft_10-mixed-lines-uuid-2",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "pain",
+        "bodyPart": "shoulder",
+        "description": "shoulder sore about 2/10",
+        "severity": 2,
+        "notes": null
+      },
+      "uncertaintyFlags": [
+        {
+          "field": "payload.severity",
+          "reason": "severity was stated approximately"
+        }
+      ],
+      "sourceText": "shoulder sore about 2/10",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

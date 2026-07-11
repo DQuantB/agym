@@ -1,0 +1,22 @@
+{
+  "events": [
+    {
+      "id": "draft_03-meal-kcal-protein-uuid-1",
+      "rawLogId": "raw_fixture",
+      "date": "2026-07-11",
+      "time": null,
+      "payload": {
+        "kind": "meal",
+        "description": "oats 650 kcal 35g protein",
+        "kcal": 650,
+        "proteinG": 35
+      },
+      "uncertaintyFlags": [],
+      "sourceText": "lunch: oats 650 kcal 35g protein",
+      "parserVersion": "mock-v1",
+      "schemaVersion": 1
+    }
+  ],
+  "parserName": "mock-v1",
+  "warnings": []
+}

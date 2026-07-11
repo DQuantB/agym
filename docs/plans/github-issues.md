@@ -408,4 +408,4 @@ Branch convention: `issue/<number>-<slug>`. Every PR references its issue, passe
 | 17 | JSON export | privacy | 8, 11 |
 | 18 | Delete-all + privacy pass | privacy | 8, 11, 17 |
 
-Parallel tracks after Issue 6: storage (7→8), parser (9→10), and briefing generator (15) can proceed concurrently; UI serializes after 
+Parallel tracks after Issue 6: storage (7→8), parser (9→10), and briefing generator (15) can proceed concurrently; UI serializes after 11.

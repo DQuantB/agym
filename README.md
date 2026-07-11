@@ -58,4 +58,27 @@ Pain, injury, extreme dieting, eating-disorder-like signals, or other safety-sen
 Do not build these in the first MVP:
 
 - full AI coach;
-- m
+- medical diagnosis, treatment, or clinical claims;
+- native mobile app;
+- wearable integrations;
+- trainer dashboard;
+- full auth;
+- full backend;
+- payments;
+- production deployment;
+- public launch;
+- proprietary model;
+- recommendation engine;
+- analytics dashboards;
+- social/community features;
+- API/MCP endpoint;
+- import from third-party fitness apps;
+- paid APIs without explicit approval.
+
+## Development status
+
+Implementation has not been scaffolded yet. The current repository contains the initial product and engineering specs imported from the AGym Fable planning pass.
+
+Dev setup commands will be added when the Vite/React app is scaffolded in issue #3.
+
+Follow `AGENTS.md` and `CONTRIBUTING.md` when using coding agents.

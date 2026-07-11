@@ -1043,4 +1043,8 @@ user_profile (1) ──< agent_run (N)
 | consent_record | ✅ (llm_parsing enforced; others schema-ready) | |
 | agent_run | ✅ (manual-paste logging only) | full API-scoped logging is later |
 
-No object in this list is purely "later" — everything is at least schema-present in v0, because retrofitting the *provenance* and *consent* model onto an existing dataset later is far
+> **v0 implementation note:** this table is retained as future backend reference only. It is not the local-first v0 build spec. For the actual v0 schema, implement `docs/plans/tickets-03-06.md` Issue 6 plus `docs/architecture/v0-schema-deltas.md`.
+
+---
+
+*End of future backend schema reference.*

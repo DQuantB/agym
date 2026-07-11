@@ -503,4 +503,8 @@ Add the plan paste box (Stage 1) and a simple chronological history view of cano
 Build the aggregation + markdown generation for a 7-day window, including the plan-vs-actual delta where a `plan_ref` exists, and the mandatory disclaimer. Add JSON export alongside markdown.
 
 **Day 7 — Dogfood the full loop**
-Personally run the entire loop at least twice: paste a plan → log for a few days → confirm events → generate briefing → take briefing to ChatG
+Personally run the implemented v0 read loop at least twice: log for a few days → confirm events → generate briefing → take briefing to ChatGPT/Claude → use the response outside AGym. Plan paste/intake is deferred by the v0 ADR; do not build it in this MVP. Note every friction point. This is the actual validation, not the code.
+
+---
+
+*End of product-loop reference. For implementation precedence, start at `docs/adr/0001-v0-source-of-truth.md`.*

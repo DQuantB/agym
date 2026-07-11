@@ -56,4 +56,17 @@ For each task:
 Build only:
 
 ```text
-raw text log → parsed JSON → editable preview → user confirmation →
+raw text log → parsed JSON → editable preview → user confirmation → canonical event saved locally → Coach Briefing markdown generated → JSON export available
+```
+
+Out of scope for first MVP:
+
+- native mobile app;
+- wearable integrations;
+- trainer dashboard;
+- full auth;
+- full backend;
+- payment;
+- public launch;
+- proprietary model;
+- medical/clinical claims.

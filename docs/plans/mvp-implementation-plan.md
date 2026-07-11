@@ -285,10 +285,11 @@ CI: single GitHub Actions workflow — `lint`, `tsc --noEmit`, `vitest run`, `vi
 - Empty state present
 
 **#9 Coach Briefing generator + view**
-- Pure function: `(events, {from, to}) → markdown`
-- Briefing sections: period summary, training (volume by exercise, sessions), nutrition (logged meals/kcal coverage), bodyweight trend, sleep, data-quality note listing uncertainty flags, and a fixed disclaimer: "Log data, not medical advice."
-- Explicitly states gaps ("no nutrition data logged 4 of 14 days") rather than interpolating
-- Copy-to-clipboard and download `.md` work; snapshot tests pass
+- **Superseded/expanded:** implement briefing output from `docs/briefing/coach-briefing-v0-standard.md` and Issues 15–16 / `docs/plans/tickets-15-16.md`.
+- Pure function: `(events, {from, to, generatedAt}) → markdown`; generated on demand, never stored.
+- Briefing sections include fixed disclaimer, summary counts, prominent pain/discomfort section, training, nutrition, bodyweight, sleep, notes, data quality, and export metadata.
+- Explicitly states gaps rather than interpolating; raw user text is quoted/marked; no medical/advice language.
+- UI supports copy-to-clipboard and download `.md`; semantic tests are required, snapshots optional.
 
 **#10 Data panel: JSON export + delete all**
 - Export downloads one JSON file: rawLogs + events + exportedAt + schemaVersion
@@ -306,4 +307,26 @@ CI: single GitHub Actions workflow — `lint`, `tsc --noEmit`, `vitest run`, `vi
 
 Dependency chain: #1 → #2 → (#3, #4 in parallel) → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12.
 
-## 12. Wh
+## 12. What NOT to build yet
+
+- Auth, accounts, Supabase, any backend or API routes
+- LLM parser (interface stub only), API-key settings UI
+- Plan intake micro-app / agent write endpoint (the other half of the contract — after the read loop is validated)
+- Charts, streaks, PRs, analytics dashboards, trainer dashboard
+- Mobile app, PWA/offline-sync machinery, wearable integrations
+- Multi-user, sharing, benchmarks
+- Router, i18n, design system, dark mode, Tailwind
+- Deployment, error tracking, telemetry
+- IndexedDB, service workers, encryption at rest
+
+Each of these delays the only question that matters: will a user paste messy logs, correct the parse, and get a briefing worth handing to their AI coach?
+
+## 13. Suggested first PR
+
+**Superseded by `docs/plans/tickets-03-06.md`: start with Issue 3 only.**
+
+First implementation PR: **Issue 3 — scaffold Vite + React + TypeScript + Vitest + lint**. Do not include schemas, parser, storage, tabs, or briefing behavior in that PR.
+
+Why this slice: it creates the clean toolchain and package scripts that every later agent PR must use. Required verification after Issue 3: `npm ci && npm run lint && npm run typecheck && npm run test:run && npm run build`.
+
+Then proceed one issue per branch/PR using the expanded tickets where present: Issue 4 (CI), Issue 5 (app shell), Issue 6 (schemas), Issue 9/10 (parser), Issue 15/16 (briefing).

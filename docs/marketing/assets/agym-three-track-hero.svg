@@ -1,0 +1,86 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AGym three-track waitlist hero concept</title>
+  <desc id="desc">Three inputs — messy logs, AI training plan, and weekly coach briefing — flow into user-confirmed fitness memory and export to ChatGPT, Claude, or an agent.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#13284a"/>
+      <stop offset="55%" stop-color="#07111f"/>
+      <stop offset="100%" stop-color="#030711"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#53d8ff"/>
+      <stop offset="100%" stop-color="#b8ff5e"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.32 0 0 0 0 0.85 0 0 0 0 1 0 0 0 .35 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .h{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:760;fill:#f7fbff}
+      .t{font-family:Inter,ui-sans-serif,system-ui,sans-serif;fill:#b8c7d9;font-size:26px}
+      .s{font-family:Inter,ui-sans-serif,system-ui,sans-serif;fill:#7f93aa;font-size:21px}
+      .card{fill:rgba(255,255,255,.065);stroke:rgba(255,255,255,.18);stroke-width:1.5}
+      .line{stroke:url(#accent);stroke-width:4;fill:none;stroke-linecap:round;opacity:.85}
+      .pill{fill:rgba(83,216,255,.14);stroke:rgba(83,216,255,.5)}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1160" cy="160" r="280" fill="#53d8ff" opacity=".08"/>
+  <circle cx="280" cy="760" r="260" fill="#b8ff5e" opacity=".06"/>
+
+  <text x="92" y="92" class="h" font-size="54">AGym</text>
+  <text x="92" y="132" class="t">fitness memory for AI-native users</text>
+
+  <g transform="translate(90 205)">
+    <rect class="card" rx="28" width="340" height="150"/>
+    <text class="h" x="28" y="45" font-size="30">Messy Logs</text>
+    <text class="s" x="28" y="84">bench 80kg 3x8</text>
+    <text class="s" x="28" y="114">slept 6h · knee pain</text>
+    <text class="s" x="28" y="144">eggs + bagel</text>
+  </g>
+  <g transform="translate(90 385)">
+    <rect class="card" rx="28" width="340" height="150"/>
+    <text class="h" x="28" y="45" font-size="30">AI Training Plan</text>
+    <text class="s" x="28" y="84">Mon: Squat 5×5</text>
+    <text class="s" x="28" y="114">Wed: Bench + row</text>
+    <text class="s" x="28" y="144">Fri: Deadlift</text>
+  </g>
+  <g transform="translate(90 565)">
+    <rect class="card" rx="28" width="340" height="150"/>
+    <text class="h" x="28" y="45" font-size="30">Coach Briefing</text>
+    <text class="s" x="28" y="84">Training: 3 sessions</text>
+    <text class="s" x="28" y="114">Sleep: inconsistent</text>
+    <text class="s" x="28" y="144">Pain: knee flagged</text>
+  </g>
+
+  <path class="line" d="M450 280 C570 280 580 410 675 410"/>
+  <path class="line" d="M450 460 C555 460 585 450 675 450"/>
+  <path class="line" d="M450 640 C570 640 580 490 675 490"/>
+
+  <g transform="translate(675 330)" filter="url(#glow)">
+    <rect rx="34" width="380" height="250" fill="rgba(255,255,255,.09)" stroke="url(#accent)" stroke-width="2"/>
+    <text class="h" x="34" y="64" font-size="34">User-confirmed</text>
+    <text class="h" x="34" y="106" font-size="34">fitness memory</text>
+    <rect class="pill" x="34" y="142" width="138" height="42" rx="21"/>
+    <text class="t" x="55" y="171" font-size="20">local-first</text>
+    <rect class="pill" x="186" y="142" width="150" height="42" rx="21"/>
+    <text class="t" x="207" y="171" font-size="20">confirmed</text>
+    <text class="s" x="34" y="218">raw text preserved · uncertainty visible</text>
+  </g>
+
+  <path class="line" d="M1078 455 C1160 455 1195 455 1260 455"/>
+
+  <g transform="translate(1260 318)">
+    <rect class="card" rx="34" width="255" height="275"/>
+    <text class="h" x="28" y="62" font-size="30">Ready for</text>
+    <text class="h" x="28" y="100" font-size="30">ChatGPT,</text>
+    <text class="h" x="28" y="138" font-size="30">Claude, or</text>
+    <text class="h" x="28" y="176" font-size="30">your agent</text>
+    <text class="s" x="28" y="230">briefing.md</text>
+    <text class="s" x="28" y="260">export.json</text>
+  </g>
+
+  <text class="h" x="92" y="820" font-size="44">Stop re-explaining your fitness history to ChatGPT.</text>
+  <text class="t" x="92" y="860">Messy logs, AI plans, and coach briefings — one waitlist smoke test.</text>
+</svg>

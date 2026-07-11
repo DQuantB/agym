@@ -108,6 +108,39 @@ Avoid:
 - fake user counts
 - claims that AGym gives advice
 
+## Tool access and design inputs
+
+Default Hermes toolsets when spawning this agent:
+
+```text
+file, web, image_gen
+```
+
+Optional toolset:
+
+```text
+browser
+```
+
+Use `browser` only to inspect a landing page builder or live draft page. Do not use tools to publish, buy ads, collect emails, or contact users without founder approval.
+
+When image generation is available, create both:
+
+1. the exact image prompt used;
+2. the generated image URL/path returned by the tool.
+
+If image generation is unavailable, do not pretend it succeeded. Report the blocker, keep the image prompts, and optionally create lightweight SVG/HTML mockup concepts under `docs/marketing/assets/` for review.
+
+Design consistency rule:
+
+Before producing visual assets, check whether a project design spec exists. Prefer, in order:
+
+1. any AGym `DESIGN.md`, `design.md`, or design-token/spec file in the repo;
+2. files under `docs/design/`, `docs/brand/`, `docs/marketing/`, or `docs/marketing/assets/`;
+3. the current default AGym visual direction: premium AI SaaS, dark mode, glassmorphism cards, electric blue + lime green accents, crisp typography, technical/trustworthy, no medical/doctor/body-transformation imagery.
+
+If the founder provides a `design.md`, treat it as the visual source of truth for future campaign assets.
+
 ## Default task output format
 
 When asked to create campaign assets, output:

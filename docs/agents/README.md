@@ -8,6 +8,16 @@ This folder defines the first AGym company agents used to move work forward with
 2. `product-builder-agent.md` — implementation agent for the AGym app, one GitHub issue / PR at a time.
 3. `orchestrator-agent.md` — reviewer / chief-of-staff agent that assigns work, checks outputs against source-of-truth docs, runs verification gates, and prepares founder approval cards.
 
+## Default toolsets
+
+When running agents through Hermes, use the narrowest useful tool access:
+
+- Marketing Agent: `file, web, image_gen`; optionally `browser` for inspecting a live landing-page draft.
+- Product Builder Agent: `file, terminal`; optionally `web` only for package documentation.
+- Orchestrator Agent: `file, terminal, session_search`; optionally `web` for live external state.
+
+If `image_gen` is unavailable, the Marketing Agent should report the configuration blocker and preserve prompts/mockups rather than claiming images were generated.
+
 ## Operating principle
 
 The founder should approve strategy, public claims, spend, privacy-sensitive actions, and merges. Agents should handle drafts, implementation, checks, summaries, and evidence collection.

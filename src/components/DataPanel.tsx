@@ -20,7 +20,7 @@ export function DataPanel() {
       <h2>Data ownership</h2>
       <p className="warning">Data stays on this device in plaintext browser localStorage. There is no backend sync, no analytics, and no account deletion because v0 has no accounts.</p>
       <p className="warning">AGym summarizes self-reported log data only. It does not diagnose, treat, prescribe, or provide medical advice.</p>
-      <button onClick={async () => downloadJson(await adapter.exportAll())}>Export all JSON</button>
+      <button className="primary" onClick={async () => downloadJson(await adapter.exportAll())}>Export all JSON</button>
       <hr />
       <label>
         Type “delete” to wipe all local AGym data

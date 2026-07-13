@@ -27,7 +27,7 @@ export default function App() {
     <main>
       <header className="hero">
         <div className="poster-word">AGYM</div>
-        <p className="microcopy">Local-first. No backend. No medical advice.</p>
+        <p className="microcopy">Private alpha. User-controlled data. No medical advice.</p>
         <nav aria-label="AGym sections">
           {tabs.map((tab) => (
             <button key={tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => setTab(tab.id)}>

@@ -11,6 +11,16 @@ const contextInputSchema = {
   include_raw_notes: z.boolean().default(true),
 };
 
+const planStatusSchema = z.enum(['proposed', 'active', 'superseded', 'archived']);
+const planInputSchema = {
+  raw_plan_text: z.string().trim().min(1).max(12000),
+  plan_data: z.record(z.string(), z.unknown()).default({}),
+};
+const listPlansInputSchema = {
+  status: planStatusSchema.optional(),
+  limit: z.number().int().min(1).max(50).default(20),
+};
+
 export interface AgymMcpConfiguration {
   supabaseUrl: string;
   serviceRoleKey: string;
@@ -30,13 +40,17 @@ function errorContent(message: string) {
   return { content: [{ type: 'text' as const, text: message }], isError: true };
 }
 
-async function requireReadAuthorization(client: SupabaseClient, configuration: AgymMcpConfiguration): Promise<AuthorizationRow> {
+async function requireAuthorization(
+  client: SupabaseClient,
+  configuration: AgymMcpConfiguration,
+  action: 'read_context' | 'write_proposed_plan',
+): Promise<AuthorizationRow> {
   const { data, error } = await client
     .from('agent_authorizations')
     .select('id')
     .eq('user_id', configuration.userId)
     .eq('agent_identifier', configuration.agentIdentifier)
-    .eq('action', 'read_context')
+    .eq('action', action)
     .is('revoked_at', null)
     .maybeSingle();
 
@@ -68,7 +82,7 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
     },
     async ({ from_date: fromDate, to_date: toDate, limit, include_raw_notes: includeRawNotes }) => {
       try {
-        const authorization = await requireReadAuthorization(client, configuration);
+        const authorization = await requireAuthorization(client, configuration, 'read_context');
 
         let eventsQuery = client
           .from('canonical_events')
@@ -132,6 +146,52 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
         });
       } catch (error) {
         return errorContent(error instanceof Error ? error.message : 'AGym context request failed.');
+      }
+    },
+  );
+
+  server.registerTool(
+    'list_plans',
+    {
+      description: 'List bounded agent-authored plan proposals for the authorized AGym account. Plans are not confirmed outcomes or user acceptance.',
+      inputSchema: listPlansInputSchema,
+    },
+    async ({ status, limit }) => {
+      try {
+        const authorization = await requireAuthorization(client, configuration, 'read_context');
+        let query = client.from('plans').select('id, raw_plan_text, plan_data, provenance, status, source_client, created_at, updated_at')
+          .eq('user_id', configuration.userId).is('deleted_at', null).order('created_at', { ascending: false }).limit(limit);
+        if (status) query = query.eq('status', status);
+        const { data, error } = await query;
+        if (error) throw new Error(`Could not load plans: ${error.message}`);
+        await appendAuditLog(client, configuration, authorization.id, 'list_plans', { status: status ?? null, plan_count: data?.length ?? 0 });
+        return jsonContent({ plans: data ?? [], caveat: 'Plans are agent-authored proposals, not confirmed outcomes or user acceptance.' });
+      } catch (error) {
+        return errorContent(error instanceof Error ? error.message : 'AGym plan request failed.');
+      }
+    },
+  );
+
+  server.registerTool(
+    'create_proposed_plan',
+    {
+      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan.',
+      inputSchema: planInputSchema,
+    },
+    async ({ raw_plan_text: rawPlanText, plan_data: planData }) => {
+      try {
+        const authorization = await requireAuthorization(client, configuration, 'write_proposed_plan');
+        const { data, error } = await client.rpc('create_mcp_proposed_plan', {
+          p_user_id: configuration.userId,
+          p_authorization_id: authorization.id,
+          p_agent_identifier: configuration.agentIdentifier,
+          p_raw_plan_text: rawPlanText,
+          p_plan_data: planData,
+        });
+        if (error) throw new Error(`Could not create proposed plan: ${error.message}`);
+        return jsonContent({ plan: data, caveat: 'This is an agent-authored proposal awaiting user review. It is not a confirmed outcome or active plan.' });
+      } catch (error) {
+        return errorContent(error instanceof Error ? error.message : 'AGym plan creation failed.');
       }
     },
   );

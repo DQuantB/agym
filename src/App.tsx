@@ -4,12 +4,14 @@ import { DataPanel } from './components/DataPanel';
 import { EventTimeline } from './components/EventTimeline';
 import { LogInput } from './components/LogInput';
 import { ParsePreview } from './components/ParsePreview';
+import { PlansView } from './components/PlansView';
 import { useAgymStore } from './state/store';
 import type { Tab } from './domain/types';
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'log', label: 'Log' },
   { id: 'timeline', label: 'Timeline' },
+  { id: 'plans', label: 'Plans' },
   { id: 'briefing', label: 'Briefing' },
   { id: 'data', label: 'Data' },
 ];
@@ -39,6 +41,7 @@ export default function App() {
       {lastMessage && <div className="toast">{lastMessage}</div>}
       {activeTab === 'log' && <><LogInput /><ParsePreview /></>}
       {activeTab === 'timeline' && <EventTimeline />}
+      {activeTab === 'plans' && <PlansView />}
       {activeTab === 'briefing' && <BriefingView />}
       {activeTab === 'data' && <DataPanel />}
       <footer className="microcopy">Private-alpha data is scoped to your signed-in account. Export is available here; account-wide deletion remains a deliberate, audited workflow. AGym stores and summarizes self-reported logs only; it is not medical advice.</footer>

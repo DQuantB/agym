@@ -37,6 +37,44 @@ end;
 $$;
 reset role;
 
+-- Owner-managed MCP permissions are separate per action and retain revocation history.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+insert into public.agent_authorizations (user_id, agent_identifier, action)
+values ('00000000-0000-0000-0000-000000000001', 'hermes', 'read_context');
+
+-- Only one active grant may exist for an action. This keeps MCP authorization
+-- lookup deterministic while allowing another grant after a later revocation.
+do $$
+begin
+  begin
+    insert into public.agent_authorizations (user_id, agent_identifier, action)
+    values ('00000000-0000-0000-0000-000000000001', 'hermes', 'read_context');
+    raise exception 'FAIL: duplicate active authorization unexpectedly succeeded';
+  exception when unique_violation then
+    raise notice 'PASS: duplicate active authorization rejected';
+  end;
+end;
+$$;
+
+-- Browser-role callers must not execute the SECURITY DEFINER MCP plan RPC.
+do $$
+begin
+  begin
+    perform public.create_mcp_proposed_plan(
+      '00000000-0000-0000-0000-000000000001',
+      (select id from public.agent_authorizations where user_id = '00000000-0000-0000-0000-000000000001' and action = 'read_context'),
+      'hermes',
+      'Browser bypass attempt',
+      '{}'::jsonb
+    );
+    raise exception 'FAIL: browser MCP RPC execution unexpectedly succeeded';
+  exception when insufficient_privilege then
+    raise notice 'PASS: browser MCP RPC execution rejected';
+  end;
+end;
+$$;
+
 -- User B cannot see User A's log, cannot insert as User A, and cannot read A's authorization.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', true);

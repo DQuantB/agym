@@ -89,12 +89,14 @@
 
 **Acceptance criteria:** an invited user signs in, logs out, returns, and sees only their own persisted records.
 
-## Phase 3 — Server-side LLM drafting and confirmation
+## Phase 3 — Optional server-side LLM drafting (deferred)
 
-**Objective:** Convert raw text into a schema-validated, visibly uncertain draft while preserving the raw input and keeping secrets server-only.
+**Decision:** Start the alpha with raw-note MCP context and no separate AGym parsing-model calls. Raw text remains the durable source evidence and is returned explicitly as unparsed self-report. Introduce this phase only if real usage shows that raw context is insufficient.
 
-**Steps:**
-1. Establish a server-only endpoint/function that authenticates the user and writes `parse_drafts`.
+**Future objective:** Convert a user-selected raw text note into a schema-validated, visibly uncertain cached draft while preserving the raw input and keeping secrets server-only.
+
+**Future steps:**
+1. Establish a server-only endpoint/function that authenticates the user and writes `parse_drafts` only on an explicit user/agent request.
 2. Record parser/model version, field-level confidence, safety flags, and parse status.
 3. Validate model output with Zod before storage; a bad response creates a failed/partial draft, never invented fields.
 4. Make confirmation a user-authenticated action that creates a `canonical_events` row; it does not overwrite the draft.
@@ -108,10 +110,10 @@
 **Steps:**
 1. Add a web plan view distinguishing plans from confirmed outcomes.
 2. Build a local stdio TypeScript MCP server using the standard protocol and an AGym user-scoped credential/configuration boundary.
-3. Provide narrow tools: `get_context`, `list_plans`, `create_proposed_plan`, and `list_confirmed_outcomes`.
+3. Provide narrow tools: `get_context` (bounded confirmed outcomes plus clearly labelled raw notes), `list_plans`, `create_proposed_plan`, and `list_confirmed_outcomes`. No LLM is called by the raw-context tool.
 4. Before `create_proposed_plan`, require an active `agent_authorizations` record matching client/action/scope; append `agent_audit_log` after every MCP read/write.
 5. Configure Hermes as the first MCP client and verify tool discovery.
-6. Run the founder proof: authorized Hermes plan → web plan display → user raw log → LLM draft → user confirmation → Hermes reads confirmed context.
+6. Run the founder proof: authorized Hermes plan → web plan display → user raw log → Hermes reads bounded raw/confirmed context. Add the optional draft/confirmation path only when the deferred Phase 3 is activated.
 
 ## Phase 5 — Private alpha operations
 

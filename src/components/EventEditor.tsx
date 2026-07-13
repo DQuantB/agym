@@ -76,7 +76,7 @@ export function EventEditor({ draft }: { draft: DraftEvent }) {
       </label>
       <p className="source">source: “{draft.sourceText}”</p>
       <div className="row">
-        <button onClick={() => confirm(draft.id)}>Confirm</button>
+        <button className="primary" onClick={() => confirm(draft.id)}>Confirm</button>
         <button className="ghost" onClick={() => discard(draft.id)}>Discard</button>
       </div>
     </article>

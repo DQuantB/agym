@@ -40,7 +40,9 @@ describe('ParsePreview and EventEditor', () => {
     fireEvent.change(textarea, { target: { value: JSON.stringify({ kind: 'meal', description: 'chicken rice bowl plus yogurt', kcal: 900, proteinG: 55 }) } });
 
     expect(screen.queryByText(/uncertain/i)).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+    expect(confirmButton).toHaveClass('primary');
+    await user.click(confirmButton);
 
     await waitFor(() => expect(useAgymStore.getState().events).toHaveLength(1));
     const event = useAgymStore.getState().events[0];
@@ -68,7 +70,9 @@ describe('ParsePreview and EventEditor', () => {
     await useAgymStore.getState().submitLog('Squat 3x8@80kg; bench 3x5 @ 60kg', '2026-07-11');
     render(<ParsePreview />);
 
-    await user.click(screen.getByRole('button', { name: /confirm all/i }));
+    const confirmAllButton = screen.getByRole('button', { name: /confirm all/i });
+    expect(confirmAllButton).toHaveClass('primary');
+    await user.click(confirmAllButton);
     await waitFor(() => expect(useAgymStore.getState().drafts).toEqual([]));
     expect(useAgymStore.getState().events).toHaveLength(2);
 

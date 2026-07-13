@@ -18,9 +18,11 @@ describe('LogInput', () => {
     vi.restoreAllMocks();
   });
 
-  it('disables submit when empty', () => {
+  it('disables the primary parse action when empty', () => {
     setup({ parse: vi.fn() });
-    expect(screen.getByRole('button', { name: /parse log/i })).toBeDisabled();
+    const parseButton = screen.getByRole('button', { name: /parse log/i });
+    expect(parseButton).toBeDisabled();
+    expect(parseButton).toHaveClass('primary');
   });
 
   it('stores raw text verbatim, passes date override to parser, and clears after submit resolves', async () => {

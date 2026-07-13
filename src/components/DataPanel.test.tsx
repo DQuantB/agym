@@ -31,7 +31,9 @@ describe('DataPanel', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
     render(<DataPanel />);
-    await user.click(screen.getByRole('button', { name: /export all json/i }));
+    const exportButton = screen.getByRole('button', { name: /export all json/i });
+    expect(exportButton).toHaveClass('primary');
+    await user.click(exportButton);
 
     await waitFor(() => expect(capturedBlob).toBeDefined());
     const exported = ExportSchema.parse(JSON.parse(await capturedBlob!.text()));

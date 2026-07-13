@@ -22,7 +22,7 @@ export function LogInput() {
       </label>
       <div className="row">
         <label>Date <input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
-        <button disabled={disabled} onClick={async () => { await submitLog(text, date); setText(''); }}>Parse log</button>
+        <button className="primary" disabled={disabled} onClick={async () => { await submitLog(text, date); setText(''); }}>Parse log</button>
       </div>
       <p className="microcopy">Local-first v0: no backend, no auth, no paid APIs. Data stays in this browser localStorage.</p>
     </section>

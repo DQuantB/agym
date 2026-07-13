@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useAgymStore } from '../state/store';
 
 function downloadJson(content: string) {
@@ -12,31 +11,15 @@ function downloadJson(content: string) {
 
 export function DataPanel() {
   const adapter = useAgymStore((state) => state.adapter);
-  const deleteAll = useAgymStore((state) => state.deleteAll);
-  const [confirmText, setConfirmText] = useState('');
 
   return (
     <section className="panel">
       <h2>Data ownership</h2>
-      <p className="warning">Data stays on this device in plaintext browser localStorage. There is no backend sync, no analytics, and no account deletion because v0 has no accounts.</p>
+      <p className="warning">Your private-alpha data is stored under your signed-in account and protected by account-scoped access controls. AGym does not use it for analytics or model training without explicit consent.</p>
       <p className="warning">AGym summarizes self-reported log data only. It does not diagnose, treat, prescribe, or provide medical advice.</p>
       <button className="primary" onClick={async () => downloadJson(await adapter.exportAll())}>Export all JSON</button>
       <hr />
-      <label>
-        Type “delete” to wipe all local AGym data
-        <input value={confirmText} onChange={(event) => setConfirmText(event.target.value)} placeholder="delete" />
-      </label>
-      <button
-        className="danger"
-        disabled={confirmText !== 'delete'}
-        onClick={async () => {
-          if (!confirm('Delete all AGym data from this browser? This cannot be undone.')) return;
-          await deleteAll();
-          setConfirmText('');
-        }}
-      >
-        Delete all data
-      </button>
+      <p className="microcopy">Account-wide deletion will be available as an explicit, audited request flow. Raw logs are intentionally not browser-deletable so source evidence cannot be silently rewritten.</p>
     </section>
   );
 }

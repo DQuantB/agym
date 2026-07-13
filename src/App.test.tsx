@@ -32,7 +32,7 @@ describe('App shell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Data' }));
     expect(screen.getByRole('heading', { name: /data ownership/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/data stays on this device/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/private-alpha data is scoped/i).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Log' }));
     expect(screen.getByRole('heading', { name: /stop re-explaining/i })).toBeInTheDocument();

@@ -41,7 +41,7 @@ export default function App() {
       {activeTab === 'timeline' && <EventTimeline />}
       {activeTab === 'briefing' && <BriefingView />}
       {activeTab === 'data' && <DataPanel />}
-      <footer className="microcopy">Data stays on this device in browser localStorage. AGym stores and summarizes self-reported logs only; it is not medical advice.</footer>
+      <footer className="microcopy">Private-alpha data is scoped to your signed-in account. Export is available here; account-wide deletion remains a deliberate, audited workflow. AGym stores and summarizes self-reported logs only; it is not medical advice.</footer>
     </main>
   );
 }

@@ -19,7 +19,7 @@ where id in ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00
 -- User A can create their own raw log.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
-insert into public.raw_logs (user_id, raw_text) values ('00000000-0000-0000-0000-000000000001', 'Owner A private log');
+insert into public.raw_logs (user_id, client_id, raw_text) values ('00000000-0000-0000-0000-000000000001', 'raw_owner_a', 'Owner A private log');
 select case when count(*) = 1 then 'PASS: owner reads own raw log' else 'FAIL: owner cannot read own raw log' end as owner_read_test
 from public.raw_logs;
 
@@ -52,7 +52,7 @@ where id = '00000000-0000-0000-0000-000000000001';
 do $$
 begin
   begin
-    insert into public.raw_logs (user_id, raw_text) values ('00000000-0000-0000-0000-000000000001', 'Cross-user write attempt');
+    insert into public.raw_logs (user_id, client_id, raw_text) values ('00000000-0000-0000-0000-000000000001', 'raw_cross_user_attempt', 'Cross-user write attempt');
     raise exception 'FAIL: cross-user insert unexpectedly succeeded';
   exception when insufficient_privilege then
     raise notice 'PASS: cross-user insert rejected by RLS';

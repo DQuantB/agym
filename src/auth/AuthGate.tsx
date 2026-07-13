@@ -1,6 +1,7 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseClient, getSupabaseConfiguration } from '../lib/supabase';
+import { useAgymStore } from '../state/store';
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const configured = getSupabaseConfiguration() !== null;
@@ -10,18 +11,25 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  function applySessionUser(nextUser: User | null) {
+    // Clear in-memory account data before either account is rendered. This avoids
+    // exposing a prior session while the next RLS-scoped hydration is in flight.
+    useAgymStore.getState().resetForSession();
+    setUser(nextUser);
+  }
+
   useEffect(() => {
     if (!configured) return;
 
     const supabase = getSupabaseClient();
     void supabase.auth.getSession().then(({ data, error }) => {
-      setUser(data.session?.user ?? null);
+      applySessionUser(data.session?.user ?? null);
       setMessage(error ? 'AGym could not restore your session. Please sign in again.' : null);
       setLoading(false);
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      applySessionUser(session?.user ?? null);
       setLoading(false);
     });
 

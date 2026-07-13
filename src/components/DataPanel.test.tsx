@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockParser } from '../parser/mockParser';
-import { initializeAgymStore, useAgymStore } from '../state/store';
+import { initializeAgymStore } from '../state/store';
 import { createInMemoryStorageAdapter } from '../storage/inMemoryAdapter';
 import { makeCanonicalEvent, makeRawLog } from '../test/factories';
 import { ExportSchema } from '../domain/schemas';
@@ -47,29 +47,11 @@ describe('DataPanel', () => {
     expect(emptyExport.events).toEqual([]);
   });
 
-  it('requires exact typed delete plus browser confirmation before wiping state and storage', async () => {
-    const user = userEvent.setup();
-    const { adapter } = setup();
-    const rawLog = makeRawLog();
-    const event = makeCanonicalEvent();
-    await adapter.saveRawLog(rawLog);
-    await adapter.saveEvents([event]);
-    await useAgymStore.getState().hydrate();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
+  it('explains why hosted raw-log deletion is deferred to an audited account workflow', () => {
+    setup();
     render(<DataPanel />);
-    const button = screen.getByRole('button', { name: /delete all data/i });
-    expect(button).toBeDisabled();
 
-    await user.type(screen.getByPlaceholderText('delete'), 'Delete');
-    expect(button).toBeDisabled();
-    await user.clear(screen.getByPlaceholderText('delete'));
-    await user.type(screen.getByPlaceholderText('delete'), 'delete');
-    expect(button).toBeEnabled();
-    await user.click(button);
-
-    await waitFor(() => expect(useAgymStore.getState().events).toEqual([]));
-    await expect(adapter.loadAll()).resolves.toEqual({ rawLogs: [], events: [] });
-    expect(window.confirm).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /delete all data/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/not browser-deletable/i)).toBeInTheDocument();
   });
 });

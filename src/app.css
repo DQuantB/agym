@@ -169,7 +169,25 @@ textarea { min-height: 180px; resize: vertical; font-family: ui-monospace, SFMon
 }
 .warning { border-left: 3px solid var(--accent); padding-left: 0.9rem; color: var(--text-dim); }
 .collision { background: none; }
+.auth-shell { min-height: 100vh; display: grid; align-content: center; gap: 1rem; max-width: 32rem; }
+.auth-shell form { display: grid; gap: 0.65rem; }
+.auth-shell input { width: 100%; padding: 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-1); color: var(--text); }
+.session-bar { display: flex; width: min(880px, 100%); margin: 0 auto; padding: 0.75rem 1rem 0; justify-content: space-between; align-items: center; gap: 1rem; color: var(--text-dim); font-size: 0.85rem; }
+.session-bar button { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+.authorization-card, .plan-card {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  padding: 1rem;
+  margin: 0.75rem 0;
+}
+.authorization-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.authorization-card h4, .authorization-card p, .plan-card p { margin: 0; }
+.authorization-card p { color: var(--text-dim); font-size: 0.9rem; margin-top: 0.35rem; max-width: 58ch; }
+.plan-card__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.55rem; color: var(--text-faint); font-size: 0.78rem; margin-bottom: 0.8rem; }
+.plan-card > p:not(.microcopy) { white-space: pre-wrap; line-height: 1.45; }
+.plan-card .microcopy { margin-top: 0.75rem; }
 
 @media (max-width: 700px) {
   .hero { align-items: start; }

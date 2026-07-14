@@ -19,6 +19,7 @@ export interface AgymStore {
   ui: AgymStoreUi;
   adapter: StorageAdapter;
   setAdapter(adapter: StorageAdapter): void;
+  resetForSession(): void;
   setTab(tab: Tab): void;
   hydrate(): Promise<void>;
   submitLog(text: string, defaultDate: string): Promise<void>;
@@ -57,6 +58,7 @@ function maybeRequestPersistentStorage(): void {
 
 export function createAgymStore({ adapter: initialAdapter, parser }: CreateAgymStoreOptions): AgymStoreHook {
   const originalDrafts = new Map<string, DraftEvent>();
+  let hydrationGeneration = 0;
 
   return create<AgymStore>((set, get) => ({
     rawLogs: [],
@@ -69,13 +71,26 @@ export function createAgymStore({ adapter: initialAdapter, parser }: CreateAgymS
       set({ adapter });
     },
 
+    resetForSession() {
+      hydrationGeneration += 1;
+      originalDrafts.clear();
+      set((state) => ({
+        rawLogs: [],
+        drafts: [],
+        events: [],
+        ui: { ...state.ui, hydrated: false, lastMessage: null },
+      }));
+    },
+
     setTab(activeTab) {
       set((state) => ({ ui: { ...state.ui, activeTab } }));
     },
 
     async hydrate() {
       maybeRequestPersistentStorage();
+      const generation = hydrationGeneration;
       const data = await get().adapter.loadAll();
+      if (generation !== hydrationGeneration) return;
       set((state) => ({ ...data, ui: { ...state.ui, hydrated: true } }));
     },
 

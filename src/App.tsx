@@ -4,12 +4,14 @@ import { DataPanel } from './components/DataPanel';
 import { EventTimeline } from './components/EventTimeline';
 import { LogInput } from './components/LogInput';
 import { ParsePreview } from './components/ParsePreview';
+import { PlansView } from './components/PlansView';
 import { useAgymStore } from './state/store';
 import type { Tab } from './domain/types';
 
 const tabs: { id: Tab; label: string }[] = [
   { id: 'log', label: 'Log' },
   { id: 'timeline', label: 'Timeline' },
+  { id: 'plans', label: 'Plans' },
   { id: 'briefing', label: 'Briefing' },
   { id: 'data', label: 'Data' },
 ];
@@ -27,7 +29,7 @@ export default function App() {
     <main>
       <header className="hero">
         <div className="poster-word">AGYM</div>
-        <p className="microcopy">Local-first. No backend. No medical advice.</p>
+        <p className="microcopy">Private alpha. User-controlled data. No medical advice.</p>
         <nav aria-label="AGym sections">
           {tabs.map((tab) => (
             <button key={tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => setTab(tab.id)}>
@@ -39,9 +41,10 @@ export default function App() {
       {lastMessage && <div className="toast">{lastMessage}</div>}
       {activeTab === 'log' && <><LogInput /><ParsePreview /></>}
       {activeTab === 'timeline' && <EventTimeline />}
+      {activeTab === 'plans' && <PlansView />}
       {activeTab === 'briefing' && <BriefingView />}
       {activeTab === 'data' && <DataPanel />}
-      <footer className="microcopy">Data stays on this device in browser localStorage. AGym stores and summarizes self-reported logs only; it is not medical advice.</footer>
+      <footer className="microcopy">Private-alpha data is scoped to your signed-in account. Export is available here; account-wide deletion remains a deliberate, audited workflow. AGym stores and summarizes self-reported logs only; it is not medical advice.</footer>
     </main>
   );
 }

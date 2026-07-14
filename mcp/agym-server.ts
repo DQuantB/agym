@@ -166,7 +166,7 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
     async ({ status, limit }) => {
       try {
         const authorization = await requireAuthorization(client, configuration, 'read_context');
-        let query = client.from('plans').select('id, raw_plan_text, plan_data, provenance, status, source_client, created_at, updated_at')
+        let query = client.from('plans').select('id, raw_plan_text, plan_data, provenance, status, source_client, scheduled_for, created_at, updated_at')
           .eq('user_id', configuration.userId).is('deleted_at', null).order('created_at', { ascending: false }).limit(limit);
         if (status) query = query.eq('status', status);
         const { data, error } = await query;

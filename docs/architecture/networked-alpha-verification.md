@@ -24,7 +24,7 @@ alongside them. Two real bugs surfaced and were fixed during this run: an
 overly aggressive reps-field guard that broke clear-then-type editing, and two
 `WorkoutView` tests that hung because `vi.useFakeTimers()` was enabled before
 an awaited `findByText` (which needs real timers to poll). Type check, lint,
-and build have not been re-confirmed since those two fixes landed — see Phase 5.
+and build were re-confirmed clean after both fixes landed — see Phase 5.
 
 ## Phase 1 — Database + RLS (live local Supabase)
 
@@ -116,15 +116,15 @@ against a freshly-reset local stack: **7/7 PASS**, audit log grew +5 rows.
 | SQL lifecycle test | `supabase/tests/gym-workout-execution.sql` | PASS — 10/10 (see Phase 1) |
 | MCP e2e (updated, gym steps) | `npm run mcp:e2e` | PASS — 7/7 (see Phase 4) |
 | Fresh migration apply | `supabase db reset --local` | PASS — all 8 migrations applied cleanly |
-| Type check | `npm run typecheck` | PENDING — re-run after the post-test-run fixes to `WorkoutView.tsx`/`WorkoutView.test.tsx` |
-| Lint | `npm run lint` | PENDING — re-run after the same fixes |
-| Build | `npm run build` | PENDING — re-run after the same fixes |
+| Type check | `npm run typecheck` | PASS |
+| Lint | `npm run lint` | PASS (0 warnings) |
+| Build | `npm run build` | PASS |
 
-All confirmed 2026-07-14 on WSL. The three PENDING rows were last confirmed
-clean *before* two follow-up fixes (a reps-field onChange guard revert, and
-moving `vi.useFakeTimers()` after the initial render in two WorkoutView
-tests) — both fixes are small and unlikely to affect lint/typecheck/build, but
-they haven't been re-run against the fixed files yet.
+All confirmed 2026-07-14 on WSL, including a final re-run of type check, lint,
+and build after the two follow-up fixes (a reps-field onChange guard revert,
+and moving `vi.useFakeTimers()` after the initial render in two WorkoutView
+tests). Every check in this table has now actually been executed and passed —
+nothing in this section is pending.
 
 ### Least-privilege facts confirmed during verification
 

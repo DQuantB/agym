@@ -64,7 +64,7 @@ export function createAgymStore({ adapter: initialAdapter, parser }: CreateAgymS
     rawLogs: [],
     drafts: [],
     events: [],
-    ui: { activeTab: 'log', hydrated: false, lastMessage: null },
+    ui: { activeTab: 'workout', hydrated: false, lastMessage: null },
     adapter: initialAdapter,
 
     setAdapter(adapter) {

@@ -12,9 +12,16 @@ const contextInputSchema = {
 };
 
 const planStatusSchema = z.enum(['proposed', 'active', 'superseded', 'archived']);
+const gymSetSchema = z.object({ reps: z.number().int().min(1).max(100), weight_kg: z.number().min(0).max(1000).nullable().optional(), rest_seconds: z.number().int().min(0).max(3600).default(120) });
+const gymPlanSchema = z.object({
+  kind: z.literal('gym_workout'), schema_version: z.literal(1), scheduled_for: dateSchema,
+  title: z.string().trim().min(1).max(160),
+  exercises: z.array(z.object({ client_id: z.string().trim().min(1).max(100), name: z.string().trim().min(1).max(120), sets: z.array(gymSetSchema).min(1).max(20) })).min(1).max(30),
+  notes: z.string().trim().max(2000).optional(),
+});
 const planInputSchema = {
   raw_plan_text: z.string().trim().min(1).max(12000),
-  plan_data: z.record(z.string(), z.unknown()).default({}),
+  plan_data: z.union([gymPlanSchema, z.record(z.string(), z.unknown()).refine((value) => value.kind !== 'gym_workout', 'Gym plans must use the formatted gym_workout schema')]).default({}),
 };
 const listPlansInputSchema = {
   status: planStatusSchema.optional(),

@@ -190,6 +190,13 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 .authorization-card p { color: var(--text-dim); font-size: 0.9rem; margin-top: 0.35rem; max-width: 58ch; }
 .plan-card__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.55rem; color: var(--text-faint); font-size: 0.78rem; margin-bottom: 0.8rem; }
 .plan-card > p:not(.microcopy) { white-space: pre-wrap; line-height: 1.45; }
+.workout h2 { margin: 0.2rem 0; }
+.workout h3 { margin: 0; }
+.workout-set { display: grid; grid-template-columns: minmax(3.5rem, 1fr) repeat(2, minmax(4.5rem, 1fr)) auto; align-items: end; gap: 0.55rem; padding: 0.65rem 0; border-top: 1px solid var(--border); }
+.workout-set label { font-size: 0.62rem; }
+.workout-set input { padding: 0.5rem; }
+.rest-timer { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; margin: 1rem 0; padding: 0.8rem; border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius-control); }
+.rest-timer strong { margin-right: auto; }
 .plan-card .microcopy { margin-top: 0.75rem; }
 
 @media (max-width: 700px) {

@@ -60,7 +60,7 @@ assert.equal(ctx.json.raw_notes[0].interpretation_status, 'unparsed');
 console.log('1) get_context OK: confirmed=user_confirmed, raw=raw_self_report/unparsed');
 
 // 2) create_proposed_plan writes a proposed plan via authorized RPC.
-const created = await call('create_proposed_plan', { raw_plan_text: 'Next session: bench 3x5 @ 82.5kg', plan_data: { progression_kg: 2.5 } });
+const created = await call('create_proposed_plan', { raw_plan_text: 'Next session: bench 3x5 @ 82.5kg', plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: new Date().toISOString().slice(0, 10), title: 'Bench strength', exercises: [{ client_id: 'bench', name: 'Bench press', sets: [{ reps: 5, weight_kg: 82.5, rest_seconds: 180 }] }] } });
 assert.equal(created.isError, false, `create_proposed_plan errored: ${created.text}`);
 assert.equal(created.json.plan.status, 'proposed', 'plan should be proposed');
 assert.equal(created.json.plan.provenance, 'agent_written_plan', 'plan provenance must be agent_written_plan');

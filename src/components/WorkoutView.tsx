@@ -5,7 +5,7 @@ import { executionFromPlan, todayLocalDate, type WorkoutExecutionData } from '..
 import { completeWorkout, loadWorkout, saveWorkout, startWorkout, type WorkoutExecutionRow } from '../workout/workoutApi';
 import { RestTimer } from './RestTimer';
 
-export function WorkoutView({ client = getSupabaseClient() }: { client?: SupabaseClient }) {
+export function WorkoutView({ client: injectedClient }: { client?: SupabaseClient }) {
   const [execution, setExecution] = useState<WorkoutExecutionRow | null>(null);
   const [data, setData] = useState<WorkoutExecutionData | null>(null);
   const [notes, setNotes] = useState('');
@@ -13,17 +13,18 @@ export function WorkoutView({ client = getSupabaseClient() }: { client?: Supabas
   const [rest, setRest] = useState(0);
   const date = useMemo(() => todayLocalDate(), []);
   useEffect(() => { void (async () => { try {
+    const client = injectedClient ?? getSupabaseClient();
     const workout = await loadWorkout(client, date); if (!workout) { setMessage('No structured Gym workout is scheduled for today. Ask your LLM to create one, or review Plans.'); return; }
     let current = workout.execution; if (!current) { const user = await client.auth.getUser(); if (!user.data.user) throw new Error('Sign in to start a workout.'); current = await startWorkout(client, user.data.user.id, workout.planId, workout.plan, executionFromPlan(workout.plan)); }
     setExecution(current); setData(current.execution_data); setNotes(current.additional_notes); setMessage('');
-  } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not load workout.'); } })(); }, [client, date]);
+  } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not load workout.'); } })(); }, [injectedClient, date]);
   if (!data || !execution) return <section className="panel"><h2>Today’s workout</h2><p className="microcopy">{message}</p></section>;
   const currentExecution = execution;
   const currentData = data;
   const editable = currentExecution.status === 'in_progress';
   const update = (next: WorkoutExecutionData) => { setData(next); };
-  async function persist() { try { await saveWorkout(client, currentExecution.id, currentData, notes); setMessage('Progress saved.'); } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not save.'); } }
-  async function finish() { try { await persist(); await completeWorkout(client, currentExecution.id); setExecution({ ...currentExecution, status: 'completed', completed_at: new Date().toISOString() }); setMessage('Workout finished. Your confirmed outcome is linked to the agent plan.'); } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not finish.'); } }
+  async function persist() { try { await saveWorkout(injectedClient ?? getSupabaseClient(), currentExecution.id, currentData, notes); setMessage('Progress saved.'); } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not save.'); } }
+  async function finish() { try { await persist(); await completeWorkout(injectedClient ?? getSupabaseClient(), currentExecution.id); setExecution({ ...currentExecution, status: 'completed', completed_at: new Date().toISOString() }); setMessage('Workout finished. Your confirmed outcome is linked to the agent plan.'); } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not finish.'); } }
   return <section className="panel workout" aria-labelledby="workout-heading"><div className="split-head"><div><p className="eyebrow">{date}</p><h2 id="workout-heading">Today’s workout</h2></div><span className="badge">Agent proposal</span></div><p className="microcopy">Edit what actually happens. The original agent plan remains unchanged.</p>
     {data.exercises.map((exercise, exerciseIndex) => <article className="event-card" key={exercise.client_id}><div className="split-head"><h3>{exercise.name}</h3>{exercise.user_added && editable && <button className="ghost" onClick={() => update({ ...data, exercises: data.exercises.filter((_, i) => i !== exerciseIndex) })}>Remove exercise</button>}</div>
       {exercise.sets.map((set, setIndex) => <div className="workout-set" key={`${exercise.client_id}-${setIndex}`}><span>Set {setIndex + 1}</span><label>kg<input aria-label={`${exercise.name} set ${setIndex + 1} weight`} disabled={!editable} type="number" value={set.weight_kg ?? ''} onChange={(e) => { const exercises = structuredClone(data.exercises); exercises[exerciseIndex].sets[setIndex].weight_kg = e.target.value === '' ? null : Number(e.target.value); update({ ...data, exercises }); }} /></label><label>reps<input aria-label={`${exercise.name} set ${setIndex + 1} reps`} disabled={!editable} type="number" value={set.reps} onChange={(e) => { const exercises = structuredClone(data.exercises); exercises[exerciseIndex].sets[setIndex].reps = Number(e.target.value); update({ ...data, exercises }); }} /></label>{editable && <button onClick={() => { const exercises = structuredClone(data.exercises); exercises[exerciseIndex].sets[setIndex].completed = !set.completed; update({ ...data, exercises }); setRest(set.rest_seconds); }}>{set.completed ? 'Done' : 'Complete set'}</button>}</div>)}

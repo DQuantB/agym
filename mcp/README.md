@@ -43,7 +43,22 @@ Restart Hermes after adding this configuration. It will discover the tool as `mc
 
 ```bash
 npm run typecheck
-npm run mcp
+npm run mcp:smoke   # offline: config validation + all three tools register
+npm run mcp         # starts the stdio server (needs env below)
 ```
 
-Running without the required environment variables intentionally exits with a configuration error rather than starting an unbound MCP server.
+With a running local Supabase stack you can drive the full read/write/audit
+round-trip against the database:
+
+```bash
+# needs: supabase start; the AGYM_SUPABASE_SERVICE_ROLE_KEY of the local stack
+AGYM_SUPABASE_SERVICE_ROLE_KEY=<local secret> npm run mcp:e2e
+```
+
+`mcp:e2e` self-seeds a user, exercises `get_context`, `create_proposed_plan`,
+and `list_plans`, checks the append-only audit log grew, and proves that
+revoking the user's `read_context` grant denies the agent. See
+`docs/architecture/networked-alpha-verification.md` for the recorded results.
+
+Running without the required environment variables intentionally exits with a
+configuration error rather than starting an unbound MCP server.

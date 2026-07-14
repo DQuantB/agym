@@ -16,10 +16,13 @@ describe('App shell', () => {
     localStorage.clear();
   });
 
-  it('switches between the four MVP tabs without a page reload', async () => {
+  it('starts on Workout and switches between the app tabs without a page reload', async () => {
     const user = userEvent.setup();
     renderApp();
 
+    expect(screen.getByRole('heading', { name: /today’s workout/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Log' }));
     expect(screen.getByRole('heading', { name: /stop re-explaining/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Timeline' }));

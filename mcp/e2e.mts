@@ -1,5 +1,10 @@
 // End-to-end MCP round-trip against the LIVE local Supabase DB.
-// Drives the real registered tool callbacks (not reimplemented logic).
+// Drives the real registered tool callbacks (not reimplemented logic) for
+// most steps; the Gym plan_data validation steps additionally go through a
+// real MCP Client/Server pair so the SDK's inputSchema (Zod) parsing layer
+// is actually exercised, not bypassed.
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createClient } from '@supabase/supabase-js';
 import assert from 'node:assert';
 import { execSync } from 'node:child_process';
@@ -39,6 +44,27 @@ async function call(name: string, args: Record<string, unknown>) {
   return { isError: !!res.isError, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
 }
 
+// Real client/server pair over an in-memory transport, so calls below go
+// through the SDK's CallTool request handler -- including the Zod
+// safeParseAsync validation of each tool's inputSchema -- instead of
+// invoking the raw registered handler directly like `call()` does above.
+const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+const mcpClient = new Client({ name: 'agym-e2e-client', version: '0.0.0' });
+await Promise.all([mcpClient.connect(clientTransport), server.connect(serverTransport)]);
+
+async function callProtocol(name: string, args: Record<string, unknown>) {
+  const res = (await mcpClient.callTool({ name, arguments: args })) as { content: { type: string; text: string }[]; isError?: boolean };
+  const text = res.content.map((c) => c.text).join('\n');
+  return { isError: !!res.isError, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
+}
+
+function planCount(): number {
+  const out = execSync(
+    `docker exec -i supabase_db_agym psql -U postgres -d postgres -tA -c "select count(*) from public.plans where user_id='${USER_ID}';"`,
+  ).toString().trim();
+  return Number(out);
+}
+
 // Baseline audit count (read via privileged psql: service_role has INSERT-only on audit log by design).
 function auditCount(): number {
   const out = execSync(
@@ -60,7 +86,7 @@ assert.equal(ctx.json.raw_notes[0].interpretation_status, 'unparsed');
 console.log('1) get_context OK: confirmed=user_confirmed, raw=raw_self_report/unparsed');
 
 // 2) create_proposed_plan writes a proposed plan via authorized RPC.
-const created = await call('create_proposed_plan', { raw_plan_text: 'Next session: bench 3x5 @ 82.5kg', plan_data: { progression_kg: 2.5 } });
+const created = await call('create_proposed_plan', { raw_plan_text: 'Next session: bench 3x5 @ 82.5kg', plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: new Date().toISOString().slice(0, 10), title: 'Bench strength', exercises: [{ client_id: 'bench', name: 'Bench press', sets: [{ reps: 5, weight_kg: 82.5, rest_seconds: 180 }] }] } });
 assert.equal(created.isError, false, `create_proposed_plan errored: ${created.text}`);
 assert.equal(created.json.plan.status, 'proposed', 'plan should be proposed');
 assert.equal(created.json.plan.provenance, 'agent_written_plan', 'plan provenance must be agent_written_plan');
@@ -72,18 +98,49 @@ assert.equal(plans.isError, false, `list_plans errored: ${plans.text}`);
 assert.ok(plans.json.plans.length >= 1, 'expected at least 1 plan');
 console.log(`3) list_plans OK: ${plans.json.plans.length} plan(s)`);
 
-// 4) Audit log grew (get_context + list_plans + RPC's create_proposed_plan row).
+// 4) Protocol-level validation: invalid Gym payloads are rejected at the MCP
+//    inputSchema boundary itself, before the handler (and its RPC call) ever
+//    runs -- so no plan row is created for either case.
+const plansBefore = planCount();
+
+const missingFields = await callProtocol('create_proposed_plan', { raw_plan_text: 'Missing required gym fields', plan_data: { kind: 'gym_workout', schema_version: 1 } });
+assert.equal(missingFields.isError, true, 'incomplete gym_workout payload must be rejected');
+
+const malformedGym = await callProtocol('create_proposed_plan', { raw_plan_text: 'Malformed gym shape', plan_data: { kind: 'gym_workout', foo: 1 } });
+assert.equal(malformedGym.isError, true, 'gym_workout payload must use the formatted schema');
+
+assert.equal(planCount(), plansBefore, 'invalid gym payloads must not create a plan row');
+console.log('4) protocol-level gym validation OK: invalid payloads rejected before touching the DB');
+
+// 5) A valid Gym payload, sent through the same real protocol path, is
+// accepted and scheduled for today; list_plans then surfaces that schedule.
+const today = new Date().toISOString().slice(0, 10);
+const validGym = await callProtocol('create_proposed_plan', {
+  raw_plan_text: 'Protocol-validated squat day',
+  plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: today, title: 'Squat day', exercises: [{ client_id: 'squat', name: 'Back squat', sets: [{ reps: 5, weight_kg: 100, rest_seconds: 180 }] }] },
+});
+assert.equal(validGym.isError, false, `valid gym plan rejected: ${validGym.text}`);
+assert.equal(validGym.json.plan.scheduled_for, today, 'gym plan must be scheduled for today');
+
+const plansWithSchedule = await call('list_plans', { limit: 20 });
+assert.equal(plansWithSchedule.isError, false, `list_plans errored: ${plansWithSchedule.text}`);
+const scheduledPlan = plansWithSchedule.json.plans.find((p: { id: string }) => p.id === validGym.json.plan.id);
+assert.ok(scheduledPlan, 'expected the newly created gym plan in list_plans');
+assert.equal(scheduledPlan.scheduled_for, today, 'list_plans must expose scheduled_for so agents can see the schedule');
+console.log('5) valid gym plan OK: scheduled_for=today and visible via list_plans');
+
+// 6) Audit log grew (get_context + list_plans x2 + create_proposed_plan RPC x2).
 const grew = auditCount() - before;
 assert.ok(grew >= 3, `expected >=3 new audit rows, got ${grew}`);
-console.log(`4) audit log OK: +${grew} rows since baseline`);
+console.log(`6) audit log OK: +${grew} rows since baseline`);
 
-// 5) Authorization gate: user revokes read_context -> get_context must fail with no data.
+// 7) Authorization gate: user revokes read_context -> get_context must fail with no data.
 // Revoke via privileged psql: the MCP service_role deliberately cannot mutate its own grants.
 psql(`update public.agent_authorizations set revoked_at = now() where user_id='${USER_ID}' and action='read_context';`);
 const denied = await call('get_context', { limit: 5 });
 assert.equal(denied.isError, true, 'get_context must fail after revocation');
 assert.match(denied.text, /No active read_context authorization/);
-console.log('5) authz gate OK: revoked read_context -> get_context denied, no data returned');
+console.log('7) authz gate OK: revoked read_context -> get_context denied, no data returned');
 // Note: revocation is permanent (DB trigger blocks un-revoke); the seed recreates the user each run.
 
 console.log('\nMCP E2E round-trip: ALL PASS');

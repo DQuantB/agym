@@ -5,10 +5,12 @@ import { EventTimeline } from './components/EventTimeline';
 import { LogInput } from './components/LogInput';
 import { ParsePreview } from './components/ParsePreview';
 import { PlansView } from './components/PlansView';
+import { WorkoutView } from './components/WorkoutView';
 import { useAgymStore } from './state/store';
 import type { Tab } from './domain/types';
 
 const tabs: { id: Tab; label: string }[] = [
+  { id: 'workout', label: 'Workout' },
   { id: 'log', label: 'Log' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'plans', label: 'Plans' },
@@ -39,6 +41,7 @@ export default function App() {
         </nav>
       </header>
       {lastMessage && <div className="toast">{lastMessage}</div>}
+      {activeTab === 'workout' && <WorkoutView />}
       {activeTab === 'log' && <><LogInput /><ParsePreview /></>}
       {activeTab === 'timeline' && <EventTimeline />}
       {activeTab === 'plans' && <PlansView />}

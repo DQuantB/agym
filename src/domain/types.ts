@@ -6,4 +6,4 @@ export type EventPayload = z.infer<typeof EventPayloadSchema>;
 export type DraftEvent = z.infer<typeof DraftEventSchema>;
 export type CanonicalEvent = z.infer<typeof CanonicalEventSchema>;
 export type AgymExport = z.infer<typeof ExportSchema>;
-export type Tab = 'log' | 'timeline' | 'plans' | 'briefing' | 'data';
+export type Tab = 'workout' | 'log' | 'timeline' | 'plans' | 'briefing' | 'data';

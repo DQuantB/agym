@@ -119,6 +119,24 @@ On your machine (where Hermes runs):
 
 ---
 
+## Step 4b — Push new migrations to hosted (Gym workout execution)
+
+Only do this after every local check in
+`docs/architecture/networked-alpha-verification.md` is green — local
+`supabase db reset --local`, the RLS/account-deletion/gym-workout-execution
+SQL suites, `mcp:smoke`/`mcp:e2e`, lint, typecheck, `test:run`, and `build`.
+Do not push migrations against a hypothesis; push them after they've already
+proven themselves locally.
+
+1. Link the CLI to the hosted project if you haven't already:
+   `supabase link --project-ref <project-ref>`.
+2. Apply the pending migrations (currently through
+   `20260714131000_schedule_mcp_gym_plans.sql`): `supabase db push`.
+3. Confirm parity between what's local and what's hosted:
+   `supabase migration list --linked` — the local and remote migration lists
+   must match exactly through the latest timestamp. If they don't, stop and
+   reconcile before continuing; do not force-push a mismatch.
+
 ## Step 5 — The live founder-proof loop
 
 1. On your phone: log a real workout in plain text → confirm the parsed event.
@@ -130,6 +148,32 @@ On your machine (where Hermes runs):
 5. Check `agent_audit_log` in Supabase — every read/write is recorded.
 
 That loop is the product working end to end with real data. 🎯
+
+### Steps 6–9 — The Gym workout execution loop
+
+Do this after Step 4b has applied the Gym migrations to hosted.
+
+6. Ask Hermes to create a **structured** Gym plan for today via
+   `create_proposed_plan` with a `gym_workout` `plan_data` payload (see the
+   product contract in `docs/plans/2026-07-14-gym-workout-execution.md`) —
+   not a free-text plan.
+7. Open the app's **Workout** tab (now the first/default tab). The proposal
+   should auto-appear for today's date, labelled **Agent proposal**, with an
+   editable baseline pre-filled from the plan. If nothing appears, confirm the
+   plan's `scheduled_for` is today and that its `plan_data.kind` is exactly
+   `gym_workout`.
+8. Edit actual values (reps/weight), add an exercise, complete a set to
+   trigger the rest timer for its planned `rest_seconds`, and add a note in
+   **Additional notes**. Click **Finish workout**.
+9. Verify in Supabase:
+   - `workout_executions` for that plan now has `status = 'completed'` and a
+     `completed_at` timestamp;
+   - a new `raw_logs` row exists with `source_hint = 'workout'`, holding the
+     immutable execution transcript;
+   - a new `canonical_events` row exists with `event_type = 'workout_execution'`,
+     `provenance = 'user_confirmed'`, and `plan_id` linking back to the agent's
+     original proposal;
+   - `agent_audit_log` recorded the `create_proposed_plan` call from step 6.
 
 ---
 

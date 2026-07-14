@@ -47,11 +47,51 @@ describe('DataPanel', () => {
     expect(emptyExport.events).toEqual([]);
   });
 
-  it('explains why hosted raw-log deletion is deferred to an audited account workflow', () => {
-    setup();
+  it('requires typing a confirmation phrase before deleting the account, then erases data', async () => {
+    const user = userEvent.setup();
+    const { adapter } = setup();
+    await adapter.saveRawLog(makeRawLog());
+    await adapter.saveEvents([makeCanonicalEvent()]);
+    const deleteSpy = vi.spyOn(adapter, 'deleteAll');
+
     render(<DataPanel />);
 
-    expect(screen.queryByRole('button', { name: /delete all data/i })).not.toBeInTheDocument();
+    // Not shown until the user opens the danger zone.
+    expect(screen.queryByLabelText(/type .* to confirm/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /delete my account/i }));
+
+    // The destructive button is disabled until the exact phrase is typed.
+    const confirmButton = screen.getByRole('button', { name: /permanently delete everything/i });
+    expect(confirmButton).toBeDisabled();
+
+    const input = screen.getByLabelText(/type .* to confirm/i);
+    await user.type(input, 'delete'); // wrong case
+    expect(confirmButton).toBeDisabled();
+
+    await user.clear(input);
+    await user.type(input, 'DELETE');
+    expect(confirmButton).toBeEnabled();
+
+    await user.click(confirmButton);
+    await waitFor(() => expect(deleteSpy).toHaveBeenCalledTimes(1));
+  });
+
+  it('can be cancelled without deleting', async () => {
+    const user = userEvent.setup();
+    const { adapter } = setup();
+    const deleteSpy = vi.spyOn(adapter, 'deleteAll');
+
+    render(<DataPanel />);
+    await user.click(screen.getByRole('button', { name: /delete my account/i }));
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.queryByLabelText(/type .* to confirm/i)).not.toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps individual raw logs non-deletable from the browser', () => {
+    setup();
+    render(<DataPanel />);
     expect(screen.getByText(/not browser-deletable/i)).toBeInTheDocument();
   });
 });

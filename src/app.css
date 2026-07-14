@@ -168,6 +168,9 @@ textarea { min-height: 180px; resize: vertical; font-family: ui-monospace, SFMon
   line-height: 1.55;
 }
 .warning { border-left: 3px solid var(--accent); padding-left: 0.9rem; color: var(--text-dim); }
+.danger-zone { display: grid; gap: 0.6rem; padding: 0.9rem; border: 1px solid var(--accent); border-radius: var(--radius-control); background: var(--accent-soft); }
+.danger-zone input { padding: 0.6rem; border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-1); color: var(--text); }
+.danger-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .collision { background: none; }
 .auth-shell { min-height: 100vh; display: grid; align-content: center; gap: 1rem; max-width: 32rem; }
 .auth-shell form { display: grid; gap: 0.65rem; }

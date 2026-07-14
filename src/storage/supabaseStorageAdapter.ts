@@ -103,7 +103,13 @@ export function createSupabaseStorageAdapter(supabase: SupabaseClient): StorageA
     },
 
     async deleteAll() {
-      throw new Error('AGym cannot delete hosted raw logs from the browser. Export your data and use the account-deletion workflow when it is available.');
+      // User-initiated account erasure. Individual raw logs remain non-deletable
+      // from the browser (evidence integrity); full account deletion is this
+      // deliberate, audited path. The SECURITY DEFINER function derives the
+      // target from the verified session and cascades across every user table.
+      const { error } = await supabase.rpc('delete_my_account');
+      if (error) throw new Error(`AGym could not delete your account: ${error.message}`);
+      await supabase.auth.signOut();
     },
   };
 }

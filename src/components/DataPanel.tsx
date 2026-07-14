@@ -11,11 +11,31 @@ function downloadJson(content: string) {
   URL.revokeObjectURL(url);
 }
 
+const DELETE_PHRASE = 'DELETE';
+
 export function DataPanel() {
   const adapter = useAgymStore((state) => state.adapter);
+  const deleteAll = useAgymStore((state) => state.deleteAll);
   const [hasLegacyLocalData] = useState(() => Boolean(
     localStorage.getItem(localStorageKeys.RAW) || localStorage.getItem(localStorageKeys.EVENTS),
   ));
+  const [confirming, setConfirming] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function runDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAll();
+      // On the hosted adapter this also signs the user out; the AuthGate then
+      // returns to the sign-in screen automatically.
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Account deletion failed.');
+      setDeleting(false);
+    }
+  }
 
   return (
     <section className="panel">
@@ -30,7 +50,37 @@ export function DataPanel() {
         </section>
       )}
       <hr />
-      <p className="microcopy">Account-wide deletion will be available as an explicit, audited request flow. Raw logs are intentionally not browser-deletable so source evidence cannot be silently rewritten.</p>
+      <section aria-label="Delete account">
+        <h3>Delete my account</h3>
+        <p className="microcopy">This permanently erases your AGym account and all associated data — raw logs, confirmed events, drafts, plans, agent authorizations, audit history, and consent records. This cannot be undone. Export your data first if you want a copy.</p>
+        {!confirming ? (
+          <button className="ghost" onClick={() => { setConfirming(true); setDeleteError(null); }}>Delete my account…</button>
+        ) : (
+          <div className="danger-zone">
+            <label htmlFor="agym-delete-confirm">Type <strong>{DELETE_PHRASE}</strong> to confirm permanent deletion.</label>
+            <input
+              id="agym-delete-confirm"
+              type="text"
+              autoComplete="off"
+              value={confirmText}
+              onChange={(event) => setConfirmText(event.target.value)}
+              disabled={deleting}
+            />
+            <div className="danger-actions">
+              <button
+                className="danger"
+                disabled={confirmText.trim() !== DELETE_PHRASE || deleting}
+                onClick={() => void runDelete()}
+              >
+                {deleting ? 'Deleting…' : 'Permanently delete everything'}
+              </button>
+              <button className="ghost" disabled={deleting} onClick={() => { setConfirming(false); setConfirmText(''); setDeleteError(null); }}>Cancel</button>
+            </div>
+            {deleteError && <p role="alert" className="warning">{deleteError}</p>}
+          </div>
+        )}
+      </section>
+      <p className="microcopy">Individual raw logs are intentionally not browser-deletable so source evidence cannot be silently rewritten. Full account deletion above is the deliberate, all-or-nothing erasure path.</p>
     </section>
   );
 }

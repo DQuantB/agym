@@ -20,7 +20,16 @@ const cfg = loadConfiguration({
 });
 assert.equal(cfg.agentIdentifier, 'hermes', 'agent identifier should default to hermes');
 
-// 3) Server constructs and registers exactly the expected tools.
+// 3) A named local client is retained instead of silently falling back to Hermes.
+const claudeCfg = loadConfiguration({
+  AGYM_SUPABASE_URL: 'https://example.supabase.co',
+  AGYM_SUPABASE_SERVICE_ROLE_KEY: 'x',
+  AGYM_USER_ID: '00000000-0000-0000-0000-000000000000',
+  AGYM_AGENT_IDENTIFIER: 'claude-code',
+});
+assert.equal(claudeCfg.agentIdentifier, 'claude-code', 'configured agent identifier should be retained');
+
+// 4) Server constructs and registers exactly the expected tools.
 const fakeClient = {} as unknown as Parameters<typeof createAgymMcpServer>[0];
 const server = createAgymMcpServer(fakeClient, cfg);
 const registered = Object.keys((server as unknown as { _registeredTools: Record<string, unknown> })._registeredTools ?? {});

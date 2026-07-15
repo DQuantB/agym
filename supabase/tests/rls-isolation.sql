@@ -57,6 +57,98 @@ begin
 end;
 $$;
 
+-- Client identity is part of the active-grant key: two named clients can hold
+-- the same action independently, while a duplicate for one named client fails.
+insert into public.agent_authorizations (user_id, agent_identifier, action, scope)
+values
+  ('00000000-0000-0000-0000-000000000001', 'claude-code', 'read_context', '{"limit":14}'::jsonb),
+  ('00000000-0000-0000-0000-000000000001', 'codex', 'read_context', '{"limit":14}'::jsonb);
+
+select case when count(*) = 2 then 'PASS: Claude Code and Codex hold independent active read grants' else 'FAIL: named-client active grants are not independent' end as named_client_active_grants_test
+from public.agent_authorizations
+where user_id = '00000000-0000-0000-0000-000000000001'
+  and agent_identifier in ('claude-code', 'codex')
+  and action = 'read_context'
+  and revoked_at is null;
+
+do $$
+begin
+  begin
+    insert into public.agent_authorizations (user_id, agent_identifier, action)
+    values ('00000000-0000-0000-0000-000000000001', 'claude-code', 'read_context');
+    raise exception 'FAIL: duplicate active named-client authorization unexpectedly succeeded';
+  exception when unique_violation then
+    raise notice 'PASS: duplicate active named-client authorization rejected';
+  end;
+end;
+$$;
+
+-- Revocation preserves the original record. Its identity, action, and scope
+-- cannot be rewritten, it cannot be un-revoked, and a fresh regrant remains
+-- possible without changing the historical evidence.
+update public.agent_authorizations
+set revoked_at = now()
+where user_id = '00000000-0000-0000-0000-000000000001'
+  and agent_identifier = 'claude-code'
+  and action = 'read_context';
+
+do $$
+begin
+  begin
+    update public.agent_authorizations set agent_identifier = 'codex'
+    where user_id = '00000000-0000-0000-0000-000000000001' and agent_identifier = 'claude-code' and action = 'read_context';
+    raise exception 'FAIL: revoked authorization identity rewrite unexpectedly succeeded';
+  exception when others then
+    if SQLERRM <> 'agent authorizations may only be revoked once' then raise; end if;
+    raise notice 'PASS: revoked authorization identity is immutable';
+  end;
+  begin
+    update public.agent_authorizations set action = 'write_proposed_plan'
+    where user_id = '00000000-0000-0000-0000-000000000001' and agent_identifier = 'claude-code' and action = 'read_context';
+    raise exception 'FAIL: revoked authorization action rewrite unexpectedly succeeded';
+  exception when others then
+    if SQLERRM <> 'agent authorizations may only be revoked once' then raise; end if;
+    raise notice 'PASS: revoked authorization action is immutable';
+  end;
+  begin
+    update public.agent_authorizations set scope = '{"limit":50}'::jsonb
+    where user_id = '00000000-0000-0000-0000-000000000001' and agent_identifier = 'claude-code' and action = 'read_context';
+    raise exception 'FAIL: revoked authorization scope rewrite unexpectedly succeeded';
+  exception when others then
+    if SQLERRM <> 'agent authorizations may only be revoked once' then raise; end if;
+    raise notice 'PASS: revoked authorization scope is immutable';
+  end;
+  begin
+    update public.agent_authorizations set revoked_at = null
+    where user_id = '00000000-0000-0000-0000-000000000001' and agent_identifier = 'claude-code' and action = 'read_context';
+    raise exception 'FAIL: revoked authorization un-revoke unexpectedly succeeded';
+  exception when others then
+    if SQLERRM <> 'agent authorizations may only be revoked once' then raise; end if;
+    raise notice 'PASS: revoked authorization cannot be un-revoked';
+  end;
+end;
+$$;
+
+insert into public.agent_authorizations (user_id, agent_identifier, action, scope)
+values ('00000000-0000-0000-0000-000000000001', 'claude-code', 'read_context', '{"limit":14}'::jsonb);
+
+select case when count(*) = 2 then 'PASS: named-client regrant succeeds after revocation' else 'FAIL: named-client regrant did not create independent active grants' end as named_client_regrant_test
+from public.agent_authorizations
+where user_id = '00000000-0000-0000-0000-000000000001'
+  and agent_identifier in ('claude-code', 'codex')
+  and action = 'read_context'
+  and revoked_at is null;
+
+select case when count(*) = 2
+  and count(*) filter (where revoked_at is not null and scope = '{"limit":14}'::jsonb) = 1
+  then 'PASS: revoked named-client history remains intact'
+  else 'FAIL: revoked named-client history changed'
+end as named_client_history_test
+from public.agent_authorizations
+where user_id = '00000000-0000-0000-0000-000000000001'
+  and agent_identifier = 'claude-code'
+  and action = 'read_context';
+
 -- Browser-role callers must not execute the SECURITY DEFINER MCP plan RPC.
 do $$
 begin

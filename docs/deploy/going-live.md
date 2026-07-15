@@ -11,16 +11,18 @@ Two pieces live in **different places**:
   Supabase key, which is safe to expose in a browser. This is what you open on
   your phone.
 - **MCP server** (`mcp/agym-server.ts`) → **stays on your local machine**, next
-  to Hermes. It talks to the hosted database with the *secret service-role* key.
-  It is **never** deployed to Vercel and its key **never** goes into Git or the
-  web app.
+  to a configured local MCP client. It talks to the hosted database with a
+  private service-role key. It is **never** deployed to Vercel and its key
+  **never** goes into Git or the web app.
 
-Both read/write the same hosted Supabase Postgres, protected by RLS.
+Both use the same hosted Supabase Postgres. Browser access is protected by RLS;
+the local MCP server performs its per-action authorization checks before serving
+a tool call.
 
 ```
  phone browser ──(publishable key)──┐
                                      ├──▶ hosted Supabase (Auth + Postgres + RLS)
- Hermes + local MCP ─(service key)──┘
+ local MCP client + MCP ───────────┘
 ```
 
 ---
@@ -92,30 +94,36 @@ this on your test account while it's still empty-ish:
 
 ---
 
-## Step 4 — Wire the local MCP server to hosted Supabase
+## Step 4 — Wire a local MCP client and server to hosted Supabase
 
-On your machine (where Hermes runs):
+On the machine where the local MCP client runs:
 
-1. Get the **service-role/secret key**: Supabase dashboard → Project Settings →
-   API → `service_role` secret. Treat it like a password.
-2. Add the AGym server to your Hermes MCP config (see `mcp/README.md` for the
-   exact shape). Point it at the **hosted** URL, not localhost:
-   ```yaml
-   mcp_servers:
-     agym:
-       command: npm
-       args: ["run", "mcp"]
-       env:
-         AGYM_SUPABASE_URL: "https://<project-ref>.supabase.co"
-         AGYM_SUPABASE_SERVICE_ROLE_KEY: "<service-role secret>"
-         AGYM_USER_ID: "<your auth user UUID from Supabase → Auth → Users>"
-         AGYM_AGENT_IDENTIFIER: "hermes"
+1. Obtain the private service-role key from Supabase and store it only in the
+   chosen client's local MCP-process environment. Never put the value in the
+   browser, Vercel, Git, chat, or a command that prints it.
+2. Add the AGym server to the selected local client's MCP configuration (see
+   `mcp/README.md`). Configure its private environment with
+   `AGYM_SUPABASE_URL`, `AGYM_SUPABASE_SERVICE_ROLE_KEY`, and `AGYM_USER_ID`,
+   point it at the hosted URL rather than localhost, and run `npm run mcp`.
+3. Configure a separate process for each client you use. Its
+   `AGYM_AGENT_IDENTIFIER` must be exactly one of `hermes`, `claude-code`, or
+   `codex`, and must match the corresponding app permission button. These are
+   fixed labels, not cryptographic client identities.
+4. In the app, explicitly grant every desired scope for every client. A grant
+   for one identifier does not extend to another, and `read_context` and
+   `write_proposed_plan` are separate approvals. A client cannot grant itself;
+   a real MCP call stays blocked until the signed-in user grants that action.
+   The action checks enforce access; scope JSON does not provide independent
+   enforcement.
+5. Restart or reload the configured client, then run its non-secret discovery
+   check:
+   ```bash
+   hermes mcp test agym
+   claude mcp list
+   codex mcp list
    ```
-3. Create your authorizations (the agent can't grant itself — you do it as the
-   user). In Supabase SQL editor, insert two rows into `agent_authorizations`
-   for your `user_id`: one `read_context`, one `write_proposed_plan`.
-4. Restart Hermes; confirm it discovers `mcp_agym_get_context` (+ list_plans,
-   create_proposed_plan).
+   Run the command matching the client you configured. Discovery does not prove
+   that the user has authorized an AGym action.
 
 ---
 
@@ -140,9 +148,12 @@ proven themselves locally.
 ## Step 5 — The live founder-proof loop
 
 1. On your phone: log a real workout in plain text → confirm the parsed event.
-2. Ask Hermes to read your AGym context → it calls `get_context` → sees your
-   confirmed event + raw note (labelled, uncertain-preserving).
-3. Ask Hermes to propose next session → it calls `create_proposed_plan`.
+2. Ask your configured local MCP client to read your AGym context → it calls
+   `get_context` → sees bounded confirmed events and raw notes (labelled,
+   uncertainty-preserving).
+3. The user-selected LLM interprets that context and can ask to create a next
+   session proposal via `create_proposed_plan`. AGym does not call a hosted
+   server-side parser, and the proposal is not a confirmed outcome.
 4. Refresh the app's **Plans** tab → the agent's proposal appears, clearly
    marked as a proposal (not a confirmed outcome).
 5. Check `agent_audit_log` in Supabase — every read/write is recorded.
@@ -153,7 +164,7 @@ That loop is the product working end to end with real data. 🎯
 
 Do this after Step 4b has applied the Gym migrations to hosted.
 
-6. Ask Hermes to create a **structured** Gym plan for today via
+6. Ask the configured local MCP client to create a **structured** Gym plan for today via
    `create_proposed_plan` with a `gym_workout` `plan_data` payload (see the
    product contract in `docs/plans/2026-07-14-gym-workout-execution.md`) —
    not a free-text plan.

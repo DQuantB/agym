@@ -44,6 +44,17 @@ async function call(name: string, args: Record<string, unknown>) {
   return { isError: !!res.isError, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
 }
 
+// Build a real MCP server for each named client and invoke its registered tool
+// callback. This exercises the production authorization lookup rather than a
+// test double, while keeping client isolation assertions independent.
+async function callAs(agentIdentifier: string, name: string, args: Record<string, unknown>) {
+  const namedServer = createAgymMcpServer(client, { ...cfg, agentIdentifier });
+  const namedTools = (namedServer as unknown as { _registeredTools: Record<string, { handler: (toolArgs: unknown, extra: unknown) => Promise<{ content: { type: string; text: string }[]; isError?: boolean }> }> })._registeredTools;
+  const res = await namedTools[name].handler(args, {} as unknown);
+  const text = res.content.map((content) => content.text).join('\n');
+  return { isError: !!res.isError, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
+}
+
 // Real client/server pair over an in-memory transport, so calls below go
 // through the SDK's CallTool request handler -- including the Zod
 // safeParseAsync validation of each tool's inputSchema -- instead of
@@ -142,5 +153,51 @@ assert.equal(denied.isError, true, 'get_context must fail after revocation');
 assert.match(denied.text, /No active read_context authorization/);
 console.log('7) authz gate OK: revoked read_context -> get_context denied, no data returned');
 // Note: revocation is permanent (DB trigger blocks un-revoke); the seed recreates the user each run.
+
+// 8) Named-client grants are exact: Claude Code has no authority until the
+// user separately grants each action. Codex remains denied at this point too.
+const claudeReadDenied = await callAs('claude-code', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(claudeReadDenied.isError, true, 'Claude Code must not inherit Hermes read access');
+assert.match(claudeReadDenied.text, /No active read_context authorization/);
+const claudeWriteDenied = await callAs('claude-code', 'create_proposed_plan', { raw_plan_text: 'Named-client proposal' });
+assert.equal(claudeWriteDenied.isError, true, 'Claude Code must not write without its own grant');
+
+const codexReadDenied = await callAs('codex', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(codexReadDenied.isError, true, 'Codex must not inherit another client\'s read access');
+const codexWriteDenied = await callAs('codex', 'create_proposed_plan', { raw_plan_text: 'Named-client proposal' });
+assert.equal(codexWriteDenied.isError, true, 'Codex must not write without its own grant');
+console.log('8) named clients denied until each has its own grant');
+
+// Grants and revocations are owner-only database operations; the service-role
+// MCP client intentionally cannot grant itself access.
+psql(`
+  insert into public.agent_authorizations (user_id, agent_identifier, action)
+  values ('${USER_ID}', 'claude-code', 'read_context'), ('${USER_ID}', 'claude-code', 'write_proposed_plan');
+`);
+const claudeReadAllowed = await callAs('claude-code', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(claudeReadAllowed.isError, false, 'Claude Code read grant should permit only Claude Code');
+const claudeWriteAllowed = await callAs('claude-code', 'create_proposed_plan', { raw_plan_text: 'Named-client proposal' });
+assert.equal(claudeWriteAllowed.isError, false, 'Claude Code write grant should permit proposal creation');
+console.log('9) Claude Code allowed only after its own read/write grants');
+
+// Codex remains denied until its separate grants exist, then continues to work
+// after Claude Code's read authorization is revoked.
+const codexStillDenied = await callAs('codex', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(codexStillDenied.isError, true, 'Codex must remain denied before its separate read grant');
+psql(`
+  insert into public.agent_authorizations (user_id, agent_identifier, action)
+  values ('${USER_ID}', 'codex', 'read_context'), ('${USER_ID}', 'codex', 'write_proposed_plan');
+`);
+const codexReadAllowed = await callAs('codex', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(codexReadAllowed.isError, false, 'Codex read grant should permit Codex');
+const codexWriteAllowed = await callAs('codex', 'create_proposed_plan', { raw_plan_text: 'Named-client proposal' });
+assert.equal(codexWriteAllowed.isError, false, 'Codex write grant should permit Codex');
+
+psql(`update public.agent_authorizations set revoked_at = now() where user_id='${USER_ID}' and agent_identifier='claude-code' and action='read_context';`);
+const claudeRevoked = await callAs('claude-code', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(claudeRevoked.isError, true, 'revoked Claude Code read grant must deny Claude Code');
+const codexUnaffected = await callAs('codex', 'get_context', { limit: 1, include_raw_notes: false });
+assert.equal(codexUnaffected.isError, false, 'revoking Claude Code must not affect Codex');
+console.log('10) named-client isolation OK: Claude Code revocation leaves Codex grants active');
 
 console.log('\nMCP E2E round-trip: ALL PASS');

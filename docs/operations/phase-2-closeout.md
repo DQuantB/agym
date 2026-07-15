@@ -1,6 +1,6 @@
 # Phase 2 — Invite-only Auth and Hosted Storage Close-out
 
-Status: **implementation complete; production data-rights proof pending**
+Status: **complete**
 
 Date opened: 2026-07-15
 Source of truth: `docs/plans/networked-agent-alpha-invite-only.md` §Phase 2, as governed by ADR 0002.
@@ -52,20 +52,19 @@ This satisfies the Phase 2 plan acceptance criterion. It is user-confirmed evide
 
 MCP client proof is tracked separately from Phase 2 but confirms that a separately authorized Claude Desktop client can connect to the same hosted account through the local MCP boundary.
 
-## Required final gate: disposable-account data-rights proof
+## Disposable-account data-rights proof — PASS
 
-This is deliberately not run against the founder's primary AGym account.
+The data-rights proof was deliberately run against `gamerdani680@gmail.com`, not the founder's primary AGym account (2026-07-15).
 
-1. Create or invite a disposable mailbox/account through the existing private-alpha flow.
-2. Sign in at production and create one unmistakably throwaway log/event.
-3. In **Data**, click **Export all JSON** and save the file.
-4. Verify the exported JSON contains that account's raw log and confirmed event, and does not contain another account's data.
-5. In **Data → Delete my account**, type `DELETE` and complete deletion.
-6. Verify that the app returns to the sign-in gate.
-7. Attempt to sign in again with the deleted account; it must not restore the former session or records.
-8. Where permitted by the test setup, verify all user-owned rows are absent and the account no longer exists.
+1. An invite was sent to the disposable address and the account signed in to production.
+2. A throwaway log/event was created and confirmed.
+3. **Data → Export all JSON** produced an export that the user verified contained the disposable account's throwaway raw log and confirmed event.
+4. **Data → Delete my account** required the confirmation phrase `DELETE` and completed the permanent-delete flow.
+5. The application returned to the sign-in gate.
+6. A post-deletion re-entry attempt returned `Signups not allowed for this instance`, confirming the invite-only guardrail stayed active rather than recreating the deleted account through public signup.
+7. A read-only hosted Supabase Auth admin verification found no remaining user for the disposable address (`ACCOUNT_ABSENT_AFTER_DELETION`).
 
-Record the result here before changing this document's status to **complete**.
+The deletion migration's automated cascade test remains the proof that deletion removes every associated user-owned table row; the production pass proves the real browser/account lifecycle through the deployed application.
 
 ## Historical GitHub issue disposition
 
@@ -81,4 +80,4 @@ The issues below are labelled `phase-2` but do not define the accepted hosted Ph
 
 ## Completion decision
 
-Do not label Phase 2 complete until the disposable-account export-and-delete proof passes. Once it passes, close/supersede the five historical GitHub issues above, update this record with the result, and merge the close-out documentation PR.
+**Phase 2 is complete.** The hosted invitation/authentication, per-user persistence, export, and full-account-deletion gates have both automated evidence and a production disposable-account proof. The five historical GitHub issues above can now be closed with their documented dispositions; this close-out record is the durable audit trail.

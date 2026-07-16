@@ -35,6 +35,16 @@ export interface AgymMcpConfiguration {
   agentIdentifier: string;
 }
 
+/** Identity derived by a trusted transport boundary, never from MCP tool input. */
+export interface AgymMcpIdentity {
+  userId: string;
+  agentIdentifier: string;
+  /** Local stdio uses the legacy service-only RPC; remote uses self-scoped RPC. */
+  planRpcName?: 'create_mcp_proposed_plan' | 'create_remote_mcp_proposed_plan';
+}
+
+type AuthorizationAction = 'read_context' | 'write_proposed_plan';
+
 interface AuthorizationRow {
   id: string;
 }
@@ -49,28 +59,28 @@ function errorContent(message: string) {
 
 async function requireAuthorization(
   client: SupabaseClient,
-  configuration: AgymMcpConfiguration,
-  action: 'read_context' | 'write_proposed_plan',
+  identity: AgymMcpIdentity,
+  action: AuthorizationAction,
 ): Promise<AuthorizationRow> {
   const { data, error } = await client
     .from('agent_authorizations')
     .select('id')
-    .eq('user_id', configuration.userId)
-    .eq('agent_identifier', configuration.agentIdentifier)
+    .eq('user_id', identity.userId)
+    .eq('agent_identifier', identity.agentIdentifier)
     .eq('action', action)
     .is('revoked_at', null)
     .maybeSingle();
 
-  if (error) throw new Error(`Could not verify AGym read authorization: ${error.message}`);
-  if (!data) throw new Error(`No active read_context authorization exists for ${configuration.agentIdentifier}.`);
+  if (error) throw new Error(`Could not verify AGym ${action} authorization: ${error.message}`);
+  if (!data) throw new Error(`No active ${action} authorization exists for ${identity.agentIdentifier}.`);
   return data as AuthorizationRow;
 }
 
-async function appendAuditLog(client: SupabaseClient, configuration: AgymMcpConfiguration, authorizationId: string, action: string, metadata: Record<string, unknown>) {
+async function appendAuditLog(client: SupabaseClient, identity: AgymMcpIdentity, authorizationId: string, action: string, metadata: Record<string, unknown>) {
   const { error } = await client.from('agent_audit_log').insert({
-    user_id: configuration.userId,
+    user_id: identity.userId,
     authorization_id: authorizationId,
-    agent_identifier: configuration.agentIdentifier,
+    agent_identifier: identity.agentIdentifier,
     action,
     resource_type: 'context',
     metadata,
@@ -78,8 +88,7 @@ async function appendAuditLog(client: SupabaseClient, configuration: AgymMcpConf
   if (error) throw new Error(`Could not write AGym audit record: ${error.message}`);
 }
 
-export function createAgymMcpServer(client: SupabaseClient, configuration: AgymMcpConfiguration): McpServer {
-  const server = new McpServer({ name: 'agym', version: '0.1.0' });
+export function registerAgymTools(server: McpServer, client: SupabaseClient, identity: AgymMcpIdentity): void {
 
   server.registerTool(
     'get_context',
@@ -89,12 +98,12 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
     },
     async ({ from_date: fromDate, to_date: toDate, limit, include_raw_notes: includeRawNotes }) => {
       try {
-        const authorization = await requireAuthorization(client, configuration, 'read_context');
+        const authorization = await requireAuthorization(client, identity, 'read_context');
 
         let eventsQuery = client
           .from('canonical_events')
           .select('client_id, event_type, final_fields, confirmed_at')
-          .eq('user_id', configuration.userId)
+          .eq('user_id', identity.userId)
           .is('deleted_at', null)
           .order('confirmed_at', { ascending: false })
           .limit(limit);
@@ -109,7 +118,7 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
           let rawLogsQuery = client
             .from('raw_logs')
             .select('client_id, raw_text, logged_for_date, client_meta, created_at')
-            .eq('user_id', configuration.userId)
+            .eq('user_id', identity.userId)
             .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .limit(limit);
@@ -136,7 +145,7 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
           data: event.final_fields,
         }));
 
-        await appendAuditLog(client, configuration, authorization.id, 'get_context', {
+        await appendAuditLog(client, identity, authorization.id, 'get_context', {
           from_date: fromDate ?? null,
           to_date: toDate ?? null,
           raw_notes_included: includeRawNotes,
@@ -145,7 +154,7 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
         });
 
         return jsonContent({
-          user_id: configuration.userId,
+          user_id: identity.userId,
           query: { from_date: fromDate ?? null, to_date: toDate ?? null, limit, include_raw_notes: includeRawNotes },
           confirmed_events: confirmedEvents,
           raw_notes: rawNotes,
@@ -165,13 +174,13 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
     },
     async ({ status, limit }) => {
       try {
-        const authorization = await requireAuthorization(client, configuration, 'read_context');
+        const authorization = await requireAuthorization(client, identity, 'read_context');
         let query = client.from('plans').select('id, raw_plan_text, plan_data, provenance, status, source_client, scheduled_for, created_at, updated_at')
-          .eq('user_id', configuration.userId).is('deleted_at', null).order('created_at', { ascending: false }).limit(limit);
+          .eq('user_id', identity.userId).is('deleted_at', null).order('created_at', { ascending: false }).limit(limit);
         if (status) query = query.eq('status', status);
         const { data, error } = await query;
         if (error) throw new Error(`Could not load plans: ${error.message}`);
-        await appendAuditLog(client, configuration, authorization.id, 'list_plans', { status: status ?? null, plan_count: data?.length ?? 0 });
+        await appendAuditLog(client, identity, authorization.id, 'list_plans', { status: status ?? null, plan_count: data?.length ?? 0 });
         return jsonContent({ plans: data ?? [], caveat: 'Plans are agent-authored proposals, not confirmed outcomes or user acceptance.' });
       } catch (error) {
         return errorContent(error instanceof Error ? error.message : 'AGym plan request failed.');
@@ -187,14 +196,22 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
     },
     async ({ raw_plan_text: rawPlanText, plan_data: planData }) => {
       try {
-        const authorization = await requireAuthorization(client, configuration, 'write_proposed_plan');
-        const { data, error } = await client.rpc('create_mcp_proposed_plan', {
-          p_user_id: configuration.userId,
-          p_authorization_id: authorization.id,
-          p_agent_identifier: configuration.agentIdentifier,
-          p_raw_plan_text: rawPlanText,
-          p_plan_data: planData,
-        });
+        const authorization = await requireAuthorization(client, identity, 'write_proposed_plan');
+        const rpcArguments = identity.planRpcName === 'create_remote_mcp_proposed_plan'
+          ? {
+              p_authorization_id: authorization.id,
+              p_agent_identifier: identity.agentIdentifier,
+              p_raw_plan_text: rawPlanText,
+              p_plan_data: planData,
+            }
+          : {
+              p_user_id: identity.userId,
+              p_authorization_id: authorization.id,
+              p_agent_identifier: identity.agentIdentifier,
+              p_raw_plan_text: rawPlanText,
+              p_plan_data: planData,
+            };
+        const { data, error } = await client.rpc(identity.planRpcName ?? 'create_mcp_proposed_plan', rpcArguments);
         if (error) throw new Error(`Could not create proposed plan: ${error.message}`);
         return jsonContent({ plan: data, caveat: 'This is an agent-authored proposal awaiting user review. It is not a confirmed outcome or active plan.' });
       } catch (error) {
@@ -202,7 +219,11 @@ export function createAgymMcpServer(client: SupabaseClient, configuration: AgymM
       }
     },
   );
+}
 
+export function createAgymMcpServer(client: SupabaseClient, configuration: AgymMcpConfiguration): McpServer {
+  const server = new McpServer({ name: 'agym', version: '0.1.0' });
+  registerAgymTools(server, client, configuration);
   return server;
 }
 

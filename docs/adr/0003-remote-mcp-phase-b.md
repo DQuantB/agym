@@ -26,8 +26,8 @@ compatible remote MCP client
 3. The remote endpoint uses a user bearer token plus the Supabase publishable key and owner-scoped RLS. It does not use a Supabase service-role key.
 4. Existing `agent_authorizations` remain the independently revocable product permission layer. OAuth authentication does not imply AGym read or write permission.
 5. The only remote tool surface in this phase is `get_context`, `list_plans`, and `create_proposed_plan`. Plan creation remains atomic, `agent_written_plan`, and `proposed`; no remote tool can confirm an outcome or activate a plan.
-6. The endpoint is stateless request/response Streamable HTTP. Phase B does not add SSE, resumable sessions, sampling, tasks, dynamic OAuth-client registration, or arbitrary agent identifiers.
-7. A remote deployment is prohibited until Supabase OAuth 2.1 Server is enabled, a first real client is explicitly registered/allowlisted, and a staging OAuth authorization-code + PKCE proof succeeds.
+6. The endpoint is stateless request/response Streamable HTTP. Phase B does not add SSE, resumable sessions, sampling, tasks, or arbitrary agent identifiers.
+7. A remote deployment is prohibited until an authorization server compatible with the chosen MCP client is configured and a staging OAuth authorization-code + PKCE proof succeeds. For Claude Desktop custom connectors, this includes OAuth Dynamic Client Registration (DCR), PKCE S256, and acceptance of Claude's documented callback URI. A static, server-side OAuth-client-ID allowlist alone is not sufficient for that client.
 
 ## Why
 

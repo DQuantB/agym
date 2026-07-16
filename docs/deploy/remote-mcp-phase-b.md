@@ -1,6 +1,6 @@
 # Remote MCP Phase B — deployment and verification
 
-Status: implementation ready; **do not deploy until the OAuth pre-flight gate below is complete.**
+Status: foundation implemented; **do not deploy the current remote handler for Claude Desktop.** Claude’s custom remote-connector flow requires OAuth Dynamic Client Registration (DCR); the existing `mcp-test` Supabase authorization-server metadata has no `registration_endpoint`, while the current handler expects a static OAuth-client allowlist. That combination cannot complete Claude Desktop OAuth safely.
 
 ## Vercel endpoint
 
@@ -30,18 +30,22 @@ Use:
 
 - `AGYM_REMOTE_OAUTH_ISSUER`: `https://<project-ref>.supabase.co/auth/v1`
 - `AGYM_REMOTE_MCP_RESOURCE`: exact canonical public endpoint, for example `https://agym-murex.vercel.app/api/mcp`
-- `AGYM_REMOTE_CLIENTS_JSON`: JSON mapping of verified OAuth client IDs to fixed AGym identifiers, initially `remote-mcp`; for example `{"<verified-client-id>":"remote-mcp"}`.
+- `AGYM_REMOTE_CLIENTS_JSON`: legacy/static client mapping used by the current foundation. **Do not configure it for a Claude Desktop deployment**; Claude uses DCR, so this mapping must be replaced by reviewed DCR client-policy validation before deployment.
 - `AGYM_REMOTE_ALLOWED_ORIGINS`: comma-separated browser origins that may initiate a request. Direct non-browser MCP clients normally send no Origin header and remain supported.
 
 There is deliberately no service-role key and no static user ID in the remote runtime.
 
-## Required Supabase OAuth pre-flight
+## OAuth compatibility gate — Claude Desktop
 
-1. In a staging Supabase project, enable the OAuth 2.1 Server and configure its consent/authorization UI.
-2. Pre-register one compatible MCP OAuth client with an exact redirect URI. Do not enable dynamic client registration in the initial release.
-3. Configure the access token for this protected resource and verify it contains the standard identity claims, `client_id`, and the configured MCP resource audience.
-4. Use asymmetric JWT signing/JWKS. The endpoint validates issuer, expiry, audience, UUID subject, authenticated role, and allowlisted client ID.
-5. Only after staging proof, repeat the configuration for production.
+Before configuring Vercel runtime variables or deploying, use an OAuth 2.1 authorization server that satisfies Claude Desktop’s custom remote-connector requirements:
+
+1. It advertises `authorization_endpoint`, `token_endpoint`, and `registration_endpoint` in public authorization-server metadata.
+2. It supports OAuth Dynamic Client Registration (DCR), authorization-code flow, and PKCE `S256` for a public client.
+3. Its DCR policy accepts only approved redirect URIs, including Claude’s documented custom-connector callback URI, rather than accepting arbitrary web origins.
+4. It issues asymmetric JWTs/JWKS with AGym user identity, authenticated role, and the exact MCP resource audience.
+5. The remote handler maps a validated DCR client to the fixed `remote-mcp` product identity without trusting tool input. The current `AGYM_REMOTE_CLIENTS_JSON` static allowlist implementation must be replaced before a Claude deployment.
+
+The current `mcp-test` Supabase project is useful as an AGym data/RLS staging database, but its OAuth metadata was verified without a `registration_endpoint`; it cannot by itself authorize a Claude Desktop remote connector.
 
 ## User permission proof
 

@@ -37,7 +37,13 @@ export function loadRemoteMcpConfiguration(env: NodeJS.ProcessEnv = process.env)
   } catch {
     throw new Error('AGYM_REMOTE_CLIENTS_JSON must be a JSON object mapping OAuth client IDs to fixed AGym agent identifiers.');
   }
-  if (Object.keys(clients).length === 0 || Object.entries(clients).some(([clientId, agent]) => !clientId.trim() || !agent.trim())) {
+  if (
+    typeof clients !== 'object'
+    || clients === null
+    || Array.isArray(clients)
+    || Object.keys(clients).length === 0
+    || Object.entries(clients).some(([clientId, agent]) => typeof clientId !== 'string' || !clientId.trim() || typeof agent !== 'string' || !agent.trim())
+  ) {
     throw new Error('AGYM_REMOTE_CLIENTS_JSON must contain at least one nonblank client ID and agent identifier.');
   }
   return {
@@ -108,6 +114,6 @@ export function remoteMcpMetadata(configuration: RemoteMcpConfiguration) {
   };
 }
 
-export function protectedResourceMetadataUrl(request: Request) {
-  return new URL('/.well-known/oauth-protected-resource/api/mcp', request.url).toString();
+export function protectedResourceMetadataUrl(configuration: RemoteMcpConfiguration) {
+  return new URL('/.well-known/oauth-protected-resource/api/mcp', configuration.resource).toString();
 }

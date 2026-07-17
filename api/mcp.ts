@@ -15,11 +15,16 @@ function response(body: string | null, status: number, headers: HeadersInit = {}
   return new Response(body, { status, headers: { 'cache-control': 'no-store', ...headers } });
 }
 
-function unauthorized(request: Request, message: string) {
+function unauthorized(configuration: ReturnType<typeof loadRemoteMcpConfiguration>, message: string) {
   return response(JSON.stringify({ error: 'invalid_token', error_description: message }), 401, {
     'content-type': 'application/json',
-    'www-authenticate': `Bearer resource_metadata="${protectedResourceMetadataUrl(request)}"`,
+    'www-authenticate': `Bearer resource_metadata="${protectedResourceMetadataUrl(configuration)}"`,
   });
+}
+
+function isJsonContentType(request: Request) {
+  const contentType = request.headers.get('content-type');
+  return contentType !== null && contentType.split(';', 1)[0].trim().toLowerCase() === 'application/json';
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -37,6 +42,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   const origin = request.headers.get('origin');
   if (origin && !configuration.allowedOrigins.includes(origin)) return response('Origin is not allowed', 403);
+  if (!isJsonContentType(request)) return response('Content-Type must be application/json', 415);
 
   try {
     const identity = await authenticateRemoteMcpRequest(request, configuration);
@@ -54,7 +60,7 @@ export default async function handler(request: Request): Promise<Response> {
     headers.set('cache-control', 'no-store');
     return new Response(result.body, { status: result.status, headers });
   } catch (error) {
-    if (error instanceof RemoteAuthenticationError) return unauthorized(request, error.message);
+    if (error instanceof RemoteAuthenticationError) return unauthorized(configuration, error.message);
     console.error('AGym remote MCP request failed:', error instanceof Error ? error.message : 'unknown');
     return response('Remote MCP request failed', 500);
   }

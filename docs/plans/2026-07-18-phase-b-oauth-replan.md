@@ -18,6 +18,7 @@
 - The Keycloak realm discovery document is live and advertises authorization-code flow, PKCE support, and a DCR `registration_endpoint`.
 - Claude's documented remote-connector callback URI is `https://claude.ai/api/mcp/auth_callback`.
 - The AGym Supabase project exposes **Third-Party Auth**, but its current provider menu lists named integrations (Firebase, Clerk, WorkOS, Auth0, Amazon Cognito) rather than generic OIDC/Keycloak.
+- **Gate A result (2026-07-18):** Keycloak's advertised public DCR endpoint rejected both an attacker callback and Claude's exact callback with HTTP 403. No client policies/profiles were configured. See `docs/evidence/2026-07-18-keycloak-dcr-policy.md`. This is a safe failure, but it means direct DCR is not ready for Claude.
 
 ### Managed-provider spike: Auth0
 

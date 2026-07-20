@@ -126,9 +126,9 @@ For each mechanism, explicitly answer:
 
 ### Gate B result — 2026-07-20
 
-The bridge spike is recorded in `docs/spikes/2026-07-20-keycloak-supabase-identity-bridge.md`. It rejects Keycloak-token forwarding and RFC 8693 token exchange as ways to mint or convert a Supabase token. A server-only retrieval of a genuine Supabase **access** token held by Keycloak after upstream brokering is an unproven hypothesis, not a selected architecture: the exact Keycloak retrieval interface and its public-client exclusion must be evidenced, and Keycloak's credential storage must receive a threat model.
+The bridge spike is recorded in `docs/spikes/2026-07-20-keycloak-supabase-identity-bridge.md`. It rejects Keycloak-token forwarding, RFC 8693 token exchange, and Keycloak's stock broker-token endpoint as ways to supply a safe Supabase user token. The stock endpoint is subject-bound but returns brokered stored token material and Keycloak's OIDC broker flow can retain refresh tokens; it cannot be granted to Claude or called from Vercel under AGym's no-refresh-token invariant.
 
-Do not add a Vercel refresh-token vault or a service-role fallback. The next admissible action is a disposable Supabase-upstream proof that validates the actual project access token against two-user RLS, proves the backend never receives a refresh token, and proves AGym action authorization is checked server-side on every tool call before the Supabase operation.
+Do not add a Vercel refresh-token vault or a service-role fallback. The only remaining Keycloak direction would be a new, separately reviewed server-only access-token-only bridge component plus a disposable Supabase-upstream proof that validates the actual project access token against two-user RLS, proves the backend never receives a refresh token, and proves AGym action authorization is checked server-side on every tool call. That infrastructure is not approved by this plan.
 
 **Abort condition:** If no server-side-only bridge preserves RLS, do not substitute a service-role key. Mark remote Claude MCP blocked and retain the local stdio MCP integration.
 

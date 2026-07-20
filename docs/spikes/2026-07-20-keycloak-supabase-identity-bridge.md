@@ -72,6 +72,34 @@ Mandatory disposable-staging proof before this option may be selected:
 
 Until every assertion passes, this remains a hypothesis rather than an identity bridge.
 
+### 2a. Stock Keycloak broker-token endpoint result — 2026-07-20
+
+The relevant Keycloak 26.5.0 source implementation is now verified. `IdentityBrokerService` exposes:
+
+```text
+GET /realms/{realm}/broker/{provider_alias}/token
+```
+
+It authenticates the caller's bearer token, requires the caller's token to carry the `broker:read-token` role, resolves the federated identity for **that token's user**, and returns `identityProvider.retrieveToken(...)` when the upstream provider has `storeToken` enabled. This means it is correctly subject-bound at the Keycloak layer, but it is not an access-token-only backend bridge:
+
+- the caller needs a bearer token with broker-token-read capability;
+- the method returns the stored upstream OIDC token response, rather than an interface constrained to a single access-token field;
+- Keycloak's own update path explicitly preserves an upstream refresh token when a later response does not contain one.
+
+Therefore, granting this endpoint to the public Claude DCR client would expose brokered upstream token material, and calling it from the Vercel handler would risk placing an upstream refresh token in that runtime. Both violate the Phase B security invariants. The stock endpoint is rejected as the bridge mechanism.
+
+The live staging host check also confirmed the Keycloak 26.5.0 image has no custom provider JAR installed. Its public discovery still advertises the DCR registration endpoint, but no exact-callback policy or access-token-only bridge is presently deployed.
+
+A future Keycloak path would need a separately reviewed, server-only bridge component which:
+
+1. accepts only a validated backend audience/credential and derives the user solely from the validated Keycloak subject;
+2. accesses the same user's broker record internally;
+3. returns only a transient genuine Supabase access token, never a refresh token or stored token response;
+4. proves public DCR clients cannot invoke it; and
+5. passes the two-user Supabase RLS, revocation, expiry, unlink, and audit matrix before any deployment.
+
+That is new security-critical infrastructure, not a configuration change. It is not approved or implemented by this Phase B branch.
+
 ### 3. Keycloak RFC 8693 token exchange mints a Supabase token
 
 Verdict: rejected.

@@ -9,7 +9,7 @@ export interface RemoteMcpConfiguration {
   publishableKey: string;
   issuer: string;
   resource: string;
-  clients: Record<string, string>;
+  agentIdentifier: 'remote-mcp';
   allowedOrigins: string[];
 }
 
@@ -31,27 +31,12 @@ export function loadRemoteMcpConfiguration(env: NodeJS.ProcessEnv = process.env)
   const supabaseUrl = required(env, 'AGYM_REMOTE_SUPABASE_URL').replace(/\/$/, '');
   const issuer = required(env, 'AGYM_REMOTE_OAUTH_ISSUER').replace(/\/$/, '');
   const resource = required(env, 'AGYM_REMOTE_MCP_RESOURCE').replace(/\/$/, '');
-  let clients: Record<string, string>;
-  try {
-    clients = JSON.parse(required(env, 'AGYM_REMOTE_CLIENTS_JSON')) as Record<string, string>;
-  } catch {
-    throw new Error('AGYM_REMOTE_CLIENTS_JSON must be a JSON object mapping OAuth client IDs to fixed AGym agent identifiers.');
-  }
-  if (
-    typeof clients !== 'object'
-    || clients === null
-    || Array.isArray(clients)
-    || Object.keys(clients).length === 0
-    || Object.entries(clients).some(([clientId, agent]) => typeof clientId !== 'string' || !clientId.trim() || typeof agent !== 'string' || !agent.trim())
-  ) {
-    throw new Error('AGYM_REMOTE_CLIENTS_JSON must contain at least one nonblank client ID and agent identifier.');
-  }
   return {
     supabaseUrl,
     publishableKey: required(env, 'AGYM_REMOTE_SUPABASE_PUBLISHABLE_KEY'),
     issuer,
     resource,
-    clients,
+    agentIdentifier: 'remote-mcp',
     allowedOrigins: (env.AGYM_REMOTE_ALLOWED_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean),
   };
 }
@@ -74,21 +59,19 @@ export async function authenticateRemoteMcpRequest(request: Request, configurati
   let payload: JWTPayload;
   try {
     const jwks = createRemoteJWKSet(new URL(`${configuration.issuer}/.well-known/jwks.json`));
-    ({ payload } = await jwtVerify(token, jwks, { issuer: configuration.issuer, audience: configuration.resource }));
+    ({ payload } = await jwtVerify(token, jwks, { issuer: configuration.issuer, audience: 'authenticated' }));
   } catch {
-    throw new RemoteAuthenticationError('The bearer access token is invalid, expired, or not issued for this AGym MCP resource.');
+    throw new RemoteAuthenticationError('The bearer access token is invalid, expired, or not issued by AGym Supabase Auth.');
   }
 
   const userId = stringClaim(payload, 'sub');
   if (!UUID.test(userId)) throw new RemoteAuthenticationError('Access token subject is not a valid AGym user identifier.');
   if (payload.role !== 'authenticated') throw new RemoteAuthenticationError('Only authenticated AGym users may access the remote MCP endpoint.');
   const clientId = stringClaim(payload, 'client_id');
-  const agentIdentifier = configuration.clients[clientId];
-  if (!agentIdentifier) throw new RemoteAuthenticationError('This OAuth client is not approved for AGym remote MCP access.');
 
   return {
     userId,
-    agentIdentifier,
+    agentIdentifier: configuration.agentIdentifier,
     authInfo: {
       token,
       clientId,

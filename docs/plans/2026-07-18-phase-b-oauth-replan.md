@@ -1,6 +1,6 @@
-# Phase B OAuth replan — prove the identity boundary before building the remote connector
+# Phase B OAuth replan — historical Keycloak investigation
 
-> **For Hermes:** Use the `subagent-driven-development` skill only after the pre-flight gates below pass. Do not deploy a remote MCP endpoint, enable open DCR, or alter production identity data during this plan.
+> **Superseded 2026-07-20:** The user selected the native Supabase OAuth 2.1 + MCP DCR architecture recorded in `docs/adr/0003-remote-mcp-phase-b.md` and `docs/deploy/remote-mcp-phase-b.md`. This document remains historical evidence for rejecting the Keycloak broker/bridge design; it is not an execution plan.
 
 **Goal:** Choose and prove a secure OAuth architecture that lets Claude connect to AGym remotely without weakening Supabase RLS or exposing a Supabase credential to Claude.
 

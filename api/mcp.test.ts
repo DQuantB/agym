@@ -6,7 +6,6 @@ const remoteEnv = {
   AGYM_REMOTE_SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
   AGYM_REMOTE_OAUTH_ISSUER: 'https://issuer.example.com',
   AGYM_REMOTE_MCP_RESOURCE: 'https://agym.example.com/api/mcp',
-  AGYM_REMOTE_CLIENTS_JSON: '{"client-123":"remote-mcp"}',
   AGYM_REMOTE_ALLOWED_ORIGINS: 'https://agym.example.com',
 };
 

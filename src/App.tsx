@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { OAuthConsent } from './auth/OAuthConsent';
 import { BriefingView } from './components/BriefingView';
 import { DataPanel } from './components/DataPanel';
 import { EventTimeline } from './components/EventTimeline';
@@ -26,6 +27,10 @@ export default function App() {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  if (window.location.pathname === '/oauth/consent') {
+    return <OAuthConsent />;
+  }
 
   return (
     <main>

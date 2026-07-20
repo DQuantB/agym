@@ -51,7 +51,7 @@ export default async function handler(request: Request): Promise<Response> {
     registerAgymTools(server, client, {
       userId: identity.userId,
       agentIdentifier: identity.agentIdentifier,
-      planRpcName: 'create_remote_mcp_proposed_plan',
+      remoteRpc: true,
     });
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);

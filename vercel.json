@@ -4,5 +4,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm ci",
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+  "rewrites": [
+    { "source": "/.well-known/oauth-protected-resource/api/mcp", "destination": "/api/oauth-protected-resource" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }

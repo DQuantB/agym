@@ -78,10 +78,11 @@ describe('PlansView browser authorizations', () => {
     await screen.findByRole('heading', { name: 'Claude Code permissions' });
     expect(screen.getByRole('heading', { name: 'Hermes permissions' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Codex permissions' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Remote MCP client permissions' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Allow Codex to read bounded context' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Allow Codex to write proposed plans' })).toBeInTheDocument();
-    expect(screen.getAllByText(/bounded immutable raw self-reports and confirmed outcomes/i)).toHaveLength(3);
-    expect(screen.getAllByText(/only makes proposals and cannot confirm outcomes/i)).toHaveLength(3);
+    expect(screen.getAllByText(/bounded immutable raw self-reports and confirmed outcomes/i)).toHaveLength(4);
+    expect(screen.getAllByText(/only makes proposals and cannot confirm outcomes/i)).toHaveLength(4);
     expect(mock.authorizationQuery.eq).not.toHaveBeenCalled();
     expect(mock.authorizationQuery.order).toHaveBeenCalledWith('granted_at', { ascending: false });
     expect(screen.getByText(/no agent-authored proposals yet/i)).toBeInTheDocument();

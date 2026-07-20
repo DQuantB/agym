@@ -45,7 +45,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setMessage(null);
     const { error } = await getSupabaseClient().auth.signInWithOtp({
       email: normalizedEmail,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: window.location.href },
     });
     setSubmitting(false);
     setMessage(error ? error.message : 'Check your email for the secure AGym sign-in link. Access is invite-only.');

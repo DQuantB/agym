@@ -5,8 +5,8 @@ import { getSupabaseClient } from '../lib/supabase';
 type AuthorizationAction = 'read_context' | 'write_proposed_plan';
 
 interface AgentClient {
-  id: 'hermes' | 'claude-code' | 'codex';
-  label: 'Hermes' | 'Claude Code' | 'Codex';
+  id: 'hermes' | 'claude-code' | 'codex' | 'remote-mcp';
+  label: 'Hermes' | 'Claude Code' | 'Codex' | 'Remote MCP client';
 }
 
 interface PlanRow {
@@ -31,6 +31,7 @@ const agentClients: AgentClient[] = [
   { id: 'hermes', label: 'Hermes' },
   { id: 'claude-code', label: 'Claude Code' },
   { id: 'codex', label: 'Codex' },
+  { id: 'remote-mcp', label: 'Remote MCP client' },
 ];
 
 const scopes: { action: AuthorizationAction; title: string; description: (label: AgentClient['label']) => string }[] = [

@@ -92,6 +92,12 @@ Expected result: registration succeeds and the resulting client enforces PKCE `S
 
 **Gate A pass condition:** wrong callback rejected; exact Claude callback accepted; public authorization-code + PKCE S256 enforced.
 
+### Gate A result — 2026-07-20
+
+The current staging realm remains safely closed: it rejected both the attacker and Claude callbacks (HTTP 403). Research against Keycloak 26.5.0 confirmed that stock client-registration policies/client policies can harden public authorization-code registration and require PKCE S256, but cannot express the required exact literal redirect-URI allowlist. In particular, host-oriented trusted-host checks would still admit other `https://claude.ai/...` paths.
+
+Do **not** enable anonymous DCR using only stock Keycloak policies. The only viable next DCR options are a reviewed custom Keycloak `ClientRegistrationPolicyProvider` that rejects every registration except the exact callback, or a separate supported authorization-server architecture. A metadata proxy is not sufficient.
+
 ## 3. Pre-flight gate B — preserve Supabase RLS with a real AGym identity
 
 **Objective:** Prove a remote OAuth result can reach Supabase as the correct existing AGym/Supabase user without exposing a Supabase token to Claude.
@@ -101,12 +107,12 @@ The direct Keycloak-token approach is currently blocked: the Supabase Third-Part
 ### Task B1: Document candidate server-side bridge mechanisms
 
 **Files:**
-- Create: `docs/spikes/2026-07-18-keycloak-supabase-identity-bridge.md`
+- Created: `docs/spikes/2026-07-20-keycloak-supabase-identity-bridge.md`
 - Modify: `docs/adr/0003-remote-mcp-phase-b.md` only after a gate passes
 
 Investigate, against Keycloak 26.5.0 and Supabase's current OAuth behavior:
 
-1. Keycloak brokering Supabase as an upstream OIDC provider plus a server-side token exchange; and
+1. Keycloak brokering Supabase as an upstream OIDC provider plus **server-side retrieval of an upstream Supabase-issued access token from Keycloak broker storage** (not RFC 8693 token exchange); and
 2. any reviewed Supabase-supported mechanism that returns a user-scoped Supabase token to AGym's server but never to the public DCR client.
 
 For each mechanism, explicitly answer:
@@ -117,6 +123,12 @@ For each mechanism, explicitly answer:
 - What stops user A from requesting user B's token?
 - How are expiry, refresh, logout, and revocation handled?
 - Can the resulting Supabase token execute the existing RLS policies for the existing UUID-owned AGym rows?
+
+### Gate B result — 2026-07-20
+
+The bridge spike is recorded in `docs/spikes/2026-07-20-keycloak-supabase-identity-bridge.md`. It rejects Keycloak-token forwarding and RFC 8693 token exchange as ways to mint or convert a Supabase token. A server-only retrieval of a genuine Supabase **access** token held by Keycloak after upstream brokering is an unproven hypothesis, not a selected architecture: the exact Keycloak retrieval interface and its public-client exclusion must be evidenced, and Keycloak's credential storage must receive a threat model.
+
+Do not add a Vercel refresh-token vault or a service-role fallback. The next admissible action is a disposable Supabase-upstream proof that validates the actual project access token against two-user RLS, proves the backend never receives a refresh token, and proves AGym action authorization is checked server-side on every tool call before the Supabase operation.
 
 **Abort condition:** If no server-side-only bridge preserves RLS, do not substitute a service-role key. Mark remote Claude MCP blocked and retain the local stdio MCP integration.
 
@@ -159,12 +171,14 @@ Write failing tests for invalid issuer, expired token, wrong audience, invalid/m
 
 Then implement the smallest token-validation and server-side bridge code satisfying the selected ADR. Preserve the existing user-token Supabase client; do not add a service-role client.
 
-### Task C3: Implement only the DCR policy proven by gate A
+### Task C3: Implement only a separately proven DCR policy
 
-**Files:** exact paths depend on gate A's result.
+**Files:** exact paths depend on a future ADR/options spike.
 
-- If Keycloak's native DCR policy passes gate A, configure it reproducibly and add a verification script.
-- If it fails gate A, stop. Do not place a misleading metadata proxy in front of Keycloak. Produce a new ADR/options spike for a genuine authorization-server solution before coding a gateway.
+- Stock Keycloak native policy is ruled out for this exact-callback requirement; do not enable anonymous DCR with its host/safety controls.
+- A custom Keycloak `ClientRegistrationPolicyProvider` is an option only after a dedicated ADR/spike defines its exact registration contract, upgrade/operational ownership, rate limiting, and hostile registration tests.
+- A different authorization-server design is an option only after the same DCR and identity/RLS gates pass.
+- Do not place a misleading metadata proxy in front of Keycloak.
 
 ### Task C4: Run protocol and product proof
 

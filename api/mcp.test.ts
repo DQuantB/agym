@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import handler from './mcp';
+import { handleMcpRequest } from './mcp';
 
 const remoteEnv = {
   AGYM_REMOTE_SUPABASE_URL: 'https://example.supabase.co',
@@ -25,7 +25,7 @@ afterEach(() => {
 describe('remote MCP HTTP boundary', () => {
   it('rejects non-JSON requests before authentication', async () => {
     configureRemoteMcp();
-    const response = await handler(new Request('https://attacker.example/api/mcp', {
+    const response = await handleMcpRequest(new Request('https://attacker.example/api/mcp', {
       method: 'POST',
       headers: { 'content-type': 'text/plain' },
       body: 'not-json',
@@ -37,7 +37,7 @@ describe('remote MCP HTTP boundary', () => {
 
   it('uses configured canonical resource metadata in an authentication challenge', async () => {
     configureRemoteMcp();
-    const response = await handler(new Request('https://attacker.example/api/mcp', {
+    const response = await handleMcpRequest(new Request('https://attacker.example/api/mcp', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: '{}',

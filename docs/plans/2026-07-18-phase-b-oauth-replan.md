@@ -96,7 +96,7 @@ Expected result: registration succeeds and the resulting client enforces PKCE `S
 
 The current staging realm remains safely closed: it rejected both the attacker and Claude callbacks (HTTP 403). Research against Keycloak 26.5.0 confirmed that stock client-registration policies/client policies can harden public authorization-code registration and require PKCE S256, but cannot express the required exact literal redirect-URI allowlist. In particular, host-oriented trusted-host checks would still admit other `https://claude.ai/...` paths.
 
-Do **not** enable anonymous DCR using only stock Keycloak policies. The only viable next DCR options are a reviewed custom Keycloak `ClientRegistrationPolicyProvider` that rejects every registration except the exact callback, or a separate supported authorization-server architecture. A metadata proxy is not sufficient.
+Do **not** enable anonymous DCR using only stock Keycloak policies. The only viable next DCR options are a reviewed custom Keycloak `ClientRegistrationPolicy` implementation plus its `ClientRegistrationPolicyFactory` that rejects every registration except the exact callback, or a separate supported authorization-server architecture. A metadata proxy is not sufficient.
 
 ## 3. Pre-flight gate B — preserve Supabase RLS with a real AGym identity
 
@@ -173,10 +173,12 @@ Then implement the smallest token-validation and server-side bridge code satisfy
 
 ### Task C3: Implement only a separately proven DCR policy
 
+Research record: `docs/spikes/2026-07-20-keycloak-custom-dcr-policy.md`
+
 **Files:** exact paths depend on a future ADR/options spike.
 
 - Stock Keycloak native policy is ruled out for this exact-callback requirement; do not enable anonymous DCR with its host/safety controls.
-- A custom Keycloak `ClientRegistrationPolicyProvider` is an option only after a dedicated ADR/spike defines its exact registration contract, upgrade/operational ownership, rate limiting, and hostile registration tests.
+- A custom Keycloak `ClientRegistrationPolicy` implementation plus `ClientRegistrationPolicyFactory` is an option only after a dedicated ADR/spike defines its exact registration contract, upgrade/operational ownership, rate limiting, and hostile registration tests.
 - A different authorization-server design is an option only after the same DCR and identity/RLS gates pass.
 - Do not place a misleading metadata proxy in front of Keycloak.
 

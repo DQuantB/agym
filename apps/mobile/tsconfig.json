@@ -8,16 +8,10 @@
       ]
     }
   },
-  "files": [
-    "src/app/_layout.tsx",
-    "src/app/(tabs)/_layout.tsx",
-    "src/app/(tabs)/index.tsx",
-    "src/app/(tabs)/calendar.tsx",
-    "src/app/(tabs)/log.tsx",
-    "src/app/(tabs)/data.tsx",
-    "src/auth/AuthProvider.tsx",
-    "src/components/Screen.tsx",
-    "src/lib/supabase.ts",
-    "src/theme/tokens.ts"
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ]
 }

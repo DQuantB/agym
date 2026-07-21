@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { executionFromPlan, gymWorkoutPlanSchema, workoutExecutionDataSchema } from './gymSchemas';
-import { completeWorkout, loadWorkout, saveWorkout, startWorkout } from './workoutApi';
+import { acceptGymWorkoutPlan, completeWorkout, loadWorkout, saveWorkout, startWorkout } from './workoutApi';
 
 const plan = gymWorkoutPlanSchema.parse({
   kind: 'gym_workout',
@@ -103,6 +103,7 @@ describe('loadWorkout', () => {
 
     expect(result).toEqual({ plan, planId: 'plan-1', execution });
     expect(plansChain.eq).toHaveBeenCalledWith('scheduled_for', '2026-07-14');
+    expect(plansChain.eq).toHaveBeenCalledWith('status', 'active');
     expect(plansChain.eq).toHaveBeenCalledWith('plan_data->>kind', 'gym_workout');
     expect(plansChain.is).toHaveBeenCalledWith('deleted_at', null);
     expect(executionsChain.eq).toHaveBeenCalledWith('plan_id', 'plan-1');
@@ -207,6 +208,19 @@ describe('saveWorkout', () => {
     const { client } = makeClient({ workout_executions: executionsChain });
 
     await expect(saveWorkout(client, 'exec-1', executionFromPlan(plan), '')).rejects.toThrow(/save workout progress/i);
+  });
+});
+
+describe('acceptGymWorkoutPlan', () => {
+  it('calls the owner-scoped acceptance RPC with the plan id', async () => {
+    const { client, rpc } = makeClient({}, { data: { id: 'plan-1' } });
+    await acceptGymWorkoutPlan(client, 'plan-1');
+    expect(rpc).toHaveBeenCalledWith('accept_gym_workout_plan', { p_plan_id: 'plan-1' });
+  });
+
+  it('throws a user-facing error when acceptance is rejected', async () => {
+    const { client } = makeClient({}, { error: { message: 'not awaiting acceptance' } });
+    await expect(acceptGymWorkoutPlan(client, 'plan-1')).rejects.toThrow(/accept this workout plan/i);
   });
 });
 

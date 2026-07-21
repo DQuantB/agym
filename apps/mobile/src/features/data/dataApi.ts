@@ -1,0 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+export type Authorization = { id:string; agent:string; action:string; scope:unknown; grantedAt:string; revokedAt:string|null };
+export async function loadAuthorizations(client:SupabaseClient):Promise<Authorization[]>{const {data,error}=await client.from('agent_authorizations').select('id, agent_identifier, action, scope, granted_at, revoked_at').order('granted_at',{ascending:false}); if(error)throw new Error(`AGYM could not load model permissions: ${error.message}`);return(data??[]).map(row=>({id:row.id,agent:row.agent_identifier,action:row.action,scope:row.scope,grantedAt:row.granted_at,revokedAt:row.revoked_at}));}
+export async function revokeAuthorization(client:SupabaseClient,id:string){const {error}=await client.from('agent_authorizations').update({revoked_at:new Date().toISOString()}).eq('id',id).is('revoked_at',null);if(error)throw new Error(`AGYM could not revoke this permission: ${error.message}`);}
+export async function deleteAccount(client:SupabaseClient){const {error}=await client.rpc('delete_my_account');if(error)throw new Error(`AGYM could not delete your account: ${error.message}`);}

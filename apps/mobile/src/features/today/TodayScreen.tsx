@@ -1,8 +1,11 @@
+import { Button } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
+import { colors } from '@/theme/tokens';
 
 import { loadTodayRemoteData, type TodayRemoteData } from './todayApi';
 import { mapTodayState, type TodayState } from './todayState';
@@ -27,6 +30,7 @@ function stateCard(state: TodayState) {
 }
 
 export function TodayScreen() {
+  const router = useRouter();
   const auth = useAuth();
   const date = useMemo(() => todayLocalDate(), []);
   const [remote, setRemote] = useState<TodayRemoteData | null>(null);
@@ -62,6 +66,8 @@ export function TodayScreen() {
     <Screen eyebrow={`AGYM · TODAY · ${date}`} title="Today">
       {proposal && state.kind !== 'proposal_waiting' ? <StatusCard tone="proposal" title="✧ Agent proposal" detail={`${proposal.title}. Nothing applied yet — review it in Calendar before it can become planned training.`} /> : null}
       {stateCard(state)}
+      {state.kind === 'ready' ? <Button title="Start workout" color={colors.orange} accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
+      {state.kind === 'in_progress' ? <Button title="Resume workout" color={colors.orange} accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
     </Screen>
   );
 }

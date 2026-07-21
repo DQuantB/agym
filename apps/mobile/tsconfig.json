@@ -13,7 +13,9 @@
     "src/app/(tabs)/calendar.tsx",
     "src/app/(tabs)/log.tsx",
     "src/app/(tabs)/data.tsx",
+    "src/auth/AuthProvider.tsx",
     "src/components/Screen.tsx",
+    "src/lib/supabase.ts",
     "src/theme/tokens.ts"
   ]
 }

@@ -33,10 +33,12 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/node": "^24.13.3",
     "@types/react": "~19.1.10",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~10.0.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.7"
   },
   "scripts": {
     "start": "expo start",
@@ -44,7 +46,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
-  "private": true
+  "private": true,
+  "type": "module"
 }

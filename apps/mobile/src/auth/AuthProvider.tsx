@@ -2,7 +2,7 @@ import { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from 'react';
 
-import { createAuthRedirectUrl, getAuthorizationCodeFromUrl } from '@/auth/authRedirect';
+import { createAuthRedirectUrl, getAuthorizationCodeFromUrl, getImplicitSessionFromUrl } from '@/auth/authRedirect';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 type AuthState = {
@@ -33,9 +33,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
     const consumeAuthUrl = async (url: string | null) => {
       const code = getAuthorizationCodeFromUrl(url);
-      if (!code) return;
+      const implicitSession = getImplicitSessionFromUrl(url);
+      if (!code && !implicitSession) return;
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { error } = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : await supabase.auth.setSession({ access_token: implicitSession!.accessToken, refresh_token: implicitSession!.refreshToken });
       if (active && error) setAuthError('AGYM could not complete that sign-in link. Request a new one and try again.');
     };
     const bootstrap = async () => {

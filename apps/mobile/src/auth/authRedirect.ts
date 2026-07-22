@@ -4,6 +4,18 @@ export function createAuthRedirectUrl(createUrl: (path: string) => string): stri
   return createUrl(authCallbackPath);
 }
 
+export type ImplicitSessionTokens = { accessToken: string; refreshToken: string };
+
+export function getImplicitSessionFromUrl(url: string | null): ImplicitSessionTokens | null {
+  if (!url) return null;
+  const hashStart = url.indexOf('#');
+  if (hashStart === -1) return null;
+  const fragment = new URLSearchParams(url.slice(hashStart + 1));
+  const accessToken = fragment.get('access_token')?.trim();
+  const refreshToken = fragment.get('refresh_token')?.trim();
+  return accessToken && refreshToken ? { accessToken, refreshToken } : null;
+}
+
 export function getAuthorizationCodeFromUrl(url: string | null): string | null {
   if (!url) return null;
 

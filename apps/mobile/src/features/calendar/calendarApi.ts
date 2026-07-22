@@ -6,14 +6,14 @@ export type CalendarPlan = { id: string; status: 'proposed' | 'active'; source: 
 
 function fail(error: { message: string } | null, action: string): never { throw new Error(`AGYM could not ${action}: ${error?.message ?? 'no data returned.'}`); }
 
-function mapPlan(row: { id: string; status: 'proposed' | 'active'; plan_data: unknown; agent_identifier: string | null; created_at: string }): CalendarPlan | null {
+function mapPlan(row: { id: string; status: 'proposed' | 'active'; plan_data: unknown; source_client: string | null; created_at: string }): CalendarPlan | null {
   const parsed = gymPlanSchema.safeParse(row.plan_data);
   if (!parsed.success) return null;
-  return { id: row.id, status: row.status, source: row.agent_identifier ?? 'external LLM', createdAt: row.created_at, plan: parsed.data };
+  return { id: row.id, status: row.status, source: row.source_client ?? 'external LLM', createdAt: row.created_at, plan: parsed.data };
 }
 
 export async function loadCalendarPlans(client: SupabaseClient): Promise<{ proposal: CalendarPlan | null; active: CalendarPlan | null }> {
-  const { data, error } = await client.from('plans').select('id, status, plan_data, agent_identifier, created_at').in('status', ['proposed', 'active']).eq('plan_data->>kind', 'gym_workout').is('deleted_at', null).order('created_at', { ascending: false }).limit(20);
+  const { data, error } = await client.from('plans').select('id, status, plan_data, source_client, created_at').in('status', ['proposed', 'active']).eq('plan_data->>kind', 'gym_workout').is('deleted_at', null).order('created_at', { ascending: false }).limit(20);
   if (error) fail(error, 'load calendar plans');
   const plans = (data ?? []).flatMap((row) => {
     const status = row.status === 'proposed' || row.status === 'active' ? row.status : null;
@@ -23,7 +23,7 @@ export async function loadCalendarPlans(client: SupabaseClient): Promise<{ propo
 }
 
 export async function loadProposalById(client: SupabaseClient, planId: string): Promise<CalendarPlan | null> {
-  const { data, error } = await client.from('plans').select('id, status, plan_data, agent_identifier, created_at').eq('id', planId).eq('status', 'proposed').eq('plan_data->>kind', 'gym_workout').is('deleted_at', null).maybeSingle();
+  const { data, error } = await client.from('plans').select('id, status, plan_data, source_client, created_at').eq('id', planId).eq('status', 'proposed').eq('plan_data->>kind', 'gym_workout').is('deleted_at', null).maybeSingle();
   if (error) fail(error, 'load this Gym proposal');
   if (!data || data.status !== 'proposed') return null;
   return mapPlan({ ...data, status: 'proposed' });

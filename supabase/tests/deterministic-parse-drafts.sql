@@ -1,4 +1,4 @@
-\set ON_ERROR_STOP on
+-- Run with psql ON_ERROR_STOP=1 or through `supabase db reset --sql-paths`.
 begin;
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -35,6 +35,7 @@ do $$ begin
   end;
 end $$;
 
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
 insert into public.canonical_events (user_id, client_id, source_raw_log_id, source_parse_draft_id, event_type, final_fields, provenance)
 values (
   '00000000-0000-0000-0000-0000000000d1',

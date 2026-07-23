@@ -1,0 +1,34 @@
+import { ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { colors, spacing } from '@/theme/tokens';
+
+type Props = {
+  eyebrow: string;
+  title: string;
+  children: ReactNode;
+};
+
+export function Screen({ eyebrow, title, children }: Props) {
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      <Text style={styles.title}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+export function StatusCard({ title, detail, tone = 'neutral' }: { title: string; detail: string; tone?: 'neutral' | 'proposal' | 'confirmed' | 'warning' }) {
+  const color = tone === 'proposal' ? colors.orange : tone === 'confirmed' ? colors.green : tone === 'warning' ? colors.gold : colors.muted;
+  return <View style={styles.card}><Text style={[styles.cardTitle, { color }]}>{title}</Text><Text style={styles.detail}>{detail}</Text></View>;
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.lg, paddingTop: 72, gap: spacing.md },
+  eyebrow: { color: colors.orange, fontSize: 12, fontWeight: '700', letterSpacing: 1.5 },
+  title: { color: colors.text, fontSize: 34, fontWeight: '700', marginBottom: spacing.sm },
+  card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 16, padding: spacing.md, gap: spacing.xs },
+  cardTitle: { fontSize: 15, fontWeight: '700' },
+  detail: { color: colors.muted, fontSize: 14, lineHeight: 20 },
+});

@@ -2,6 +2,8 @@
 
 Status: **v1 — founder-directed product UI system**. Governs the application interface only. Marketing/campaign creative remains governed by `DESIGN.md` (Concept B). This doc was derived from founder-supplied UI inspiration (2026-07-13): dark workout dashboards with hero numerals and folder cards, a brutalist cream/black task app, and a glass plan-vs-outcome run card.
 
+> **Native mobile compatibility:** This document remains the web-v1/current-web visual baseline. Native mobile v2 IA and status behavior live in [MOBILE-UI-v2.md](MOBILE-UI-v2.md). Its dark-first tokens and raw/draft/canonical principles remain reusable; its web top-pill navigation does not prescribe native navigation.
+
 ## Relationship to the brand system
 
 The brand (DESIGN.md) is cream / charcoal / electric orange, type-led, editorial. The app inverts it: **dark-first surfaces, cream as the type color, orange as the single accent**. Marketing shouts on cream; the product stays quiet on near-black. Same three colors, opposite polarity — one brand, two volumes.

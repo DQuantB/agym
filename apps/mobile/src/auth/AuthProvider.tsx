@@ -2,7 +2,9 @@ import { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from 'react';
 
-import { createAuthRedirectUrl, getAuthorizationCodeFromUrl } from '@/auth/authRedirect';
+import { createAuthRedirectUrl, getAuthorizationCodeFromUrl, getAuthSessionTokensFromUrl } from '@/auth/authRedirect';
+import { resolveSessionTransition } from '@/auth/sessionTransition';
+import { clearAccountLocalExecutionDrafts } from '@/features/workout/localDraftStore';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 type AuthState = {
@@ -20,6 +22,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(!isSupabaseConfigured());
   const [authError, setAuthError] = useState<string | null>(null);
   const generation = useRef(0);
+  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -28,14 +31,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true;
     const applySession = (next: Session | null) => {
       generation.current += 1;
-      // Account-scoped feature stores/outboxes must subscribe here and clear synchronously.
+      const nextUserId = next?.user.id ?? null;
+      const transition = resolveSessionTransition(previousUserId.current, nextUserId);
+      if (transition === 'switched_account' || transition === 'signed_out') {
+        void clearAccountLocalExecutionDrafts(previousUserId.current!);
+      }
+      previousUserId.current = nextUserId;
       setSession(next);
     };
     const consumeAuthUrl = async (url: string | null) => {
       const code = getAuthorizationCodeFromUrl(url);
-      if (!code) return;
+      const tokens = getAuthSessionTokensFromUrl(url);
+      if (!code && !tokens) return;
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { error } = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : await supabase.auth.setSession({ access_token: tokens!.accessToken, refresh_token: tokens!.refreshToken });
       if (active && error) setAuthError('AGYM could not complete that sign-in link. Request a new one and try again.');
     };
     const bootstrap = async () => {

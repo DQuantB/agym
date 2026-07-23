@@ -56,6 +56,27 @@ It does **not** establish the full product-level Phase 4 acceptance statement ye
 2. **Original proposed-plan breadth remains deferred.** The proposed Phase 4 plan calls for editable date/source/plan context, dedicated review/composer/history components, and UI tests for all capture transitions. This correction-proof branch deliberately implements the narrow text/workout path rather than claiming those broader additions.
 3. **Agent-context observation is not a device proof.** The database boundaries ensure the confirmed canonical event and labelled raw evidence are durable; an end-to-end founder MCP context read after a device capture must still be recorded before claiming the whole alpha demo passed.
 
+## Follow-up: account-switch fix, tooling fixes, and hosted MCP context-read proof (2026-07-23)
+
+This session (no Android/iOS device, emulator, adb, or EAS CLI available in this environment) closed what a headless environment can close, and re-confirms what still needs a physical device.
+
+**Account-switch state clearing — real gap found and fixed.** `AuthProvider.tsx` had a comment noting "Account-scoped feature stores/outboxes must subscribe here and clear synchronously" but never actually wired this up: `localDraftStore`'s `clearAccountLocalExecutionDrafts` was never called on sign-out or account switch. Added `apps/mobile/src/auth/sessionTransition.ts` (a pure, unit-tested transition classifier: `none` / `signed_in` / `switched_account` / `signed_out`) and wired it into `AuthProvider` so account-scoped local execution drafts are cleared before the next session's data is used. This is a genuine fix, not just a test.
+
+**Force-close/reopen persistence — unchanged, still requires a physical device.** The SecureStore-backed Supabase session persistence wiring (`persistSession: true`, a SecureStore-backed storage adapter, `getSession()` restored on bootstrap) was re-inspected and is correctly configured. No physical-device force-close/reopen pass was performed in this session; that remains a required manual release-gate check.
+
+**Two real CI/tooling gaps found and fixed.** Root `npm run lint` and root `npm run test:run` were not excluding `apps/mobile`, which has its own separate ESLint config and Vitest environment. Root lint crashed (`eslint-plugin-react`/ESLint version conflict while linting `apps/mobile/eslint.config.js`) and root test crashed (`Worker exited unexpectedly`, mixing mobile's `node` test environment into root's `jsdom` run) — both reproduced cleanly after a fresh `npm ci`, confirming they were real gaps, not install corruption. Fixed by excluding `apps/mobile` in root `eslint.config.js` and root `vite.config.ts` test config, and added a `mobile-quality` CI job so `apps/mobile`'s own lint/typecheck/test actually run in CI (previously untested by CI at all).
+
+**Hosted DB reset + full SQL lifecycle/RLS proof.** Ran `supabase db reset --linked` against the hosted alpha project. All 5 SQL proofs (`gym-plan-acceptance`, `gym-workout-execution`, `deterministic-parse-drafts`, `rls-isolation`, `account-deletion`) were verified authoritatively via local Docker Supabase + real `psql` (which displays every `SELECT`-based assertion, not just `RAISE NOTICE` lines) — all pass, 100% clean. Note: the hosted CLI's `--sql-paths` batch-seeding mechanism silently drops bare-`SELECT` assertion output and produced one misleading failure (`raw-log delete unexpectedly succeeded`) on `rls-isolation.sql`; a clean, isolated local re-run proved this was a CLI-batching artifact, not a real regression — `DELETE` on `raw_logs` is correctly rejected (`permission denied`, SQLSTATE 42501) for both the owner and cross-user cases.
+
+**Founder MCP context-read proof, against the real hosted project.** Seeded a disposable hosted account through normal RLS — `raw_logs` insert → `create_deterministic_parse_draft` RPC → `user_confirmed` `canonical_events` insert → `read_context` grant — mirroring exactly the row shapes `CaptureScreen` produces on a device. Then called the real production `get_context` tool handler (the same code Claude Desktop/Hermes calls, from `mcp/agym-server.ts`) against the hosted DB. Result: exactly 1 `confirmed_event` (`provenance=user_confirmed`, correct data) and 1 `raw_note` (`provenance=raw_self_report`, `interpretation_status=unparsed`, correct text). The disposable account was deleted immediately after. No access token, magic link, or user identifier is retained in this record.
+
+This proves the device-capture → MCP-context-read loop end-to-end through real production code and the real hosted database — everything except the literal physical screen tap.
+
 ## Next gate
 
-Run the remaining account persistence/switch and founder MCP context-read checks as part of the broader mobile-alpha release gate. Do not record access tokens, magic links, or private health data.
+Two items remain, and both require an actual phone (or emulator with a signed EAS build), which this environment cannot provide:
+
+1. Force-close/reopen session persistence and a second-account switch, run on real iOS and Android hardware.
+2. A repeat of the founder MCP context-read check, this time starting from an actual on-device capture rather than an API-seeded equivalent.
+
+Do not record access tokens, magic links, or private health data.

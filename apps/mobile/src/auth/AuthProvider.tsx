@@ -3,6 +3,8 @@ import * as Linking from 'expo-linking';
 import { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from 'react';
 
 import { createAuthRedirectUrl, getAuthorizationCodeFromUrl, getAuthSessionTokensFromUrl } from '@/auth/authRedirect';
+import { resolveSessionTransition } from '@/auth/sessionTransition';
+import { clearAccountLocalExecutionDrafts } from '@/features/workout/localDraftStore';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 type AuthState = {
@@ -20,6 +22,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(!isSupabaseConfigured());
   const [authError, setAuthError] = useState<string | null>(null);
   const generation = useRef(0);
+  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
@@ -28,7 +31,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true;
     const applySession = (next: Session | null) => {
       generation.current += 1;
-      // Account-scoped feature stores/outboxes must subscribe here and clear synchronously.
+      const nextUserId = next?.user.id ?? null;
+      const transition = resolveSessionTransition(previousUserId.current, nextUserId);
+      if (transition === 'switched_account' || transition === 'signed_out') {
+        void clearAccountLocalExecutionDrafts(previousUserId.current!);
+      }
+      previousUserId.current = nextUserId;
       setSession(next);
     };
     const consumeAuthUrl = async (url: string | null) => {

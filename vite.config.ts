@@ -9,5 +9,6 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     pool: 'threads',
     maxWorkers: 1,
+    exclude: ['**/node_modules/**', 'apps/mobile/**'],
   },
 });

@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 const setSchema = z.object({ reps: z.number().int().min(1), weight_kg: z.number().nullable().optional(), rest_seconds: z.number().int().min(0).default(120) });
-const exerciseSchema = z.object({ client_id: z.string().min(1), name: z.string().min(1), sets: z.array(setSchema).min(1) });
+const exerciseSchema = z.object({ client_id: z.string().min(1), name: z.string().min(1), catalogue_exercise_id: z.string().uuid().optional(), sets: z.array(setSchema).min(1) });
 export const gymPlanSchema = z.object({ kind: z.literal('gym_workout'), schema_version: z.literal(1), scheduled_for: z.string(), title: z.string().min(1), exercises: z.array(exerciseSchema).min(1), notes: z.string().optional() });
 export type GymPlan = z.infer<typeof gymPlanSchema>;
 export type ActualSet = z.infer<typeof setSchema> & { completed: boolean; skipped_reason: string | null; user_added: boolean };

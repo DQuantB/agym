@@ -19,6 +19,14 @@ it('adds a user-owned actual exercise without changing the planned exercise', ()
   expect(result.actualData.exercises[1]).toMatchObject({ name: 'New exercise', user_added: true, sets: [{ reps: 1, completed: false, user_added: true }] });
 });
 
+it('adds a catalogue-selected exercise with its name set immediately and linked to the catalogue id', () => {
+  const result = executionEditorReducer(initial, { type: 'add_catalogue_exercise', name: 'Bench press', catalogueExerciseId: '11111111-1111-4111-8111-111111111111' } as never);
+
+  expect(result.actualData.exercises).toHaveLength(2);
+  expect(result.actualData.exercises[0]).toEqual(initial.actualData.exercises[0]);
+  expect(result.actualData.exercises[1]).toMatchObject({ name: 'Bench press', catalogue_exercise_id: '11111111-1111-4111-8111-111111111111', user_added: true });
+});
+
 it('keeps an actual exercise name nonblank when the user clears its input', () => {
   const added = executionEditorReducer(initial, { type: 'add_exercise' } as never);
   const result = executionEditorReducer(added, { type: 'set_exercise_name', exerciseIndex: 1, name: '   ' } as never);

@@ -9,6 +9,7 @@ export type ExecutionEditorAction =
   | { type: 'skip_set'; exerciseIndex: number; setIndex: number; reason: string }
   | { type: 'add_set'; exerciseIndex: number }
   | { type: 'add_exercise' }
+  | { type: 'add_catalogue_exercise'; name: string; catalogueExerciseId: string }
   | { type: 'set_exercise_name'; exerciseIndex: number; name: string }
   | { type: 'set_notes'; notes: string };
 
@@ -21,6 +22,16 @@ export function executionEditorReducer(state: ExecutionEditorState, action: Exec
     exercises.push({
       client_id: `user-added-${Date.now()}`,
       name: 'New exercise',
+      user_added: true,
+      sets: [{ reps: 1, weight_kg: null, rest_seconds: 120, completed: false, skipped_reason: null, user_added: true }],
+    });
+    return { ...state, actualData: { ...state.actualData, exercises } };
+  }
+  if (action.type === 'add_catalogue_exercise') {
+    exercises.push({
+      client_id: `user-added-${Date.now()}`,
+      name: action.name,
+      catalogue_exercise_id: action.catalogueExerciseId,
       user_added: true,
       sets: [{ reps: 1, weight_kg: null, rest_seconds: 120, completed: false, skipped_reason: null, user_added: true }],
     });

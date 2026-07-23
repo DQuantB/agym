@@ -1,40 +1,46 @@
 # Mobile Phase 4 living-alpha audit
 
-**Audited source:** `feat/mobile-phase4-capture` at `bbb539e` (`feat(mobile): add raw capture review flow`, 2026-07-22)
+**Audited source:** `feat/mobile-phase4-correction-proof` at `abb9bcc`:
 
-**Scope:** Phase 4, *text capture, raw evidence, and correction UX*, in `docs/plans/2026-07-21-mobile-alpha-feature-plan.md`. This is a source/contract audit. It is not evidence of a real-device pass.
+- `bbb539e` — raw capture and review flow;
+- `b83d633` — generalized workout correction and focused client tests;
+- `abb9bcc` — a reset-runnable hosted lifecycle/RLS proof.
 
-## Verified implemented boundary
+**Scope:** Phase 4, *text capture, raw evidence, and correction UX*, in the proposed `docs/plans/2026-07-21-mobile-alpha-feature-plan.md`. This is a source and hosted-database audit. It is not evidence of a real-device pass.
 
-- `CaptureScreen` is a signed-in, text-first capture surface. It inserts a `raw_logs` row before asking for a structured draft.
-- `create_deterministic_parse_draft(raw_log_id)` derives `auth.uid()`, looks up only an undeleted raw log belonging to that identity, and creates a separate `parse_drafts` row. The function is `SECURITY DEFINER`, uses an empty search path, is revoked from `public`/`anon`, and granted only to `authenticated`.
-- The migration stores deterministic output with `provenance = 'llm_parsed_uncertain'` through the table default/constraint path; it does not overwrite the raw text.
-- The screen distinguishes uncertain review from canonical confirmation. Confirmation inserts a `canonical_events` record with `provenance: 'user_confirmed'`, linked to both `source_raw_log_id` and `source_parse_draft_id`.
-- The committed SQL regression script proves owner parsing and cross-user parse denial for the new RPC.
-- The existing `LogScreen` was extended in the Phase 4 commit to query and visibly label `RAW SELF-REPORT`, `PARSED DRAFT · UNCERTAIN`, and `USER-CONFIRMED` evidence records. It is the current History surface.
+## Verified correction-proof boundary
 
-## Audit result: partial, not Phase-4 complete
+- `CaptureScreen` is a signed-in, text-first capture surface. It writes a `raw_logs` row before it requests a structured draft.
+- `create_deterministic_parse_draft(raw_log_id)` derives `auth.uid()`, reads only an undeleted raw log owned by that identity, and writes a separate `parse_drafts` row. It is `SECURITY DEFINER`, has an empty search path, is revoked from `public`/`anon`, and is granted only to `authenticated`.
+- The deterministic draft retains the immutable raw text and records `provenance = 'llm_parsed_uncertain'`; it does not overwrite the raw record.
+- The review screen renders every parsed workout exercise and every set. The user can correct each exercise name and each set's reps/load before confirmation. The raw evidence remains visible, and displayed safety/uncertainty reasons are not treated as facts.
+- Confirmation constructs a `user_confirmed` canonical event linked to both `source_raw_log_id` and `source_parse_draft_id`. A `correction_diff` retains the original draft fields when the user changed them.
+- The existing History/Log surface visibly distinguishes `RAW SELF-REPORT`, `PARSED DRAFT · UNCERTAIN`, and `USER-CONFIRMED` evidence records.
 
-The branch implements the narrow raw-log → uncertain-draft → user-confirmed-record path. It does **not** yet meet the whole Phase 4 acceptance statement: “a user can correct a questionable parse in a few taps, and an agent subsequently sees the confirmed result plus correctly labelled raw evidence.”
+## Automated and hosted evidence
 
-### Verified gaps to close before calling Phase 4 source-complete
+Executed against this source on 2026-07-23:
 
-1. **Correction is only a first-exercise shortcut.** The screen edits one exercise name and its first set's reps/load. It does not provide general inline editing for all parsed sets/exercises, date, source/plan context, or an explicit uncertainty-reason view per editable field.
-2. **No capture or history unit/UI tests.** `apps/mobile` has no committed capture/history test. The only Phase-4 test is the SQL RPC script; it does not exercise the mobile client mapping, confirmation payload, or history labels/error states.
-3. **No confirmation transition RLS regression.** The existing new SQL test proves the parser RPC is owner-scoped, but does not prove the full raw → draft → canonical transition for two users or that a second identity cannot create a canonical record linked to the first identity's evidence.
-4. **No device proof.** No Android/iOS source-to-APK provenance or real-device capture/correction test is recorded. Source checks cannot establish keyboard, tap, screen-reader, or account-switch behavior.
+| Check | Command | Result |
+|---|---|---|
+| Capture correction helpers | `cd apps/mobile && npm test -- --run src/features/capture/captureApi.test.ts` | PASS — 2 tests |
+| Mobile type check | `cd apps/mobile && npm run typecheck` | PASS |
+| Mobile lint | `cd apps/mobile && npm run lint` | PASS |
+| Local/hosted migration parity | `npx supabase migration list --linked` | PASS — all 13 local migrations match remote |
+| Hosted lifecycle/RLS proof | `cd supabase && npx supabase db reset --linked --yes --sql-paths tests/deterministic-parse-drafts.sql` | PASS — all 13 migrations applied; owner parse/confirmation succeeded; cross-user parse and canonical confirmation were rejected |
 
-## Known scope distinction
+The hosted reset was authorized because this alpha project contains only disposable mock data. The test transaction rolls its test records back; the reset itself intentionally clears prior mock records.
 
-`docs/plans/2026-07-21-mobile-v2-delivery-plan.md` narrows a later native-alpha sequence around one accepted Gym workout and labels Log/Data as M6. It does not supersede the already-committed Phase 4 raw-capture branch by itself. Until a superseding ADR/plan is accepted, the raw-evidence trust boundary above remains binding for this branch.
+## Result: source and hosted correction proof passed; device gate remains open
 
-## Next scoped delivery slice
+The successor slice closes the original audit's concrete source gaps for generalized exercise/set correction, pure client helper coverage, and two-account raw → draft → canonical lifecycle proof.
 
-Create a fresh successor worktree from `bbb539e` and close only the first auditable gaps:
+It does **not** establish the full product-level Phase 4 acceptance statement yet:
 
-1. generalize the correction UI to all parsed exercises/sets while retaining each uncertainty reason and the immutable raw evidence;
-2. extract/test pure capture API mapping and canonical confirmation payload construction, including the History status labels;
-3. add a two-account SQL proof for the complete raw → draft → canonical path;
-4. retain raw evidence and preserve immutable provenance; do not add voice, analytics, a generic parser, or a coach dashboard.
+1. **No real-device proof.** An APK from `b83d633` is required to validate keyboard/tap behavior, capture/review/confirm flow, account switching, and source-to-APK provenance. The queued EAS build is the remaining blocking artifact.
+2. **Original proposed-plan breadth remains deferred.** The proposed Phase 4 plan calls for editable date/source/plan context, dedicated review/composer/history components, and UI tests for all capture transitions. This correction-proof branch deliberately implements the narrow text/workout path rather than claiming those broader additions.
+3. **Agent-context observation is not a device proof.** The database boundaries ensure the confirmed canonical event and labelled raw evidence are durable; an end-to-end founder MCP context read after a device capture must still be recorded before claiming the whole alpha demo passed.
 
-After automated checks pass, rebuild the Android APK from the successor commit and perform the manual capture/correct/confirm/account-switch device checklist before declaring Phase 4 device-validated.
+## Next gate
+
+When EAS produces the Android internal-distribution APK for commit `b83d633d0cd846996cb21ff0e1bc5ac5ae184a14`, install that exact artifact on the available Android emulator/device and record: build ID, device model, raw capture, multi-set correction, confirmation, History labels, and account-switch isolation. Do not record access tokens, magic links, or private health data.

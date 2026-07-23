@@ -31,16 +31,31 @@ Executed against this source on 2026-07-23:
 
 The hosted reset was authorized because this alpha project contains only disposable mock data. The test transaction rolls its test records back; the reset itself intentionally clears prior mock records.
 
-## Result: source and hosted correction proof passed; device gate remains open
+## Android artifact and unauthenticated launch evidence
+
+Executed on 2026-07-23:
+
+| Check | Result |
+|---|---|
+| EAS Android preview build | `03e5524f-f46a-4f84-8388-a77026da673d` finished successfully for exact commit `b83d633d0cd846996cb21ff0e1bc5ac5ae184a14` |
+| Artifact | `ds_VeMYFvMUaBhTnbFIqTVXQKOPeOKKwcWuHgnARHJc.apk`, downloaded successfully (113 MB) |
+| Installation | `adb install -r` succeeded for package `com.bdaniele03.agym` |
+| Launch | process opened in `com.bdaniele03.agym/.MainActivity`; no Android/React Native fatal exception found in the inspected launch log |
+| Device | booted Android emulator `sdk_gphone16k_x86_64` (`emulator-5554`) |
+| Unauthenticated screen | verified visible: the native private-alpha magic-link sign-in screen, with email field and sign-in action |
+
+This proves the exact correction-source artifact builds, installs, and reaches its real native authentication boundary. It does not prove a signed-in capture flow.
+
+## Result: source/hosted proof passed; signed-in device gate remains open
 
 The successor slice closes the original audit's concrete source gaps for generalized exercise/set correction, pure client helper coverage, and two-account raw → draft → canonical lifecycle proof.
 
 It does **not** establish the full product-level Phase 4 acceptance statement yet:
 
-1. **No real-device proof.** An APK from `b83d633` is required to validate keyboard/tap behavior, capture/review/confirm flow, account switching, and source-to-APK provenance. The queued EAS build is the remaining blocking artifact.
+1. **Signed-in real-device proof is incomplete.** A disposable invited account must validate magic-link return, raw capture, multi-set correction, confirmation, History labels, force-close/reopen, and account-switch isolation. This requires a usable test-account authentication path; do not record or paste a magic link/token in this audit.
 2. **Original proposed-plan breadth remains deferred.** The proposed Phase 4 plan calls for editable date/source/plan context, dedicated review/composer/history components, and UI tests for all capture transitions. This correction-proof branch deliberately implements the narrow text/workout path rather than claiming those broader additions.
 3. **Agent-context observation is not a device proof.** The database boundaries ensure the confirmed canonical event and labelled raw evidence are durable; an end-to-end founder MCP context read after a device capture must still be recorded before claiming the whole alpha demo passed.
 
 ## Next gate
 
-When EAS produces the Android internal-distribution APK for commit `b83d633d0cd846996cb21ff0e1bc5ac5ae184a14`, install that exact artifact on the available Android emulator/device and record: build ID, device model, raw capture, multi-set correction, confirmation, History labels, and account-switch isolation. Do not record access tokens, magic links, or private health data.
+Use a disposable invited account to complete the signed-in Android checklist above, then record only the build ID, device model, pass/fail state, and sanitized evidence. Do not record access tokens, magic links, or private health data.

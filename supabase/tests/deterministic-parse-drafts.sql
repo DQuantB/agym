@@ -35,4 +35,29 @@ do $$ begin
   end;
 end $$;
 
+insert into public.canonical_events (user_id, client_id, source_raw_log_id, source_parse_draft_id, event_type, final_fields, provenance)
+values (
+  '00000000-0000-0000-0000-0000000000d1',
+  'canonical-parser-owner',
+  (select id from public.raw_logs where user_id = '00000000-0000-0000-0000-0000000000d1'),
+  (select id from public.parse_drafts where user_id = '00000000-0000-0000-0000-0000000000d1'),
+  'workout', '{"kind":"workout"}'::jsonb, 'user_confirmed'
+);
+
+select case when exists (select 1 from public.canonical_events where user_id = '00000000-0000-0000-0000-0000000000d1' and provenance = 'user_confirmed')
+  then 'PASS: owner confirms a canonical event linked to raw evidence and draft'
+  else 'FAIL: owner confirmation missing' end;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d2', true);
+do $$ begin
+  begin
+    insert into public.canonical_events (user_id, client_id, source_raw_log_id, source_parse_draft_id, event_type, final_fields, provenance)
+    values ('00000000-0000-0000-0000-0000000000d2', 'canonical-parser-other', (select id from public.raw_logs where user_id = '00000000-0000-0000-0000-0000000000d1'), (select id from public.parse_drafts where user_id = '00000000-0000-0000-0000-0000000000d1'), 'workout', '{"kind":"workout"}'::jsonb, 'user_confirmed');
+    raise exception 'FAIL: cross-user canonical confirmation unexpectedly succeeded';
+  exception when others then
+    if position('FAIL: cross-user canonical confirmation unexpectedly succeeded' in SQLERRM) > 0 then raise; end if;
+    raise notice 'PASS: cross-user canonical confirmation rejected';
+  end;
+end $$;
+
 rollback;

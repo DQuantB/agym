@@ -11,15 +11,37 @@ insert into auth.users (
 insert into public.plans (user_id, raw_plan_text, plan_data, source_client, scheduled_for)
 values
   ('00000000-0000-0000-0000-0000000000c1', 'Agent workout proposal', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date),
+  ('00000000-0000-0000-0000-0000000000c1', 'Still-proposed owner workout', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date),
   ('00000000-0000-0000-0000-0000000000c2', 'Other workout proposal', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date);
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
 
+select public.accept_gym_workout_plan(id)
+from public.plans
+where user_id = '00000000-0000-0000-0000-0000000000c1'
+  and raw_plan_text = 'Agent workout proposal';
+
+do $$ begin
+  begin
+    insert into public.workout_executions (user_id, plan_id, scheduled_for, planned_snapshot, execution_data)
+    values (
+      '00000000-0000-0000-0000-0000000000c1',
+      (select id from public.plans where raw_plan_text = 'Still-proposed owner workout'),
+      current_date,
+      '{"kind":"gym_workout"}'::jsonb,
+      '{"kind":"gym_workout_execution"}'::jsonb
+    );
+    raise exception 'FAIL: proposed plan execution unexpectedly succeeded';
+  exception when others then
+    raise notice 'PASS: proposed plan execution rejected';
+  end;
+end $$;
+
 insert into public.workout_executions (user_id, plan_id, scheduled_for, planned_snapshot, execution_data)
 values (
   '00000000-0000-0000-0000-0000000000c1',
-  (select id from public.plans where user_id = '00000000-0000-0000-0000-0000000000c1'),
+  (select id from public.plans where user_id = '00000000-0000-0000-0000-0000000000c1' and raw_plan_text = 'Agent workout proposal'),
   current_date,
   '{"kind":"gym_workout","exercises":[{"name":"Squat","sets":[{"reps":5,"weight_kg":60}]}]}'::jsonb,
   '{"kind":"gym_workout","exercises":[{"name":"Squat","sets":[{"reps":6,"weight_kg":62.5,"completed":true}]}]}'::jsonb

@@ -6,7 +6,7 @@ export interface WorkoutExecutionRow { id: string; plan_id: string; scheduled_fo
 function fail(error: { message: string } | null, action: string): never { throw new Error(`AGym could not ${action}: ${error?.message ?? 'no data returned.'}`); }
 
 export async function loadWorkout(client: SupabaseClient, date: string): Promise<{ plan: GymWorkoutPlan; planId: string; execution: WorkoutExecutionRow | null } | null> {
-  const { data: plan, error } = await client.from('plans').select('id, plan_data').eq('scheduled_for', date).eq('plan_data->>kind', 'gym_workout').is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: plan, error } = await client.from('plans').select('id, plan_data').eq('scheduled_for', date).eq('status', 'active').eq('plan_data->>kind', 'gym_workout').is('deleted_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (error) fail(error, 'load today\'s workout');
   if (!plan) return null;
   const parsed = gymWorkoutPlanSchema.safeParse(plan.plan_data);
@@ -25,6 +25,11 @@ export async function startWorkout(client: SupabaseClient, userId: string, planI
 export async function saveWorkout(client: SupabaseClient, id: string, executionData: WorkoutExecutionData, additionalNotes: string): Promise<void> {
   const { error } = await client.from('workout_executions').update({ execution_data: executionData, additional_notes: additionalNotes }).eq('id', id);
   if (error) fail(error, 'save workout progress');
+}
+
+export async function acceptGymWorkoutPlan(client: SupabaseClient, planId: string): Promise<void> {
+  const { error } = await client.rpc('accept_gym_workout_plan', { p_plan_id: planId });
+  if (error) fail(error, 'accept this workout plan');
 }
 
 export async function completeWorkout(client: SupabaseClient, id: string): Promise<void> {

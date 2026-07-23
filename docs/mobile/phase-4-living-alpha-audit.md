@@ -31,31 +31,31 @@ Executed against this source on 2026-07-23:
 
 The hosted reset was authorized because this alpha project contains only disposable mock data. The test transaction rolls its test records back; the reset itself intentionally clears prior mock records.
 
-## Android artifact and unauthenticated launch evidence
+## Android artifact and signed-in device evidence
 
 Executed on 2026-07-23:
 
 | Check | Result |
 |---|---|
-| EAS Android preview build | `03e5524f-f46a-4f84-8388-a77026da673d` finished successfully for exact commit `b83d633d0cd846996cb21ff0e1bc5ac5ae184a14` |
-| Artifact | `ds_VeMYFvMUaBhTnbFIqTVXQKOPeOKKwcWuHgnARHJc.apk`, downloaded successfully (113 MB) |
-| Installation | `adb install -r` succeeded for package `com.bdaniele03.agym` |
-| Launch | process opened in `com.bdaniele03.agym/.MainActivity`; no Android/React Native fatal exception found in the inspected launch log |
+| EAS Android preview build | `7685c0dd-04dc-412d-8bfa-7edf5b2831a2` finished successfully for exact commit `f6113b2b028be7ef85793e804537c3f4acedaa85` |
+| Artifact/install | downloaded `pTHjAtCvAEio2xosALX9Dp9PEQUgLhoxGQoOU7zp23o.apk`; `adb install -r` succeeded for `com.bdaniele03.agym` |
 | Device | booted Android emulator `sdk_gphone16k_x86_64` (`emulator-5554`) |
-| Unauthenticated screen | verified visible: the native private-alpha magic-link sign-in screen, with email field and sign-in action |
+| Auth | a disposable hosted test account completed the magic-link callback and reached the authenticated Today tab; the defect in the previous build was fixed by `f6113b2` |
+| Capture/review | raw workout text saved first; uncertain review showed all three parsed sets with editable name/reps/load and both confirm/discard actions |
+| Confirmation/history | explicit confirmation dialog completed; Capture stated `User confirmed. Raw evidence remains preserved.` and History visibly labelled `USER-CONFIRMED`, `PARSED DRAFT · UNCERTAIN`, and `RAW SELF-REPORT` |
 
-This proves the exact correction-source artifact builds, installs, and reaches its real native authentication boundary. It does not prove a signed-in capture flow.
+The disposable test account and local magic-link artifacts were deleted after validation. No access token, magic link, or user identifier is retained in this record.
 
-## Result: source/hosted proof passed; signed-in device gate remains open
+## Result: correction proof and core Android capture loop passed
 
-The successor slice closes the original audit's concrete source gaps for generalized exercise/set correction, pure client helper coverage, and two-account raw → draft → canonical lifecycle proof.
+The successor slice closes the original audit's concrete source gaps for generalized exercise/set correction, pure client helper coverage, two-account raw → draft → canonical lifecycle proof, artifact provenance, and the signed-in Android raw → uncertain review → user confirmation → provenance-history loop.
 
 It does **not** establish the full product-level Phase 4 acceptance statement yet:
 
-1. **Signed-in real-device proof is incomplete.** A disposable invited account must validate magic-link return, raw capture, multi-set correction, confirmation, History labels, force-close/reopen, and account-switch isolation. This requires a usable test-account authentication path; do not record or paste a magic link/token in this audit.
+1. **Account lifecycle proof remains partial.** This run did not record force-close/reopen persistence or a second-account switch; those are mobile-alpha release gates, not evidence to infer from the successful single-account flow.
 2. **Original proposed-plan breadth remains deferred.** The proposed Phase 4 plan calls for editable date/source/plan context, dedicated review/composer/history components, and UI tests for all capture transitions. This correction-proof branch deliberately implements the narrow text/workout path rather than claiming those broader additions.
 3. **Agent-context observation is not a device proof.** The database boundaries ensure the confirmed canonical event and labelled raw evidence are durable; an end-to-end founder MCP context read after a device capture must still be recorded before claiming the whole alpha demo passed.
 
 ## Next gate
 
-Use a disposable invited account to complete the signed-in Android checklist above, then record only the build ID, device model, pass/fail state, and sanitized evidence. Do not record access tokens, magic links, or private health data.
+Run the remaining account persistence/switch and founder MCP context-read checks as part of the broader mobile-alpha release gate. Do not record access tokens, magic links, or private health data.

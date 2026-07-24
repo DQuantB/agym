@@ -22,7 +22,8 @@ Run each check with a disposable invited account and record only non-sensitive e
 - [ ] Capture messy text, review/correct the uncertain draft, confirm it, and verify History preserves `RAW SELF-REPORT`, `PARSED DRAFT · UNCERTAIN`, and `USER-CONFIRMED` separately.
 - [ ] Trigger JSON export and verify the system sheet can save/share a valid JSON file with the expected provenance separation.
 - [ ] Use a disposable account to delete all data. Verify the remote account cascade succeeds, the app returns to signed-out state, and local workout drafts no longer restore. A failed deletion must leave local drafts intact.
-- [ ] Verify model authorization revoke is reflected in the Data screen and denied by the MCP boundary.
+- [ ] Verify model authorization revoke is reflected in the Data screen and denied by the **direct remote MCP** boundary; local stdio discovery is not sufficient evidence.
+- [ ] Before calling the mobile alpha agent-connected, complete the real remote-client OAuth/DCR/PKCE, two-account isolation, separate grant, revocation, and audit acceptance proof in `docs/deploy/remote-mcp-phase-b.md`. The mobile app must not require a local Hermes/MCP process.
 
 ## Release constraints
 

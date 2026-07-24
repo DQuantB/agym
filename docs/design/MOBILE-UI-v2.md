@@ -81,7 +81,7 @@ The first proposal type is exactly **one structured Gym workout on one scheduled
 | Strava, Apple Health, Cronometer, and import review | Deferred. |
 | Voice capture/transcription | Deferred pending device/privacy/cost spike. |
 | Sleep, fueling, injury, or other derived health observations | Deferred until evidence/data-window contracts exist. |
-| External self-serve remote MCP/OAuth connection | Deferred. |
+| External self-serve remote MCP/OAuth connection | Planned direct product path; activation remains blocked on the real-client OAuth/DCR/PKCE, two-account, grant/revocation, and audit proof in `docs/deploy/remote-mcp-phase-b.md`. The phone never runs a local MCP bridge. |
 
 ## No in-app chat
 

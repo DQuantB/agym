@@ -18,7 +18,7 @@ compatible remote MCP client
   → bounded context / proposed plan
 ```
 
-The existing local stdio MCP server remains supported for local clients and is not exposed over HTTP.
+The existing local stdio MCP server is a developer compatibility/test utility only. It is not required for external users, mobile testers, or the remote product path. External agents connect directly to this hosted endpoint; see ADR 0004 for the separate Hetzner internal intelligence plane.
 
 ## Hard security boundary
 
@@ -29,7 +29,7 @@ The existing local stdio MCP server remains supported for local clients and is n
 5. Dynamic client registration is open to compatible MCP clients as supported by Supabase OAuth Server. Every OAuth request must display AGym's explicit consent page with the registered client name, callback URI, and requested scopes. This deliberately replaces the prior infeasible exact-Claude-callback-only DCR contract.
 6. The only remote tool surface is `get_context`, `list_plans`, and `create_proposed_plan`. Plan creation remains atomic, `agent_written_plan`, and `proposed`; no remote tool can confirm an outcome or activate a plan.
 7. The endpoint is stateless request/response Streamable HTTP. Phase B does not add SSE, resumable sessions, sampling, tasks, or arbitrary agent identifiers.
-8. No production rollout occurs before native OAuth discovery/DCR, real-client authorization-code + PKCE, two-account RLS isolation, separate AGym grants, immediate revocation, and audit proof pass.
+8. No production rollout occurs before native OAuth discovery/DCR, real-client authorization-code + PKCE, two-account RLS isolation, separate AGym grants, immediate revocation, and audit proof pass. If that proof fails, remote activation stops; AGym must not fall back to a local service-role bridge, Hetzner proxy, Keycloak token broker, static user identity, or weaker RLS policy.
 
 ## Why
 

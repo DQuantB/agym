@@ -1,9 +1,8 @@
-# AGym MCP server
+# AGym local stdio MCP compatibility utility
 
-This is a local stdio MCP server for one explicitly configured AGym account.
-It can be used by a supported local MCP client: `hermes`, `claude-code`, or
-`codex`. The server is not a hosted endpoint and must remain on the user's
-local machine.
+> **Status (2026-07-24):** This process is retained for developer testing and backward-compatible local workflows only. It is not the AGym mobile/external-user connection path. External clients must use the direct OAuth-protected Streamable HTTP endpoint documented in `docs/deploy/remote-mcp-phase-b.md`. See `docs/adr/0004-direct-mcp-and-hetzner-intelligence-plane.md` for the product/data-plane boundary and the separate Hetzner internal intelligence plane.
+
+This is a local stdio MCP server for one explicitly configured AGym account. It can be used by a developer-controlled local MCP client (`hermes`, `claude-code`, or `codex`) when exercising compatibility tests. It is not a hosted endpoint and must remain on the developer's local machine.
 
 ## What `get_context` returns
 

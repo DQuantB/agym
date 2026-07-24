@@ -1,5 +1,7 @@
 # Phase B continuation — Keycloak as the DCR-capable OAuth front door
 
+> **Historical / do not execute (superseded 2026-07-24):** Keycloak on Hetzner is not part of AGym's selected direct remote-MCP path and must not be repurposed as a user-token broker. The selected product route is Supabase OAuth → Vercel remote MCP → grant/RLS RPCs. Hetzner is planned separately as an internal intelligence plane; see `docs/adr/0004-direct-mcp-and-hetzner-intelligence-plane.md` and `docs/plans/2026-07-24-hetzner-intelligence-plane.md`. This document remains research evidence only.
+
 Status: **planned, not started.** No implementation in this doc has been written yet.
 Date: 2026-07-16
 Builds on: `docs/adr/0003-remote-mcp-phase-b.md`, `docs/plans/2026-07-16-remote-mcp-phase-b.md`,

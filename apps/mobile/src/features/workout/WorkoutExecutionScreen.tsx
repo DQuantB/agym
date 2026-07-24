@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { ExercisePicker } from '@/features/exercises/ExercisePicker';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 
@@ -22,6 +23,7 @@ export function WorkoutExecutionScreen() {
   const [message, setMessage] = useState('Loading accepted workout…');
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [skipReasons, setSkipReasons] = useState<Record<string, string>>({});
+  const [pickerVisible, setPickerVisible] = useState(false);
   const editorRef = useRef(editor);
   const lastAutoSavedEditorRef = useRef<ExecutionEditorState | null>(null);
   editorRef.current = editor;
@@ -119,7 +121,13 @@ export function WorkoutExecutionScreen() {
       {set.skipped_reason ? <Text style={styles.skipped}>Skipped: {set.skipped_reason}</Text> : <><Button title={set.completed ? 'Done ✓' : 'Complete set'} onPress={() => { dispatch({ type: 'toggle_set', exerciseIndex, setIndex }); if (!set.completed) setRestEndsAt(Date.now() + set.rest_seconds * 1_000); }} /><TextInput accessibilityLabel={`${exercise.name} set ${setIndex + 1} skipped reason`} style={styles.input} placeholder="Skip reason (preserved verbatim)" placeholderTextColor={colors.muted} value={skipReasons[key] ?? ''} onChangeText={(reason) => setSkipReasons((current) => ({ ...current, [key]: reason }))} /><Button title="Skip set" disabled={!skipReasons[key]?.trim()} onPress={() => dispatch({ type: 'skip_set', exerciseIndex, setIndex, reason: skipReasons[key] })} /></>}
       </View>;
     })}<Button title="+ Add actual set" onPress={() => dispatch({ type: 'add_set', exerciseIndex })} /></View>)}
-    <Button title="+ Add actual exercise" onPress={() => dispatch({ type: 'add_exercise' })} />
+    <Button title="+ Add actual exercise" onPress={() => setPickerVisible(true)} />
+    <ExercisePicker
+      visible={pickerVisible}
+      onClose={() => setPickerVisible(false)}
+      onAddManually={() => { setPickerVisible(false); dispatch({ type: 'add_exercise' }); }}
+      onSelect={(exercise) => { setPickerVisible(false); dispatch({ type: 'add_catalogue_exercise', name: exercise.name, catalogueExerciseId: exercise.id }); }}
+    />
     <TextInput accessibilityLabel="Additional notes" multiline style={[styles.input, styles.notes]} placeholder="What changed or felt notable?" placeholderTextColor={colors.muted} value={editor.additionalNotes} onChangeText={(notes) => dispatch({ type: 'set_notes', notes })} />
     <Text style={styles.message}>Local status: {syncState.replace('_', ' ')}</Text><Button title="Sync saved draft" onPress={() => void sync()} /><Button title="Finish — review actual" color={colors.orange} onPress={reviewAndConfirm} />
   </ScrollView>;

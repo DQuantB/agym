@@ -14,7 +14,7 @@ Records the actual import event, distinct from `docs/research/exercise-dataset-e
 1. Fetches `data/exercises.json` at the pinned commit directly from `raw.githubusercontent.com`.
 2. Validates every record against `packages/core/src/exercises/catalogueSchemas.ts`'s `catalogueExerciseSchema` (Zod) — a malformed upstream record fails the whole run rather than silently importing bad data.
 3. Runs `dedupeCatalogueExercises`, which collapses exact `name`+`equipment`+`body_part`+`target` duplicates and keeps the lowest `source_id` (see the 6 known duplicate pairs listed in the evaluation doc).
-4. Upserts into `exercise_catalogue` via a `service_role` Supabase client.
+4. Upserts into `exercise_catalogue` via a `service_role` Supabase client. The script treats `localhost`/`127.0.0.1` as a local validation target; any hosted URL additionally requires `AGYM_CONFIRM_HOSTED_CATALOGUE_IMPORT=yes`. This prevents an ambient hosted service-role environment from silently populating the production/alpha catalogue during a local check.
 
 ## Verification performed
 

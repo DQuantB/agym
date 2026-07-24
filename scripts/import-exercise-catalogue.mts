@@ -51,6 +51,14 @@ async function main() {
   const serviceRoleKey = process.env.AGYM_SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error('AGYM_SUPABASE_URL and AGYM_SUPABASE_SERVICE_ROLE_KEY must be set.');
 
+  const target = new URL(url);
+  const isLocalTarget = target.hostname === '127.0.0.1' || target.hostname === 'localhost';
+  if (!isLocalTarget && process.env.AGYM_CONFIRM_HOSTED_CATALOGUE_IMPORT !== 'yes') {
+    throw new Error(
+      'Refusing to write the hosted exercise catalogue without AGYM_CONFIRM_HOSTED_CATALOGUE_IMPORT=yes. Use local Supabase for validation first.',
+    );
+  }
+
   console.log(`Fetching ${CATALOGUE_SOURCE}@${CATALOGUE_SOURCE_COMMIT}...`);
   const response = await fetch(UPSTREAM_URL);
   if (!response.ok) throw new Error(`Could not fetch upstream dataset: HTTP ${response.status}`);

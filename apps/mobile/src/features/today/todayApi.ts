@@ -49,6 +49,23 @@ async function loadPlanByStatus(client: SupabaseClient, date: string, status: 'a
   return toTodayPlan(data);
 }
 
+export async function loadUpcomingActivePlans(client: SupabaseClient, fromDate: string, throughDate: string): Promise<TodayPlan[]> {
+  const { data, error } = await client
+    .from('plans')
+    .select('id, plan_data, scheduled_for')
+    .eq('status', 'active')
+    .eq('plan_data->>kind', 'gym_workout')
+    .gte('scheduled_for', fromDate)
+    .lte('scheduled_for', throughDate)
+    .is('deleted_at', null)
+    .order('scheduled_for', { ascending: true });
+  if (error) fail(error, 'load upcoming accepted workouts');
+  return (data ?? []).flatMap((row) => {
+    const plan = toTodayPlan(row);
+    return plan ? [plan] : [];
+  });
+}
+
 export async function loadTodayRemoteData(client: SupabaseClient, date: string): Promise<TodayRemoteData> {
   const [activePlan, proposal] = await Promise.all([
     loadPlanByStatus(client, date, 'active'),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, ScrollView, Text, View } from 'react-native';
+import { Alert, Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Screen, StatusCard } from '@/components/Screen';
@@ -12,7 +12,7 @@ import {
 } from '@/features/data/dataApi';
 import { grantAgentAuthorization, type AuthorizationAction, type AuthorizationAgent } from '@/features/data/authorizationApi';
 import { getSupabaseClient } from '@/lib/supabase';
-import { colors } from '@/theme/tokens';
+import { colors, spacing } from '@/theme/tokens';
 
 type AgentPermission = {
   agent: AuthorizationAgent;
@@ -130,6 +130,7 @@ export default function DataScreen() {
 
   return (
     <Screen eyebrow="DATA" title="Your data layer">
+      <ScrollView contentContainerStyle={styles.content}>
       <Button title="Sign out" onPress={() => void auth.signOut()} />
       {message ? <StatusCard tone="warning" title="Data action" detail={message} /> : null}
       <StatusCard
@@ -153,7 +154,7 @@ export default function DataScreen() {
           </View>
         );
       })}
-      <ScrollView>
+      <View>
         {grants.filter((grant) => !grant.revokedAt && grant.agent !== 'hermes' && grant.agent !== 'remote-mcp').map((grant) => (
           <View key={grant.id}>
             <StatusCard
@@ -169,7 +170,7 @@ export default function DataScreen() {
             />
           </View>
         ))}
-      </ScrollView>
+      </View>
       {!grants.some((grant) => !grant.revokedAt) ? (
         <StatusCard title="No active model readers" detail="AGYM will list only live, owner-controlled authorizations here." />
       ) : null}
@@ -185,6 +186,11 @@ export default function DataScreen() {
           ],
         )}
       />
+      </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { gap: spacing.md, paddingBottom: spacing.xl },
+});

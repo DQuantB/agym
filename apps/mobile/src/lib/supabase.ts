@@ -25,6 +25,10 @@ export function getSupabaseClient(): SupabaseClient | null {
       storageKey,
       autoRefreshToken: true,
       persistSession: true,
+      // Android custom-scheme launches can discard an implicit URL fragment.
+      // PKCE returns the one-time code in the query string, which our native
+      // AuthProvider exchanges explicitly after receiving the deep link.
+      flowType: 'pkce',
       detectSessionInUrl: false,
     },
   });

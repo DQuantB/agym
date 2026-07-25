@@ -1,6 +1,6 @@
 import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Screen, StatusCard } from '@/components/Screen';
@@ -42,10 +42,10 @@ export function TodayScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!auth.ready || !auth.configured || !auth.session) return;
+  useFocusEffect(useCallback(() => {
+    if (!auth.ready || !auth.configured || !auth.session) return undefined;
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client) return undefined;
     let active = true;
     setLoading(true);
     setError(null);
@@ -57,7 +57,7 @@ export function TodayScreen() {
       .catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause.message : 'Unknown data error.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [auth.configured, auth.ready, auth.session, calendarThroughDate, date]);
+  }, [auth.configured, auth.ready, auth.session, calendarThroughDate, date]));
 
   const state = mapTodayState({
     configured: auth.configured,

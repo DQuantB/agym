@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AGYM",
+    "name": "A-GYM",
     "slug": "agym",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -8,6 +8,7 @@
     "scheme": "agym",
     "userInterfaceStyle": "dark",
     "ios": {
+      "bundleIdentifier": "com.bdaniele03.agym",
       "icon": "./assets/expo.icon"
     },
     "android": {

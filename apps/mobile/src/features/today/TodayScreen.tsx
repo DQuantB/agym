@@ -7,24 +7,13 @@ import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 
-import { buildHomeCalendarDays } from './homeSchedule';
+import { addCalendarDays, buildHomeCalendarDays, weekStart } from './homeSchedule';
 import { loadTodayRemoteData, loadUpcomingActivePlans, type TodayRemoteData } from './todayApi';
 import { mapTodayState, type TodayPlan, type TodayState } from './todayState';
 
 function todayLocalDate(date = new Date()): string {
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
-function monthStart(date: string): string { return `${date.slice(0, 7)}-01`; }
-function addMonths(date: string, months: number): string {
-  const value = new Date(`${monthStart(date)}T12:00:00.000Z`);
-  value.setUTCMonth(value.getUTCMonth() + months);
-  return value.toISOString().slice(0, 10);
-}
-function daysInMonth(date: string): number {
-  const value = new Date(`${monthStart(date)}T12:00:00.000Z`);
-  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
 function stateCard(state: TodayState) {
@@ -45,12 +34,7 @@ export function TodayScreen() {
   const router = useRouter();
   const auth = useAuth();
   const date = useMemo(() => todayLocalDate(), []);
-  const calendarMonths = useMemo(() => [monthStart(date), addMonths(date, 1), addMonths(date, 2)], [date]);
-  const calendarThroughDate = useMemo(() => {
-    const finalMonth = calendarMonths.at(-1) ?? date;
-    return buildHomeCalendarDays(finalMonth, daysInMonth(finalMonth), []).at(-1)?.date ?? date;
-  }, [calendarMonths, date]);
-  const [monthOffset, setMonthOffset] = useState(0);
+  const calendarThroughDate = useMemo(() => addCalendarDays(date, 90), [date]);
   const [remote, setRemote] = useState<TodayRemoteData | null>(null);
   const [upcomingPlans, setUpcomingPlans] = useState<TodayPlan[]>([]);
   const [selectedDate, setSelectedDate] = useState(date);
@@ -84,29 +68,29 @@ export function TodayScreen() {
     proposal: remote?.proposal ?? null,
   });
   const proposal = 'proposal' in state ? state.proposal : null;
-  const visibleMonth = calendarMonths[monthOffset] ?? date;
-  const days = buildHomeCalendarDays(visibleMonth, daysInMonth(visibleMonth), upcomingPlans);
+  const days = buildHomeCalendarDays(weekStart(selectedDate), 7, upcomingPlans);
   const selectedPlan = days.find((day) => day.date === selectedDate)?.plan ?? null;
+  const month = new Date(`${selectedDate}T12:00:00.000Z`).toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
+  const plannedInWeek = days.filter((day) => day.plan).length;
 
   return (
     <Screen eyebrow={`AGYM · HOME · ${date}`} title="Home">
       <ScrollView contentContainerStyle={styles.content}>
         {proposal && state.kind !== 'proposal_waiting' ? <StatusCard tone="proposal" title="✧ Agent proposal" detail={`${proposal.title}. Nothing has been applied yet — review it in Plans before it can become scheduled training.`} /> : null}
-        {stateCard(state)}
         <View style={styles.calendarCard}>
-          <Text style={styles.sectionTitle}>Training calendar</Text>
-          <View style={styles.monthControls}><Button title="‹" disabled={monthOffset === 0} onPress={() => setMonthOffset((value) => Math.max(0, value - 1))} /><Text style={styles.monthLabel}>{new Date(`${visibleMonth}T12:00:00.000Z`).toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</Text><Button title="›" disabled={monthOffset === calendarMonths.length - 1} onPress={() => setMonthOffset((value) => Math.min(calendarMonths.length - 1, value + 1))} /></View>
-          <Text style={styles.sectionDetail}>Browse this month or the next two. Only today can be started; future accepted workouts can be adjusted.</Text>
+          <View style={styles.calendarHeader}><Text style={styles.monthLabel}>{month}</Text><Text style={styles.eventCount}>{plannedInWeek} planned</Text></View>
+          <View style={styles.weekControls}><Button title="‹" accessibilityLabel="Previous day" onPress={() => setSelectedDate((value) => addCalendarDays(value, -1))} /><Text style={styles.sectionDetail}>Move day by day</Text><Button title="›" accessibilityLabel="Next day" onPress={() => setSelectedDate((value) => addCalendarDays(value, 1))} /></View>
           <View style={styles.calendarGrid}>
             {days.map((day) => {
               const selected = day.date === selectedDate;
-              return <Pressable key={day.date} accessibilityRole="button" accessibilityLabel={`${day.weekday} ${day.date}${day.plan ? `: ${day.plan.title}` : ': no scheduled workout'}`} onPress={() => setSelectedDate(day.date)} style={[styles.day, day.plan ? styles.dayWithPlan : null, selected ? styles.daySelected : null]}>
-                <Text style={styles.weekday}>{day.weekday}</Text><Text style={styles.dayNumber}>{day.dayOfMonth}</Text><View style={[styles.dot, day.plan ? styles.dotWithPlan : null]} />
+              return <Pressable key={day.date} accessibilityRole="button" accessibilityLabel={`${day.weekday} ${day.date}${day.plan ? `: ${day.plan.title}` : ': no scheduled workout'}`} onPress={() => setSelectedDate(day.date)} style={styles.day}>
+                <Text style={styles.weekday}>{day.weekday}</Text><View style={[styles.dayNumberWrap, selected ? styles.daySelected : null]}><Text style={[styles.dayNumber, selected ? styles.dayNumberSelected : null]}>{day.dayOfMonth}</Text></View><View style={[styles.dot, day.plan ? styles.dotWithPlan : null]} />
               </Pressable>;
             })}
           </View>
-          {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : 'Review or adjust this future workout before its scheduled day.'}</Text>{selectedDate !== date ? <Button title="View & edit workout" color={colors.orange} accessibilityLabel={`View and edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
+          {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : selectedDate > date ? 'Review or adjust this future workout before its scheduled day.' : 'This workout is in the past and cannot be changed.'}</Text>{selectedDate > date ? <Button title="View & edit workout" color={colors.orange} accessibilityLabel={`View and edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
         </View>
+        {stateCard(state)}
         {state.kind === 'ready' ? <Button title="Start workout" color={colors.orange} accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
         {state.kind === 'in_progress' ? <Button title="Resume workout" color={colors.orange} accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
       </ScrollView>
@@ -116,17 +100,19 @@ export function TodayScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
-  calendarCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 16, gap: spacing.sm, padding: spacing.md },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  monthControls: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  monthLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  sectionDetail: { color: colors.muted, fontSize: 13, lineHeight: 18 },
-  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  day: { alignItems: 'center', borderColor: colors.border, borderRadius: 10, borderWidth: 1, gap: 2, minWidth: '13.2%', paddingVertical: spacing.xs },
-  dayWithPlan: { borderColor: colors.orange },
-  daySelected: { backgroundColor: colors.background, borderColor: colors.text },
-  weekday: { color: colors.muted, fontSize: 10, fontWeight: '700' },
-  dayNumber: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  calendarCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 20, gap: spacing.sm, padding: spacing.md },
+  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  monthLabel: { color: colors.text, fontSize: 20, fontWeight: '700' },
+  eventCount: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  weekControls: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  sectionDetail: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  calendarGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  day: { alignItems: 'center', flex: 1, gap: 4, minHeight: 76 },
+  weekday: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  dayNumberWrap: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
+  daySelected: { backgroundColor: colors.text },
+  dayNumber: { color: colors.text, fontSize: 18, fontWeight: '700' },
+  dayNumberSelected: { color: colors.background },
   dot: { backgroundColor: 'transparent', borderRadius: 3, height: 6, width: 6 },
   dotWithPlan: { backgroundColor: colors.orange },
   selectedPlan: { backgroundColor: colors.background, borderRadius: 10, gap: spacing.xs, padding: spacing.sm },

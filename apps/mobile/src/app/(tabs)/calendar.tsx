@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button } from 'react-native';
+import { Button, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -58,7 +58,7 @@ export default function CalendarScreen() {
     {state.kind === 'loading' ? <StatusCard title="Loading plans" detail="Checking your agent proposals and accepted training." /> : null}
     {state.kind === 'error' ? <StatusCard tone="warning" title="Plans unavailable" detail={state.message} /> : null}
     {state.kind === 'loaded' ? <>
-      {state.proposal ? <><StatusCard tone="proposal" title={`✧ Agent proposal · ${state.proposal.source}`} detail={`${state.proposal.plan.title} · ${state.proposal.plan.scheduled_for}. Nothing has been applied yet.`} /><Button title="Review proposal" color={colors.orange} accessibilityLabel={`Review agent proposal ${state.proposal.plan.title}`} onPress={() => router.push({ pathname: '/proposal', params: { id: state.proposal!.id } } as never)} /></> : <StatusCard tone="proposal" title="No proposal loaded" detail="Agent-authored plans will appear here for your deliberate review." />}
+      {state.proposal ? <><TouchableOpacity accessibilityRole="button" accessibilityLabel={`Review agent proposal ${state.proposal.plan.title}`} onPress={() => router.push({ pathname: '/proposal', params: { id: state.proposal!.id } } as never)}><StatusCard tone="proposal" title={`✧ Agent proposal · ${state.proposal.source}`} detail={`${state.proposal.plan.title} · ${state.proposal.plan.scheduled_for}. Nothing has been applied yet. Tap to review.`} /></TouchableOpacity><Button title="Review proposal" color={colors.orange} accessibilityLabel={`Review agent proposal ${state.proposal.plan.title}`} onPress={() => router.push({ pathname: '/proposal', params: { id: state.proposal!.id } } as never)} /></> : <StatusCard tone="proposal" title="No proposal loaded" detail="Agent-authored plans will appear here for your deliberate review." />}
       {state.active ? <StatusCard title="◇ Planned" detail={`${state.active.plan.title} · ${state.active.plan.scheduled_for}. This accepted plan is ready on its scheduled day.`} /> : <StatusCard title="No scheduled sessions" detail="Only accepted plans can become scheduled training." />}
     </> : null}
   </Screen>;

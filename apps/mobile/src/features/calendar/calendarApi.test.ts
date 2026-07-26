@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { expect, it, vi } from 'vitest';
 
-import { loadCalendarPlans } from './calendarApi';
+import { acceptCalendarProposal, loadCalendarPlans } from './calendarApi';
 
 const planData = {
   kind: 'gym_workout', schema_version: 1, scheduled_for: '2026-07-22', title: 'Upper strength',
@@ -23,4 +23,13 @@ it('reads the plans table source_client field and preserves proposal versus acti
   expect(query.select).toHaveBeenCalledWith('id, status, plan_data, user_revision_data, source_client, created_at');
   expect(plans.proposal).toMatchObject({ status: 'proposed', source: 'hermes', plan: { title: 'Upper strength' } });
   expect(plans.active).toMatchObject({ status: 'active', source: 'claude-code', plan: { title: 'User-adjusted upper strength' } });
+});
+
+it('accepts a proposal only through the owner-scoped RPC and surfaces its error', async () => {
+  const rpc = vi.fn().mockResolvedValue({ error: null });
+  await acceptCalendarProposal({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111');
+  expect(rpc).toHaveBeenCalledWith('accept_gym_workout_plan', { p_plan_id: '11111111-1111-4111-8111-111111111111' });
+
+  rpc.mockResolvedValueOnce({ error: { message: 'gym plan is not awaiting acceptance' } });
+  await expect(acceptCalendarProposal({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111')).rejects.toThrow('AGYM could not accept this Gym proposal: gym plan is not awaiting acceptance');
 });

@@ -11,7 +11,7 @@ const planData = {
 it('reads the plans table source_client field and preserves proposal versus active status', async () => {
   const result = { data: [
     { id: '11111111-1111-4111-8111-111111111111', status: 'proposed', plan_data: planData, source_client: 'hermes', created_at: '2026-07-21T09:00:00Z' },
-    { id: '22222222-2222-4222-8222-222222222222', status: 'active', plan_data: planData, source_client: 'claude-code', created_at: '2026-07-20T09:00:00Z' },
+    { id: '22222222-2222-4222-8222-222222222222', status: 'active', plan_data: planData, user_revision_data: { ...planData, title: 'User-adjusted upper strength' }, source_client: 'claude-code', created_at: '2026-07-20T09:00:00Z' },
   ], error: null };
   const query: Record<string, ReturnType<typeof vi.fn>> & PromiseLike<typeof result> = {} as never;
   for (const method of ['select', 'in', 'eq', 'is', 'order', 'limit']) query[method] = vi.fn(() => query);
@@ -20,7 +20,7 @@ it('reads the plans table source_client field and preserves proposal versus acti
 
   const plans = await loadCalendarPlans({ from } as unknown as SupabaseClient);
 
-  expect(query.select).toHaveBeenCalledWith('id, status, plan_data, source_client, created_at');
+  expect(query.select).toHaveBeenCalledWith('id, status, plan_data, user_revision_data, source_client, created_at');
   expect(plans.proposal).toMatchObject({ status: 'proposed', source: 'hermes', plan: { title: 'Upper strength' } });
-  expect(plans.active).toMatchObject({ status: 'active', source: 'claude-code' });
+  expect(plans.active).toMatchObject({ status: 'active', source: 'claude-code', plan: { title: 'User-adjusted upper strength' } });
 });

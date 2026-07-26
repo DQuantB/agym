@@ -1,21 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+import { effectiveGymPlan } from '@/features/workout/workoutApi';
+
 import type { TodayExecution, TodayPlan } from './todayState';
 
-const gymPlanSchema = z.object({
-  kind: z.literal('gym_workout'),
-  schema_version: z.literal(1),
-  scheduled_for: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  title: z.string().trim().min(1).max(160),
-  exercises: z.array(z.object({
-    client_id: z.string().trim().min(1).max(100),
-    name: z.string().trim().min(1).max(120),
-    sets: z.array(z.object({ reps: z.number().int().min(1).max(100) })).min(1).max(20),
-  })).min(1).max(30),
-});
-
-const planRowSchema = z.object({ id: z.string().uuid(), plan_data: gymPlanSchema, scheduled_for: z.string() });
+const planRowSchema = z.object({ id: z.string().uuid(), plan_data: z.unknown(), user_revision_data: z.unknown().nullable().optional(), scheduled_for: z.string() }).required({ plan_data: true });
 const executionRowSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(['in_progress', 'completed']),
@@ -26,8 +16,9 @@ export type TodayRemoteData = { activePlan: TodayPlan | null; execution: TodayEx
 
 function toTodayPlan(row: unknown): TodayPlan | null {
   const parsed = planRowSchema.safeParse(row);
-  if (!parsed.success) return null;
-  return { id: parsed.data.id, title: parsed.data.plan_data.title, scheduledFor: parsed.data.scheduled_for };
+  if (!parsed.success || parsed.data.plan_data === undefined) return null;
+  const plan = effectiveGymPlan({ plan_data: parsed.data.plan_data, user_revision_data: parsed.data.user_revision_data });
+  return plan ? { id: parsed.data.id, title: plan.title, scheduledFor: parsed.data.scheduled_for } : null;
 }
 
 function fail(error: { message: string } | null, action: string): never {
@@ -37,7 +28,7 @@ function fail(error: { message: string } | null, action: string): never {
 async function loadPlanByStatus(client: SupabaseClient, date: string, status: 'active' | 'proposed'): Promise<TodayPlan | null> {
   const { data, error } = await client
     .from('plans')
-    .select('id, plan_data, scheduled_for')
+    .select('id, plan_data, user_revision_data, scheduled_for')
     .eq('scheduled_for', date)
     .eq('status', status)
     .eq('plan_data->>kind', 'gym_workout')
@@ -52,7 +43,7 @@ async function loadPlanByStatus(client: SupabaseClient, date: string, status: 'a
 export async function loadUpcomingActivePlans(client: SupabaseClient, fromDate: string, throughDate: string): Promise<TodayPlan[]> {
   const { data, error } = await client
     .from('plans')
-    .select('id, plan_data, scheduled_for')
+    .select('id, plan_data, user_revision_data, scheduled_for')
     .eq('status', 'active')
     .eq('plan_data->>kind', 'gym_workout')
     .gte('scheduled_for', fromDate)

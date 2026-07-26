@@ -1,13 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadTodayRemoteData } from './todayApi';
+import { loadTodayRemoteData, loadUpcomingActivePlans } from './todayApi';
 
 type Result = { data?: unknown; error?: { message: string } | null };
 function chain(result: Result) {
   const resolved = { data: null, error: null, ...result };
   const value: Record<string, ReturnType<typeof vi.fn>> & PromiseLike<typeof resolved> = {} as never;
-  for (const method of ['select', 'eq', 'is', 'order', 'limit']) value[method] = vi.fn(() => value);
+  for (const method of ['select', 'eq', 'gte', 'lte', 'is', 'order', 'limit']) value[method] = vi.fn(() => value);
   value.maybeSingle = vi.fn(async () => resolved);
   value.then = (resolve) => Promise.resolve(resolved).then(resolve);
   return value;
@@ -50,5 +50,16 @@ describe('loadTodayRemoteData', () => {
     const result = await loadTodayRemoteData({ from } as unknown as SupabaseClient, '2026-07-21');
 
     expect(result).toMatchObject({ activePlan: null, execution: null, proposal: { id: activeRow.id } });
+  });
+
+  it('loads only active Gym workouts within the requested Home calendar range', async () => {
+    const plans = chain({ data: [activeRow] });
+    const result = await loadUpcomingActivePlans({ from: vi.fn(() => plans) } as unknown as SupabaseClient, '2026-07-21', '2026-08-03');
+
+    expect(plans.eq).toHaveBeenCalledWith('status', 'active');
+    expect(plans.eq).toHaveBeenCalledWith('plan_data->>kind', 'gym_workout');
+    expect(plans.gte).toHaveBeenCalledWith('scheduled_for', '2026-07-21');
+    expect(plans.lte).toHaveBeenCalledWith('scheduled_for', '2026-08-03');
+    expect(result).toMatchObject([{ id: activeRow.id, title: 'Lower strength', scheduledFor: '2026-07-21' }]);
   });
 });

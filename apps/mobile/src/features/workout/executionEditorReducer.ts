@@ -6,6 +6,7 @@ export type ExecutionEditorAction =
   | { type: 'set_weight'; exerciseIndex: number; setIndex: number; weightKg: number | null }
   | { type: 'set_reps'; exerciseIndex: number; setIndex: number; reps: number }
   | { type: 'toggle_set'; exerciseIndex: number; setIndex: number }
+  | { type: 'complete_set'; exerciseIndex: number; setIndex: number }
   | { type: 'skip_set'; exerciseIndex: number; setIndex: number; reason: string }
   | { type: 'add_set'; exerciseIndex: number }
   | { type: 'add_exercise' }
@@ -55,6 +56,10 @@ export function executionEditorReducer(state: ExecutionEditorState, action: Exec
     if (action.type === 'set_reps') set.reps = Math.max(1, action.reps || 1);
     if (action.type === 'toggle_set') {
       set.completed = !set.completed;
+      set.skipped_reason = null;
+    }
+    if (action.type === 'complete_set') {
+      set.completed = true;
       set.skipped_reason = null;
     }
     if (action.type === 'skip_set') {

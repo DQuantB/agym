@@ -17,6 +17,7 @@ export default function ProposalScreen() {
   const [requestingChanges, setRequestingChanges] = useState(false);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
+  const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
     const client = getSupabaseClient();
@@ -24,13 +25,22 @@ export default function ProposalScreen() {
     void loadProposalById(client, id).then((value) => { setProposal(value); setMessage(value ? '' : 'This proposal is no longer awaiting review.'); }).catch((error: unknown) => setMessage(error instanceof Error ? error.message : 'Could not load proposal.'));
   }, [auth.session, id]);
 
-  async function accept() {
+  async function accept(openEditor = false) {
     const client = getSupabaseClient();
-    if (!client || !proposal) return;
+    if (!client || !proposal || accepting) return;
+    setAccepting(true);
     try {
       await acceptCalendarProposal(client, proposal.id);
+      if (openEditor) {
+        router.replace({ pathname: '/workout', params: { mode: 'edit', planId: proposal.id } } as never);
+        return;
+      }
       Alert.alert('Plan accepted', 'This Gym plan is now planned training. Its agent-authored contents remain unchanged.', [{ text: 'Back to calendar', onPress: () => router.back() }]);
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not accept proposal.'); }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Could not accept proposal.';
+      setMessage(detail);
+      Alert.alert('Could not accept plan', detail);
+    } finally { setAccepting(false); }
   }
 
   if (!proposal) return <View style={styles.screen}><Text style={styles.message}>{message}</Text></View>;
@@ -39,7 +49,8 @@ export default function ProposalScreen() {
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content}><Text style={styles.eyebrow}>✧ AGENT PROPOSAL · {proposal.source}</Text><Text style={styles.title}>{proposal.plan.title}</Text><Text style={styles.message}>Scheduled for {proposal.plan.scheduled_for}. Sent {new Date(proposal.createdAt).toLocaleString()}. Nothing has been applied yet.</Text>
     {proposal.plan.exercises.map((exercise) => <View key={exercise.client_id} style={styles.card}><Text style={styles.exercise}>{exercise.name}</Text><Text style={styles.message}>{exercise.sets.map((set) => `${set.weight_kg ?? '—'} kg × ${set.reps}`).join(' · ')}</Text></View>)}
     {proposal.plan.notes ? <View style={styles.card}><Text style={styles.exercise}>Agent note</Text><Text style={styles.message}>{proposal.plan.notes}</Text></View> : null}
-    <Button title="Accept — add to calendar" color={colors.orange} onPress={() => Alert.alert('Accept proposal?', 'Only you can turn this proposal into an active planned workout.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Accept plan', onPress: () => void accept() }])} />
+    <Button title={accepting ? 'Accepting…' : 'Accept — add to calendar'} color={colors.orange} disabled={accepting} onPress={() => Alert.alert('Accept proposal?', 'Only you can turn this proposal into an active planned workout.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Accept plan', onPress: () => void accept() }])} />
+    <Button title="Accept & edit future workout" disabled={accepting} onPress={() => Alert.alert('Accept and edit?', 'AGYM will first preserve and accept the agent proposal, then open an editor for your future-workout revision.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Accept & edit', onPress: () => void accept(true) }])} />
     <Button title={requestingChanges ? 'Hide change request' : 'Ask for changes'} onPress={() => setRequestingChanges((value) => !value)} />
     {requestingChanges ? <View style={styles.card}><Text style={styles.exercise}>Prepare external revision request</Text><Text style={styles.message}>AGYM has no chat and will not send this automatically. Choose a reason, add an optional verbatim note, then copy/send it to your external LLM. Any response must return as a new proposal for review.</Text><TextInput style={styles.input} placeholder="Reason, e.g. schedule conflict" placeholderTextColor={colors.muted} value={reason} onChangeText={setReason} /><TextInput multiline style={[styles.input, styles.notes]} placeholder="Optional note — preserved verbatim in this prepared request" placeholderTextColor={colors.muted} value={note} onChangeText={setNote} /><Text selectable style={styles.handoff}>{handoff}</Text></View> : null}
     <Button title="Dismiss for now" onPress={() => router.back()} /><Text style={styles.message}>{message}</Text>

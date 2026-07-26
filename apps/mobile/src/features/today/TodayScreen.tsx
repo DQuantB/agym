@@ -70,7 +70,8 @@ export function TodayScreen() {
   const proposal = 'proposal' in state ? state.proposal : null;
   const days = buildHomeCalendarDays(weekStart(selectedDate), 7, upcomingPlans);
   const selectedPlan = days.find((day) => day.date === selectedDate)?.plan ?? null;
-  const month = new Date(`${selectedDate}T12:00:00.000Z`).toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
+  const selectedCalendarDate = new Date(`${selectedDate}T12:00:00.000Z`);
+  const month = selectedCalendarDate.toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
   const plannedInWeek = days.filter((day) => day.plan).length;
 
   return (
@@ -79,14 +80,17 @@ export function TodayScreen() {
         {proposal && state.kind !== 'proposal_waiting' ? <StatusCard tone="proposal" title="✧ Agent proposal" detail={`${proposal.title}. Nothing has been applied yet — review it in Plans before it can become scheduled training.`} /> : null}
         <View style={styles.calendarCard}>
           <View style={styles.calendarHeader}><Text style={styles.monthLabel}>{month}</Text><Text style={styles.eventCount}>{plannedInWeek} planned</Text></View>
-          <View style={styles.weekControls}><Button title="‹" accessibilityLabel="Previous day" onPress={() => setSelectedDate((value) => addCalendarDays(value, -1))} /><Text style={styles.sectionDetail}>Move day by day</Text><Button title="›" accessibilityLabel="Next day" onPress={() => setSelectedDate((value) => addCalendarDays(value, 1))} /></View>
-          <View style={styles.calendarGrid}>
-            {days.map((day) => {
-              const selected = day.date === selectedDate;
-              return <Pressable key={day.date} accessibilityRole="button" accessibilityLabel={`${day.weekday} ${day.date}${day.plan ? `: ${day.plan.title}` : ': no scheduled workout'}`} onPress={() => setSelectedDate(day.date)} style={styles.day}>
-                <Text style={styles.weekday}>{day.weekday}</Text><View style={[styles.dayNumberWrap, selected ? styles.daySelected : null]}><Text style={[styles.dayNumber, selected ? styles.dayNumberSelected : null]}>{day.dayOfMonth}</Text></View><View style={[styles.dot, day.plan ? styles.dotWithPlan : null]} />
-              </Pressable>;
-            })}
+          <View style={styles.weekNavigation}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Previous day" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, -1))} style={styles.dayArrow}><Text style={styles.dayArrowText}>‹</Text></Pressable>
+            <View style={styles.calendarGrid}>
+              {days.map((day) => {
+                const selected = day.date === selectedDate;
+                return <Pressable key={day.date} accessibilityRole="button" accessibilityLabel={`${day.weekday} ${day.date}${day.plan ? `: ${day.plan.title}` : ': no scheduled workout'}`} onPress={() => setSelectedDate(day.date)} style={styles.day}>
+                  <Text style={styles.weekday}>{day.weekday}</Text><View style={[styles.dayNumberWrap, selected ? styles.daySelected : null]}><Text style={[styles.dayNumber, selected ? styles.dayNumberSelected : null]}>{day.dayOfMonth}</Text></View><View style={[styles.dot, day.plan ? styles.dotWithPlan : null]} />
+                </Pressable>;
+              })}
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Next day" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, 1))} style={styles.dayArrow}><Text style={styles.dayArrowText}>›</Text></Pressable>
           </View>
           {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : selectedDate > date ? 'Review or adjust this future workout before its scheduled day.' : 'This workout is in the past and cannot be changed.'}</Text>{selectedDate > date ? <Button title="View & edit workout" color={colors.orange} accessibilityLabel={`View and edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
         </View>
@@ -104,9 +108,10 @@ const styles = StyleSheet.create({
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   monthLabel: { color: colors.text, fontSize: 20, fontWeight: '700' },
   eventCount: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  weekControls: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  sectionDetail: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  calendarGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  weekNavigation: { alignItems: 'center', flexDirection: 'row' },
+  dayArrow: { alignItems: 'center', justifyContent: 'center', minHeight: 76, width: 20 },
+  dayArrowText: { color: colors.text, fontSize: 28, lineHeight: 32 },
+  calendarGrid: { flex: 1, flexDirection: 'row', justifyContent: 'space-between' },
   day: { alignItems: 'center', flex: 1, gap: 4, minHeight: 76 },
   weekday: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   dayNumberWrap: { alignItems: 'center', borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },

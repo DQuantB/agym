@@ -9,6 +9,9 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "bundleIdentifier": "com.bdaniele03.agym",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
       "icon": "./assets/expo.icon"
     },
     "android": {

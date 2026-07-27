@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { ExercisePicker } from '@/features/exercises/ExercisePicker';
@@ -20,6 +21,7 @@ function localDate() {
 }
 
 export function WorkoutExecutionScreen() {
+  const router = useRouter();
   const auth = useAuth();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [editor, dispatch] = useReducer(executionEditorReducer, { actualData: { kind: 'gym_workout_execution', schema_version: 1, exercises: [] }, additionalNotes: '' });
@@ -147,8 +149,7 @@ export function WorkoutExecutionScreen() {
     try {
       await confirmRemoteExecution(client, executionId);
       await deleteLocalExecutionDraft(auth.session.user.id, loaded.planId);
-      setLoaded(null);
-      setMessage('✓ User confirmed. The outcome is now immutable history.');
+      router.replace('/(tabs)/log' as never);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not confirm workout. Your synced draft remains available.');
     }

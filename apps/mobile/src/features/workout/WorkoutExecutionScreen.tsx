@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { ExercisePicker } from '@/features/exercises/ExercisePicker';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 
@@ -24,6 +25,9 @@ export function WorkoutExecutionScreen() {
   const [editor, dispatch] = useReducer(executionEditorReducer, { actualData: { kind: 'gym_workout_execution', schema_version: 1, exercises: [] }, additionalNotes: '' });
   const [session, setSession] = useState<FocusedWorkoutSession>({ exerciseOrder: [], restEndsAt: null });
   const [message, setMessage] = useState('Loading accepted workout…');
+  const [skipReason, setSkipReason] = useState('');
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const editorRef = useRef(editor);
   const sessionRef = useRef(session);
   const lastAutoSavedSnapshotRef = useRef<string | null>(null);
@@ -167,6 +171,7 @@ export function WorkoutExecutionScreen() {
     <Text style={styles.setLabel}>Set {current.setIndex + 1} of {exercise.sets.length}</Text>
     {restIsActive ? <RestTimer endsAt={session.restEndsAt} onAddTime={() => setSession((value) => setRestEnd(value, (value.restEndsAt ?? Date.now()) + 30_000))} onDismiss={() => setSession((value) => setRestEnd(value, null))} /> : null}
     <View style={styles.card}>
+      {exercise.user_added ? <TextInput accessibilityLabel="Actual exercise name" style={styles.input} value={exercise.name} onChangeText={(name) => dispatch({ type: 'set_exercise_name', exerciseIndex: current.exerciseIndex, name })} /> : null}
       <Text style={styles.fieldLabel}>Weight (kg)</Text>
       <TextInput accessibilityLabel={`${exercise.name} set ${current.setIndex + 1} kilograms`} keyboardType="decimal-pad" style={styles.input} value={set.weight_kg?.toString() ?? ''} onChangeText={(text) => dispatch({ type: 'set_weight', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex, weightKg: text === '' ? null : Number(text) })} />
       <Text style={styles.fieldLabel}>Reps</Text>
@@ -178,7 +183,25 @@ export function WorkoutExecutionScreen() {
         setSession((value) => setRestEnd(value, Date.now() + set.rest_seconds * 1_000));
       }} />
       <Button title={`Move ${exercise.name} to later`} onPress={() => setSession((value) => deferCurrentExercise(editor.actualData, value))} />
+      <Button title={showMoreActions ? 'Hide workout actions' : 'More workout actions'} onPress={() => setShowMoreActions((value) => !value)} />
     </View>
+    {showMoreActions ? <View style={styles.card}>
+      <Text style={styles.fieldLabel}>Skip this set</Text>
+      <TextInput accessibilityLabel="Skip reason" style={styles.input} placeholder="Reason (preserved verbatim)" placeholderTextColor={colors.muted} value={skipReason} onChangeText={setSkipReason} />
+      <Button title="Skip set" disabled={!skipReason.trim()} onPress={() => { dispatch({ type: 'skip_set', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex, reason: skipReason }); setSkipReason(''); }} />
+      <Button title="+ Add actual set" onPress={() => dispatch({ type: 'add_set', exerciseIndex: current.exerciseIndex })} />
+      <Button title="+ Add actual exercise" onPress={() => setPickerVisible(true)} />
+      <Text style={styles.fieldLabel}>Additional notes</Text>
+      <TextInput accessibilityLabel="Additional notes" multiline style={[styles.input, styles.notes]} placeholder="What changed or felt notable?" placeholderTextColor={colors.muted} value={editor.additionalNotes} onChangeText={(notes) => dispatch({ type: 'set_notes', notes })} />
+      <Button title="Sync saved draft" onPress={() => void sync()} />
+      <Button title="Finish — review actual" color={colors.orange} onPress={reviewAndConfirm} />
+    </View> : null}
+    <ExercisePicker
+      visible={pickerVisible}
+      onClose={() => setPickerVisible(false)}
+      onAddManually={() => { setPickerVisible(false); dispatch({ type: 'add_exercise' }); }}
+      onSelect={(catalogueExercise) => { setPickerVisible(false); dispatch({ type: 'add_catalogue_exercise', name: catalogueExercise.name, catalogueExerciseId: catalogueExercise.id }); }}
+    />
   </ScrollView>;
 }
 
@@ -191,6 +214,7 @@ const styles = StyleSheet.create({
   card: { gap: spacing.xs, padding: spacing.md, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 14 },
   fieldLabel: { color: colors.muted, fontWeight: '700', marginTop: spacing.xs },
   input: { minHeight: 48, paddingHorizontal: spacing.sm, borderRadius: 8, borderColor: colors.border, borderWidth: 1, color: colors.text, fontSize: 20 },
+  notes: { minHeight: 110, textAlignVertical: 'top' },
   actions: { gap: spacing.sm },
   completeCard: { gap: spacing.md },
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },

@@ -1,5 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
+import type { FocusedWorkoutSession } from './focusedWorkoutSession';
+
 export type LocalSyncState = 'saved_locally' | 'syncing' | 'synced' | 'sync_failed';
 
 export type LocalExecutionDraft = {
@@ -9,6 +11,7 @@ export type LocalExecutionDraft = {
   plannedSnapshot: unknown;
   actualData: unknown;
   additionalNotes: string;
+  session?: FocusedWorkoutSession;
   syncState: LocalSyncState;
   lastSyncError: string | null;
   updatedAt: string;

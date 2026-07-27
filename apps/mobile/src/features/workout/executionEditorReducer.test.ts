@@ -41,3 +41,10 @@ it('starts rest only from a completed set action, not from a skipped set', () =>
   expect(completed.actualData.exercises[0].sets[0].completed).toBe(true);
   expect(skipped.actualData.exercises[0].sets[0]).toMatchObject({ completed: false, skipped_reason: 'Equipment unavailable' });
 });
+
+it('completes a set without allowing a second action to undo it', () => {
+  const completed = executionEditorReducer(initial, { type: 'complete_set', exerciseIndex: 0, setIndex: 0 });
+  const repeated = executionEditorReducer(completed, { type: 'complete_set', exerciseIndex: 0, setIndex: 0 });
+
+  expect(repeated.actualData.exercises[0].sets[0]).toMatchObject({ completed: true, skipped_reason: null });
+});

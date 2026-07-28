@@ -1,12 +1,51 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-type CompletedWorkout = { id: string; confirmedAt: string; planTitle: string; notes: string; actual: { exercises?: { name?: string; sets?: unknown[] }[] } };
+import { parseConfirmedWorkout, type ConfirmedWorkout } from './confirmedWorkout';
+
 export type EvidenceHistoryItem = { id: string; label: 'RAW SELF-REPORT' | 'PARSED DRAFT · UNCERTAIN' | 'USER-CONFIRMED'; date: string; detail: string };
-export async function loadCompletedWorkouts(client: SupabaseClient): Promise<CompletedWorkout[]> {
-  const { data, error } = await client.from('canonical_events').select('id, confirmed_at, final_fields').eq('event_type', 'workout_execution').is('deleted_at', null).order('confirmed_at', { ascending: false }).limit(30);
-  if (error) throw new Error(`AGYM could not load confirmed history: ${error.message}`);
-  return (data ?? []).flatMap((row) => { const value = row.final_fields as Record<string, unknown>; const plan = value.planned_snapshot as Record<string, unknown> | undefined; const actual = value.actual as CompletedWorkout['actual'] | undefined; return plan && actual ? [{ id: row.id, confirmedAt: row.confirmed_at, planTitle: typeof plan.title === 'string' ? plan.title : 'Gym workout', notes: typeof value.additional_notes === 'string' ? value.additional_notes : '', actual }] : []; });
+export type RawEvidence = { id: string; text: string; createdAt: string };
+
+async function mergeExecutionDurations(client: SupabaseClient, workouts: ConfirmedWorkout[]): Promise<ConfirmedWorkout[]> {
+  const executionIds = workouts.map((workout) => workout.executionId).filter((id): id is string => id !== null);
+  if (!executionIds.length) return workouts;
+  const { data, error } = await client.from('workout_executions').select('id, started_at, completed_at').in('id', executionIds);
+  if (error) throw new Error(`AGYM could not load workout durations: ${error.message}`);
+  const byId = new Map((data ?? []).map((row) => [row.id as string, row]));
+  return workouts.map((workout) => {
+    const execution = workout.executionId ? byId.get(workout.executionId) : undefined;
+    return execution ? { ...workout, startedAt: execution.started_at, completedAt: execution.completed_at } : workout;
+  });
 }
+
+export async function loadCompletedWorkouts(client: SupabaseClient, limit = 30): Promise<ConfirmedWorkout[]> {
+  const { data, error } = await client.from('canonical_events')
+    .select('id, confirmed_at, final_fields, source_raw_log_id, plan_id')
+    .eq('event_type', 'workout_execution').is('deleted_at', null)
+    .order('confirmed_at', { ascending: false }).limit(limit);
+  if (error) throw new Error(`AGYM could not load confirmed history: ${error.message}`);
+  const workouts = (data ?? []).map(parseConfirmedWorkout).filter((workout): workout is ConfirmedWorkout => workout !== null);
+  return mergeExecutionDurations(client, workouts);
+}
+
+export async function loadConfirmedWorkoutDetail(client: SupabaseClient, canonicalEventId: string): Promise<{ workout: ConfirmedWorkout; rawEvidence: RawEvidence | null } | null> {
+  const { data, error } = await client.from('canonical_events')
+    .select('id, confirmed_at, final_fields, source_raw_log_id, plan_id')
+    .eq('id', canonicalEventId).is('deleted_at', null).maybeSingle();
+  if (error) throw new Error(`AGYM could not load this session: ${error.message}`);
+  if (!data) return null;
+  const parsed = parseConfirmedWorkout(data);
+  if (!parsed) return null;
+  const [workout] = await mergeExecutionDurations(client, [parsed]);
+
+  let rawEvidence: RawEvidence | null = null;
+  if (workout.sourceRawLogId) {
+    const { data: rawRow, error: rawError } = await client.from('raw_logs').select('id, raw_text, created_at').eq('id', workout.sourceRawLogId).maybeSingle();
+    if (rawError) throw new Error(`AGYM could not load raw evidence: ${rawError.message}`);
+    if (rawRow) rawEvidence = { id: rawRow.id, text: rawRow.raw_text, createdAt: rawRow.created_at };
+  }
+  return { workout, rawEvidence };
+}
+
 export async function loadEvidenceHistory(client: SupabaseClient): Promise<EvidenceHistoryItem[]> {
   const [raw, drafts, confirmed] = await Promise.all([
     client.from('raw_logs').select('id, raw_text, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(20),

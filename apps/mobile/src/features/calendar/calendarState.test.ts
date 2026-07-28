@@ -7,8 +7,8 @@ const defaults = {
   authenticated: true,
   loading: false,
   error: null,
-  proposal: null,
-  active: null,
+  proposals: [],
+  scheduled: [],
 };
 
 it('keeps Plans gated until configuration and authenticated session are ready', () => {
@@ -22,5 +22,5 @@ it('does not expose empty Plans state while the authenticated query is loading',
 
 it('maps remote failure and loaded plan states distinctly', () => {
   expect(mapCalendarScreenState({ ...defaults, error: 'Network unavailable' })).toEqual({ kind: 'error', message: 'Network unavailable' });
-  expect(mapCalendarScreenState(defaults)).toEqual({ kind: 'loaded', proposal: null, active: null });
+  expect(mapCalendarScreenState(defaults)).toEqual({ kind: 'loaded', proposals: [], scheduled: [] });
 });

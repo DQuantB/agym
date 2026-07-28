@@ -8,10 +8,10 @@ const planData = {
   exercises: [{ client_id: 'bench-press', name: 'Bench press', sets: [{ reps: 5, weight_kg: 80 }], }],
 };
 
-it('reads the plans table source_client field and preserves proposal versus active status', async () => {
+it('reads the plans table scheduled_for column and splits proposals from scheduled active plans', async () => {
   const result = { data: [
-    { id: '11111111-1111-4111-8111-111111111111', status: 'proposed', plan_data: planData, source_client: 'hermes', created_at: '2026-07-21T09:00:00Z' },
-    { id: '22222222-2222-4222-8222-222222222222', status: 'active', plan_data: planData, user_revision_data: { ...planData, title: 'User-adjusted upper strength' }, source_client: 'claude-code', created_at: '2026-07-20T09:00:00Z' },
+    { id: '11111111-1111-4111-8111-111111111111', status: 'proposed', plan_data: planData, source_client: 'hermes', created_at: '2026-07-21T09:00:00Z', scheduled_for: '2026-07-22' },
+    { id: '22222222-2222-4222-8222-222222222222', status: 'active', plan_data: planData, user_revision_data: { ...planData, title: 'User-adjusted upper strength' }, source_client: 'claude-code', created_at: '2026-07-20T09:00:00Z', scheduled_for: '2026-07-23' },
   ], error: null };
   const query: Record<string, ReturnType<typeof vi.fn>> & PromiseLike<typeof result> = {} as never;
   for (const method of ['select', 'in', 'eq', 'is', 'order', 'limit']) query[method] = vi.fn(() => query);
@@ -20,9 +20,11 @@ it('reads the plans table source_client field and preserves proposal versus acti
 
   const plans = await loadCalendarPlans({ from } as unknown as SupabaseClient);
 
-  expect(query.select).toHaveBeenCalledWith('id, status, plan_data, user_revision_data, source_client, created_at');
-  expect(plans.proposal).toMatchObject({ status: 'proposed', source: 'hermes', plan: { title: 'Upper strength' } });
-  expect(plans.active).toMatchObject({ status: 'active', source: 'claude-code', plan: { title: 'User-adjusted upper strength' } });
+  expect(query.select).toHaveBeenCalledWith('id, status, plan_data, user_revision_data, source_client, created_at, scheduled_for');
+  expect(plans.proposals).toHaveLength(1);
+  expect(plans.scheduled).toHaveLength(1);
+  expect(plans.proposals[0]).toMatchObject({ status: 'proposed', source: 'hermes', scheduledFor: '2026-07-22', plan: { title: 'Upper strength' } });
+  expect(plans.scheduled[0]).toMatchObject({ status: 'active', source: 'claude-code', scheduledFor: '2026-07-23', plan: { title: 'User-adjusted upper strength' } });
 });
 
 it('accepts a proposal only through the owner-scoped RPC and surfaces its error', async () => {

@@ -48,6 +48,14 @@ export function getCurrentWorkoutSet(
   return null;
 }
 
+export function canDeferCurrentExercise(actualData: ActualData, session: FocusedWorkoutSession): boolean {
+  const repaired = repairFocusedWorkoutSession(actualData, session);
+  const current = getCurrentWorkoutSet(actualData, repaired);
+  if (!current) return false;
+  const unfinishedIds = repaired.exerciseOrder.filter((exerciseId) => isUnfinishedExercise(actualData, exerciseId));
+  return unfinishedIds.indexOf(current.exerciseId) !== unfinishedIds.length - 1;
+}
+
 export function deferCurrentExercise(
   actualData: ActualData,
   session: FocusedWorkoutSession,

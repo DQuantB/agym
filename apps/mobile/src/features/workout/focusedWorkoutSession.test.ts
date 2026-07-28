@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { deferCurrentExercise, getCurrentWorkoutSet, repairFocusedWorkoutSession, setRestEnd } from './focusedWorkoutSession';
+import { canDeferCurrentExercise, deferCurrentExercise, getCurrentWorkoutSet, repairFocusedWorkoutSession, setRestEnd } from './focusedWorkoutSession';
 import type { ActualData } from './workoutApi';
 
 const actualData: ActualData = {
@@ -69,6 +69,16 @@ it('does not defer when the current exercise is already the last unfinished exer
   const session = repairFocusedWorkoutSession(changed);
 
   expect(deferCurrentExercise(changed, session)).toEqual(session);
+});
+
+it('reports whether the current exercise can be deferred, matching deferCurrentExercise\'s own no-op guard', () => {
+  const session = repairFocusedWorkoutSession(actualData, { exerciseOrder: ['bench', 'row', 'press'], restEndsAt: null });
+  expect(canDeferCurrentExercise(actualData, session)).toBe(true);
+
+  const changed = structuredClone(actualData);
+  changed.exercises[1].sets[0].completed = true;
+  changed.exercises[2].sets[0].completed = true;
+  expect(canDeferCurrentExercise(changed, repairFocusedWorkoutSession(changed))).toBe(false);
 });
 
 it('stores an exact, serializable absolute rest end timestamp', () => {

@@ -12,3 +12,16 @@ export const colors = {
 } as const;
 
 export const spacing = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32 } as const;
+
+export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
+
+export const type = {
+  eyebrow: { fontSize: 12, fontWeight: '800' as const, letterSpacing: 1.5 },
+  title: { fontSize: 30, fontWeight: '700' as const },
+  heading: { fontSize: 20, fontWeight: '700' as const },
+  body: { fontSize: 15, lineHeight: 21 },
+  metric: { fontSize: 34, fontWeight: '700' as const },
+  caption: { fontSize: 13, lineHeight: 18 },
+} as const;
+
+export const hit = { min: 44, primary: 56 } as const;

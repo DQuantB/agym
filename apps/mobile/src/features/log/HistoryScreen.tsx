@@ -52,7 +52,10 @@ export function HistoryScreen() {
   const totals = historyTotals(workouts);
 
   return (
-    <Screen eyebrow="HISTORY" title="Training log">
+    <Screen
+      eyebrow="HISTORY" title="Training log"
+      action={<Pressable accessibilityRole="button" accessibilityLabel="Log something" onPress={() => router.push('/capture' as never)}><Text style={styles.actionText}>+ Log something</Text></Pressable>}
+    >
       <ScrollView contentContainerStyle={styles.list}>
         {error ? <StatusCard tone="warning" title="History unavailable" detail={error} /> : null}
         {loading && !workouts.length ? <StatusCard title="Loading history" detail="Checking your confirmed sessions." /> : null}
@@ -98,6 +101,7 @@ export function HistoryScreen() {
 
 const styles = StyleSheet.create({
   list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  actionText: { color: colors.orange, fontSize: 13, fontWeight: '700' },
   totals: { color: colors.muted, fontSize: 13, fontWeight: '700', marginBottom: spacing.xs },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   cardTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },

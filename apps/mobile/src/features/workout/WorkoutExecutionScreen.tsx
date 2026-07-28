@@ -308,7 +308,7 @@ export function WorkoutExecutionScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, justifyContent: 'center' },
-  content: { paddingTop: 64, paddingBottom: spacing.xl, gap: spacing.md },
+  content: { paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.md },
   topBar: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   planTitle: { color: colors.muted, flex: 1, fontSize: 13, fontWeight: '700' },
   eyebrow: { color: colors.orange, fontWeight: '700', letterSpacing: 1 },

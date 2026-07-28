@@ -95,7 +95,7 @@ export function SessionDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingTop: 64, gap: spacing.md },
+  content: { padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.md },
   confirmed: { color: colors.green, fontSize: 12, fontWeight: '800' },
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },
   message: { color: colors.muted, lineHeight: 20 },

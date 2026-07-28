@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/auth/AuthProvider';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -11,14 +12,16 @@ const numberOrNull = (value: string) => value.trim() ? Number(value) : null;
 
 export function CaptureScreen() {
   const auth = useAuth();
+  const router = useRouter();
+  const goBack = () => router.back();
   const [text, setText] = useState(''); const [rawEvidence, setRawEvidence] = useState(''); const [date, setDate] = useState(today);
   const [draft, setDraft] = useState<CaptureDraft | null>(null); const [original, setOriginal] = useState<DraftFields | null>(null);
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState<string | null>(null);
   const save = async () => { const client = getSupabaseClient(); if (!client || !auth.session) return; setBusy(true); try { const next = await saveRawLogAndCreateDraft(client, auth.session.user.id, { text, date, sourceHint: 'workout' }); setDraft(next); setOriginal(structuredClone(next.fields)); setRawEvidence(text); setText(''); setMessage('Raw evidence saved. Review this uncertain draft.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not save capture.'); } finally { setBusy(false); } };
   const confirm = async () => { const client = getSupabaseClient(); if (!client || !auth.session || !draft || !original) return; setBusy(true); try { await confirmCaptureDraft(client, auth.session.user.id, draft, original); setDraft(null); setOriginal(null); setMessage('✓ User confirmed. Raw evidence remains preserved.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not confirm draft.'); } finally { setBusy(false); } };
-  if (!getSupabaseClient()) return <Screen eyebrow="CAPTURE" title="Log reality"><StatusCard tone="warning" title="Connections are not configured" detail="Configure this device before saving a capture." /></Screen>;
-  if (!auth.session) return <Screen eyebrow="CAPTURE" title="Log reality"><StatusCard title="Sign in to capture" detail="Your raw logs and confirmations are private to your AGYM account." /></Screen>;
-  return <Screen eyebrow="CAPTURE" title="Log reality"><ScrollView contentContainerStyle={styles.stack} keyboardShouldPersistTaps="handled">
+  if (!getSupabaseClient()) return <Screen eyebrow="CAPTURE" title="Log reality" onBack={goBack}><StatusCard tone="warning" title="Connections are not configured" detail="Configure this device before saving a capture." /></Screen>;
+  if (!auth.session) return <Screen eyebrow="CAPTURE" title="Log reality" onBack={goBack}><StatusCard title="Sign in to capture" detail="Your raw logs and confirmations are private to your AGYM account." /></Screen>;
+  return <Screen eyebrow="CAPTURE" title="Log reality" onBack={goBack}><ScrollView contentContainerStyle={styles.stack} keyboardShouldPersistTaps="handled">
     {!draft ? <><Text style={styles.lead}>Write the messy reality. AGYM saves your words first, then proposes uncertain structure for review.</Text><TextInput accessibilityLabel="Raw training log" multiline value={text} onChangeText={setText} placeholder="Squat 3x8@80kg; knee felt sore on set 3" placeholderTextColor={colors.muted} style={styles.raw} /><TextInput accessibilityLabel="Log date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} /><Button title={busy ? 'Saving…' : 'Save raw log and review'} disabled={busy || !text.trim()} onPress={() => void save()} /></> : <>
       <StatusCard tone="proposal" title="◇ Review required" detail="This is an uncertain parse, not a fact. Correct it before confirming." />
       <View style={styles.card}><Text style={styles.label}>Raw evidence preserved</Text><Text style={styles.evidence}>{rawEvidence}</Text></View>

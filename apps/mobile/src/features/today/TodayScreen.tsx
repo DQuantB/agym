@@ -75,7 +75,10 @@ export function TodayScreen() {
   const plannedInWeek = days.filter((day) => day.plan).length;
 
   return (
-    <Screen eyebrow={`AGYM · HOME · ${date}`} title="Home">
+    <Screen
+      eyebrow={`AGYM · HOME · ${date}`} title="Home"
+      action={<Pressable accessibilityRole="button" accessibilityLabel="Log something" onPress={() => router.push('/capture' as never)}><Text style={styles.actionText}>+ Log something</Text></Pressable>}
+    >
       <ScrollView contentContainerStyle={styles.content}>
         {proposal && state.kind !== 'proposal_waiting' ? <StatusCard tone="proposal" title="✧ Agent proposal" detail={`${proposal.title}. Nothing has been applied yet — review it in Plans before it can become scheduled training.`} /> : null}
         <View style={styles.calendarCard}>
@@ -97,6 +100,7 @@ export function TodayScreen() {
         {stateCard(state)}
         {state.kind === 'ready' ? <Button title="Start workout" color={colors.orange} accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
         {state.kind === 'in_progress' ? <Button title="Resume workout" color={colors.orange} accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
+        {state.kind === 'no_session' ? <Button title="Log an unplanned workout" accessibilityLabel="Log an unplanned workout" onPress={() => router.push('/capture' as never)} /> : null}
       </ScrollView>
     </Screen>
   );
@@ -104,6 +108,7 @@ export function TodayScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
+  actionText: { color: colors.orange, fontSize: 13, fontWeight: '700' },
   calendarCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 20, gap: spacing.sm, padding: spacing.md },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   monthLabel: { color: colors.text, fontSize: 20, fontWeight: '700' },

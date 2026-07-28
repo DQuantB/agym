@@ -1,7 +1,7 @@
-import { AppState, Button, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
-import { colors, spacing } from '@/theme/tokens';
+import { colors, radius, spacing, type } from '@/theme/tokens';
 
 export function remainingSeconds(endsAt: number | null, now = Date.now()): number {
   return endsAt ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0;
@@ -27,7 +27,25 @@ export function RestTimer({ endsAt, onAddTime, onDismiss }: Props) {
   const seconds = remainingSeconds(endsAt, now);
   if (!endsAt || seconds === 0) return null;
 
-  return <View style={styles.card}><Text style={styles.label}>REST TIMER · {display(seconds)}</Text><View style={styles.actions}><Button title="+30 sec" onPress={onAddTime} /><Button title="End rest" onPress={onDismiss} /></View></View>;
+  return (
+    <View style={styles.card} accessibilityLabel={`Rest timer, ${display(seconds)} remaining`}>
+      <Text style={styles.label}>● REST · {display(seconds)}</Text>
+      <View style={styles.actions}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add 30 seconds of rest" hitSlop={8} onPress={onAddTime} style={styles.action}>
+          <Text style={styles.actionText}>+30 sec</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="End rest now" hitSlop={8} onPress={onDismiss} style={styles.action}>
+          <Text style={styles.actionText}>End rest</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
-const styles = StyleSheet.create({ card: { gap: spacing.xs, borderColor: colors.orange, borderWidth: 1, borderRadius: 12, padding: spacing.sm }, label: { color: colors.text, fontWeight: '700' }, actions: { flexDirection: 'row', gap: spacing.sm } });
+const styles = StyleSheet.create({
+  card: { alignItems: 'center', backgroundColor: colors.surfaceRaised, borderColor: colors.orange, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', padding: spacing.sm },
+  label: { ...type.heading, color: colors.orange },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  action: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.sm },
+  actionText: { color: colors.text, fontSize: 13, fontWeight: '700' },
+});

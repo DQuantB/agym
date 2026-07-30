@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
 import { colors, spacing } from '@/theme/tokens';
 
 export function SignInScreen() {
@@ -45,9 +46,7 @@ export function SignInScreen() {
           textContentType="emailAddress"
           value={email}
         />
-        <Pressable accessibilityRole="button" disabled={sending || !email.trim()} onPress={() => void submit()} style={({ pressed }) => [styles.button, (sending || !email.trim()) && styles.buttonDisabled, pressed && styles.buttonPressed]}>
-          {sending ? <ActivityIndicator color={colors.background} /> : <Text style={styles.buttonLabel}>Email me a sign-in link</Text>}
-        </Pressable>
+        <Button label="Email me a sign-in link" variant="primary" fullWidth busy={sending} disabled={!email.trim()} onPress={() => void submit()} />
         {(authError || message) ? <Text accessibilityLiveRegion="polite" style={styles.status}>{authError ?? message}</Text> : null}
       </View>
     </KeyboardAvoidingView>
@@ -61,9 +60,5 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 30, fontWeight: '800', lineHeight: 36 },
   copy: { color: colors.muted, fontSize: 16, lineHeight: 23 },
   input: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: 14 },
-  button: { alignItems: 'center', backgroundColor: colors.orange, borderRadius: 12, minHeight: 52, justifyContent: 'center', paddingHorizontal: spacing.md },
-  buttonDisabled: { opacity: 0.45 },
-  buttonPressed: { opacity: 0.8 },
-  buttonLabel: { color: colors.background, fontSize: 16, fontWeight: '800' },
   status: { color: colors.muted, fontSize: 14, lineHeight: 20 },
 });

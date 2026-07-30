@@ -36,7 +36,7 @@ export function SessionDetailScreen() {
   const progress = computeWorkoutProgress(workout.actual);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.confirmed}>✓ USER CONFIRMED · {card.dateLabel} · {card.timeLabel}</Text>
       <Text style={styles.title}>{card.title}</Text>
       <Text style={styles.message}>Immutable. Confirming never changed the plan or the raw evidence.</Text>

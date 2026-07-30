@@ -13,9 +13,10 @@ type Props = {
   incrementLabel: string;
   keyboardType: 'decimal-pad' | 'number-pad';
   accessibilityLabel: string;
+  disabled?: boolean;
 };
 
-export function NumberField({ label, value, onChangeText, onDecrement, onIncrement, decrementLabel, incrementLabel, keyboardType, accessibilityLabel }: Props) {
+export function NumberField({ label, value, onChangeText, onDecrement, onIncrement, decrementLabel, incrementLabel, keyboardType, accessibilityLabel, disabled }: Props) {
   // `value` is the parent's canonical, reformatted number (e.g. "50." -> "50"
   // as soon as it round-trips through the reducer). Mirroring it straight
   // into a controlled TextInput fights the user mid-keystroke -- typing "50"
@@ -34,7 +35,7 @@ export function NumberField({ label, value, onChangeText, onDecrement, onIncreme
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.row}>
-        <Pressable accessibilityRole="button" accessibilityLabel={decrementLabel} hitSlop={8} onPress={onDecrement} style={styles.step}>
+        <Pressable accessibilityRole="button" accessibilityLabel={decrementLabel} hitSlop={8} disabled={disabled} onPress={onDecrement} style={[styles.step, disabled ? styles.stepDisabled : null]}>
           <Text style={styles.stepText}>−</Text>
         </Pressable>
         <TextInput
@@ -42,12 +43,13 @@ export function NumberField({ label, value, onChangeText, onDecrement, onIncreme
           style={styles.value}
           keyboardType={keyboardType}
           selectTextOnFocus
+          editable={!disabled}
           value={text}
           onFocus={() => { focused.current = true; }}
           onBlur={() => { focused.current = false; setText(value); }}
           onChangeText={(next) => { setText(next); onChangeText(next); }}
         />
-        <Pressable accessibilityRole="button" accessibilityLabel={incrementLabel} hitSlop={8} onPress={onIncrement} style={styles.step}>
+        <Pressable accessibilityRole="button" accessibilityLabel={incrementLabel} hitSlop={8} disabled={disabled} onPress={onIncrement} style={[styles.step, disabled ? styles.stepDisabled : null]}>
           <Text style={styles.stepText}>+</Text>
         </Pressable>
       </View>
@@ -60,6 +62,7 @@ const styles = StyleSheet.create({
   label: { color: colors.muted, fontWeight: '700', fontSize: 12, letterSpacing: 1 },
   row: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
   step: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, height: 48, justifyContent: 'center', width: 48 },
+  stepDisabled: { opacity: 0.5 },
   stepText: { color: colors.text, fontSize: 24, fontWeight: '700' },
   value: { ...type.metric, color: colors.text, flex: 1, textAlign: 'center' },
 });

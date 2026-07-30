@@ -3,6 +3,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
+import { DisclosureRow } from '@/components/DisclosureRow';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
 import { formatWeekdayDate } from '@/lib/dateLabels';
@@ -56,7 +58,7 @@ export function PlansScreen() {
 
   return (
     <Screen eyebrow="PLANS" title="Agenda">
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {agenda.proposals.length ? (
           <>
             <Text style={styles.sectionHeader}>✧ NEEDS YOUR REVIEW ({agenda.proposals.length})</Text>
@@ -85,13 +87,9 @@ export function PlansScreen() {
               <Text style={styles.title}>{entry.title}</Text>
               <Text style={styles.detail}>{entry.exerciseCount} exercises · {entry.setCount} sets</Text>
               {entry.bucket === 'today' ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Start ${entry.title}`} style={styles.primaryButton} onPress={() => router.push('/workout' as never)}>
-                  <Text style={styles.primaryButtonText}>START WORKOUT</Text>
-                </Pressable>
+                <Button label="START WORKOUT" variant="primary" fullWidth accessibilityLabel={`Start ${entry.title}`} onPress={() => router.push('/workout' as never)} />
               ) : (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${entry.title}`} style={styles.secondaryButton} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: entry.id } } as never)}>
-                  <Text style={styles.secondaryButtonText}>Edit</Text>
-                </Pressable>
+                <Button label="Edit" variant="secondary" accessibilityLabel={`Edit ${entry.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: entry.id } } as never)} />
               )}
             </View>
           </View>
@@ -99,9 +97,12 @@ export function PlansScreen() {
 
         {agenda.past.length ? (
           <>
-            <Pressable accessibilityRole="button" accessibilityLabel={pastExpanded ? 'Hide past scheduled sessions' : 'Show past scheduled sessions'} style={styles.disclosure} onPress={() => setPastExpanded((value) => !value)}>
-              <Text style={styles.disclosureText}>{pastExpanded ? '▾' : '▸'} Past scheduled ({agenda.past.length})</Text>
-            </Pressable>
+            <DisclosureRow
+              label={`Past scheduled (${agenda.past.length})`}
+              expanded={pastExpanded}
+              onToggle={() => setPastExpanded((value) => !value)}
+              accessibilityLabel={pastExpanded ? 'Hide past scheduled sessions' : 'Show past scheduled sessions'}
+            />
             {pastExpanded ? agenda.past.map((entry) => (
               <View key={entry.id} style={styles.scheduledRow}>
                 <View style={styles.dayChip}><Text style={styles.dayChipWeekday}>{entry.dayChip.weekday}</Text><Text style={styles.dayChipNumber}>{entry.dayChip.dayOfMonth}</Text></View>
@@ -134,10 +135,4 @@ const styles = StyleSheet.create({
   dayChipWeekday: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   dayChipNumber: { color: colors.text, fontSize: 20, fontWeight: '700' },
   scheduledBody: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, flex: 1, gap: spacing.xs, padding: spacing.md },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.orange, borderRadius: radius.md, justifyContent: 'center', marginTop: spacing.xs, minHeight: 44 },
-  primaryButtonText: { color: colors.background, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
-  secondaryButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, justifyContent: 'center', marginTop: spacing.xs, minHeight: 44, paddingHorizontal: spacing.md },
-  secondaryButtonText: { color: colors.text, fontSize: 13, fontWeight: '700' },
-  disclosure: { justifyContent: 'center', marginTop: spacing.sm, minHeight: 44 },
-  disclosureText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
 });

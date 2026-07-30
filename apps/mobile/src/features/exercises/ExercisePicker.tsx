@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 
@@ -65,6 +66,10 @@ export function ExercisePicker({ visible, onClose, onSelect, onAddManually }: Pr
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${item}`}
+                accessibilityState={{ selected: bodyPart === item }}
+                hitSlop={6}
                 onPress={() => setBodyPart((current) => (current === item ? null : item))}
                 style={[styles.chip, bodyPart === item && styles.chipActive]}
               >
@@ -78,14 +83,19 @@ export function ExercisePicker({ visible, onClose, onSelect, onAddManually }: Pr
             keyExtractor={(item) => item.id}
             style={styles.results}
             renderItem={({ item }) => (
-              <Pressable style={styles.resultRow} onPress={() => setSelected(item)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${item.name}, ${item.bodyPart}, ${item.equipment}`}
+                style={styles.resultRow}
+                onPress={() => setSelected(item)}
+              >
                 <Text style={styles.resultName}>{item.name}</Text>
                 <Text style={styles.resultMeta}>{item.bodyPart} · {item.equipment}</Text>
               </Pressable>
             )}
           />
-          <Button title="Can't find it? Add manually" onPress={onAddManually} />
-          <Button title="Cancel" onPress={onClose} />
+          <Button label="Can't find it? Add manually" variant="secondary" fullWidth onPress={onAddManually} />
+          <Button label="Cancel" variant="tertiary" fullWidth onPress={onClose} />
         </View>
       )}
     </Modal>

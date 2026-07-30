@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
-import { colors, hit, radius, spacing } from '@/theme/tokens';
+import { colors, spacing } from '@/theme/tokens';
 
 import { grantAgentAuthorization, type AuthorizationAction, type AuthorizationAgent } from './authorizationApi';
 import {
@@ -179,7 +180,7 @@ export function DataScreen() {
 
   return (
     <Screen eyebrow="DATA" title="Your data layer">
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionHeader}>SOURCES IN</Text>
         <StatusCard
           title="Connected sources"
@@ -201,22 +202,19 @@ export function DataScreen() {
                 <View key={key} style={styles.scopeRow}>
                   <StatusCard title={scope.title} detail={scope.detail} />
                   {authorization ? (
-                    <Pressable
-                      accessibilityRole="button" accessibilityLabel={`Revoke ${section.label} ${scope.action}`}
-                      style={styles.destructiveButton} onPress={() => confirmRevoke(authorization.id, section.label, scope.action)}
-                    >
-                      <Text style={styles.destructiveButtonText}>Revoke</Text>
-                    </Pressable>
+                    <Button
+                      label="Revoke" variant="destructive"
+                      accessibilityLabel={`Revoke ${section.label} ${scope.action}`}
+                      onPress={() => confirmRevoke(authorization.id, section.label, scope.action)}
+                    />
                   ) : (
-                    <Pressable
-                      accessibilityRole="button" accessibilityLabel={`Allow ${section.label} to ${scope.title.toLowerCase()}`}
-                      accessibilityState={{ disabled: pendingPermission !== null }}
+                    <Button
+                      label="Allow" variant="secondary"
+                      busy={pendingPermission === key}
                       disabled={pendingPermission !== null}
-                      style={[styles.secondaryButton, pendingPermission !== null ? styles.buttonDisabled : null]}
+                      accessibilityLabel={`Allow ${section.label} to ${scope.title.toLowerCase()}`}
                       onPress={() => grant(section.label, scope)}
-                    >
-                      <Text style={styles.secondaryButtonText}>{pendingPermission === key ? 'Saving permission…' : 'Allow'}</Text>
-                    </Pressable>
+                    />
                   )}
                 </View>
               );
@@ -233,12 +231,11 @@ export function DataScreen() {
                   title={`${candidate.agent} · MCP active`}
                   detail={`Allowed: ${candidate.action}. Granted ${new Date(candidate.grantedAt).toLocaleDateString()}.`}
                 />
-                <Pressable
-                  accessibilityRole="button" accessibilityLabel={`Revoke ${candidate.agent} ${candidate.action}`}
-                  style={styles.destructiveButton} onPress={() => confirmRevoke(candidate.id, candidate.agent, candidate.action)}
-                >
-                  <Text style={styles.destructiveButtonText}>Revoke</Text>
-                </Pressable>
+                <Button
+                  label="Revoke" variant="destructive"
+                  accessibilityLabel={`Revoke ${candidate.agent} ${candidate.action}`}
+                  onPress={() => confirmRevoke(candidate.id, candidate.agent, candidate.action)}
+                />
               </View>
             ))}
           </View>
@@ -250,18 +247,16 @@ export function DataScreen() {
 
         <Text style={styles.sectionHeader}>ACCOUNT</Text>
         {exportStatus ? <StatusCard tone={exportStatus.tone} title="Export" detail={exportStatus.text} /> : null}
-        <Pressable
-          accessibilityRole="button" accessibilityLabel={exporting ? 'Preparing JSON export' : 'Export my JSON data'}
-          accessibilityState={{ disabled: exporting }} disabled={exporting}
-          style={[styles.secondaryButton, exporting ? styles.buttonDisabled : null]} onPress={exportData}
-        >
-          <Text style={styles.secondaryButtonText}>{exporting ? 'Preparing JSON export…' : 'Export my JSON data'}</Text>
-        </Pressable>
+        <Button
+          label="Export my JSON data" variant="secondary" fullWidth
+          busy={exporting} accessibilityLabel={exporting ? 'Preparing JSON export' : 'Export my JSON data'}
+          onPress={exportData}
+        />
 
         {accountStatus ? <StatusCard tone={accountStatus.tone} title="Account" detail={accountStatus.text} /> : null}
-        <Pressable
-          accessibilityRole="button" accessibilityLabel="Delete account and all data"
-          style={styles.dangerButton}
+        <Button
+          label="Delete account + data" variant="danger" fullWidth
+          accessibilityLabel="Delete account and all data"
           onPress={() => Alert.alert(
             'Delete account and all data?',
             'This removes your hosted AGYM account and its data, then clears local workout drafts. This cannot be undone.',
@@ -270,13 +265,9 @@ export function DataScreen() {
               { text: 'Delete everything', style: 'destructive', onPress: erase },
             ],
           )}
-        >
-          <Text style={styles.dangerButtonText}>Delete account + data</Text>
-        </Pressable>
+        />
 
-        <Pressable accessibilityRole="button" accessibilityLabel="Sign out" style={styles.plainButton} onPress={() => void auth.signOut()}>
-          <Text style={styles.plainButtonText}>Sign out</Text>
-        </Pressable>
+        <Button label="Sign out" variant="tertiary" fullWidth onPress={() => void auth.signOut()} />
       </ScrollView>
     </Screen>
   );
@@ -288,13 +279,4 @@ const styles = StyleSheet.create({
   agentGroup: { gap: spacing.sm },
   agentLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
   scopeRow: { gap: spacing.xs },
-  secondaryButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, justifyContent: 'center', minHeight: hit.min, paddingHorizontal: spacing.md },
-  secondaryButtonText: { color: colors.text, fontSize: 13, fontWeight: '700' },
-  destructiveButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: colors.danger, borderRadius: radius.md, borderWidth: 1, justifyContent: 'center', minHeight: hit.min, paddingHorizontal: spacing.md },
-  destructiveButtonText: { color: colors.danger, fontSize: 13, fontWeight: '700' },
-  dangerButton: { alignItems: 'center', backgroundColor: colors.danger, borderRadius: radius.md, justifyContent: 'center', minHeight: hit.min },
-  dangerButtonText: { color: colors.background, fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
-  plainButton: { alignItems: 'center', justifyContent: 'center', minHeight: hit.min },
-  plainButtonText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  buttonDisabled: { opacity: 0.5 },
 });

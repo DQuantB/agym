@@ -11,6 +11,7 @@ import { colors, radius, spacing } from '@/theme/tokens';
 import type { ConfirmedWorkout } from './confirmedWorkout';
 import { loadCompletedWorkouts, loadEvidenceHistory, type EvidenceHistoryItem } from './logApi';
 import { historyTotals, toSessionCard } from './sessionSummary';
+import { TrainingDensityGrid } from './TrainingDensityGrid';
 
 export function HistoryScreen() {
   const auth = useAuth();
@@ -61,6 +62,8 @@ export function HistoryScreen() {
         {loading && !workouts.length ? <StatusCard title="Loading history" detail="Checking your confirmed sessions." /> : null}
         {!loading && !workouts.length && !error ? <StatusCard title="No confirmed sessions yet" detail="Complete and confirm a workout to see it here." /> : null}
         {workouts.length ? <Text style={styles.totals}>{totals.sessionCount} confirmed session{totals.sessionCount === 1 ? '' : 's'} · {totals.totalSets} sets · {Math.round(totals.totalVolumeKg)} kg</Text> : null}
+
+        <TrainingDensityGrid />
 
         {workouts.map((workout) => {
           const card = toSessionCard(workout);

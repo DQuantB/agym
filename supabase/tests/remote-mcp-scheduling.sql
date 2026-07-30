@@ -23,16 +23,22 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000
 do $$
 declare
   created jsonb;
+  plan jsonb;
 begin
   created := public.remote_mcp_create_proposed_plan(
     'Remote scheduling regression fixture',
     '{"kind":"gym_workout","schema_version":1,"scheduled_for":"2026-07-25","title":"Remote schedule fixture","exercises":[{"client_id":"fixture-squat","name":"Fixture squat","sets":[{"reps":5,"weight_kg":null,"rest_seconds":120}]}]}'::jsonb
   );
-  if created->>'scheduled_for' <> '2026-07-25' then
-    raise exception 'remote gym proposal did not persist scheduled_for: %', created->>'scheduled_for';
+  -- The RPC now returns {plan, conflicts}, not a bare plan row.
+  plan := created->'plan';
+  if plan->>'scheduled_for' <> '2026-07-25' then
+    raise exception 'remote gym proposal did not persist scheduled_for: %', plan->>'scheduled_for';
   end if;
-  if created->>'status' <> 'proposed' or created->>'provenance' <> 'agent_written_plan' or created->>'source_client' <> 'remote-mcp' then
+  if plan->>'status' <> 'proposed' or plan->>'provenance' <> 'agent_written_plan' or plan->>'source_client' <> 'remote-mcp' then
     raise exception 'remote gym proposal violated proposal provenance/status boundary';
+  end if;
+  if (created->'conflicts'->>'checked')::boolean is distinct from true or created->'conflicts'->>'severity' <> 'none' then
+    raise exception 'first-of-day remote gym proposal should report a clean advisory check: %', created->'conflicts';
   end if;
 end;
 $$;

@@ -64,6 +64,19 @@ function ensureRemoteRpcAllowed(data: unknown): unknown {
   return data;
 }
 
+/**
+ * Both create_mcp_proposed_plan and remote_mcp_create_proposed_plan return
+ * {plan, conflicts}. Tolerate a bare plan row too, so a migration/deploy skew
+ * degrades to "no conflict info" rather than a wrong payload.
+ */
+function planEnvelope(data: unknown): { plan: unknown; conflicts: unknown } {
+  if (data && typeof data === 'object' && !Array.isArray(data) && 'plan' in data) {
+    const envelope = data as { plan: unknown; conflicts?: unknown };
+    return { plan: envelope.plan, conflicts: envelope.conflicts ?? null };
+  }
+  return { plan: data, conflicts: null };
+}
+
 async function requireAuthorization(
   client: SupabaseClient,
   identity: AgymMcpIdentity,
@@ -181,31 +194,39 @@ export function registerAgymTools(server: McpServer, client: SupabaseClient, ide
   server.registerTool(
     'create_proposed_plan',
     {
-      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan.',
+      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan. The response includes an advisory `conflicts` field noting any other Gym plan already on that date; conflicts are informational only and never block creation.',
       inputSchema: planInputSchema,
     },
     async ({ raw_plan_text: rawPlanText, plan_data: planData }) => {
       try {
+        let envelope: { plan: unknown; conflicts: unknown };
         if (identity.remoteRpc) {
           const { data, error } = await client.rpc('remote_mcp_create_proposed_plan', {
             p_raw_plan_text: rawPlanText,
             p_plan_data: planData,
           });
           if (error) throw new Error(`Could not create remote proposed plan: ${error.message}`);
-          const plan = ensureRemoteRpcAllowed(data);
-          if (!plan || typeof plan !== 'object' || Array.isArray(plan)) throw new Error('Remote proposed-plan RPC returned an invalid response.');
-          return jsonContent({ plan, caveat: 'This is an agent-authored proposal awaiting user review. It is not a confirmed outcome or active plan.' });
+          envelope = planEnvelope(ensureRemoteRpcAllowed(data));
+        } else {
+          const authorization = await requireAuthorization(client, identity, 'write_proposed_plan');
+          const { data, error } = await client.rpc('create_mcp_proposed_plan', {
+            p_user_id: identity.userId,
+            p_authorization_id: authorization.id,
+            p_agent_identifier: identity.agentIdentifier,
+            p_raw_plan_text: rawPlanText,
+            p_plan_data: planData,
+          });
+          if (error) throw new Error(`Could not create proposed plan: ${error.message}`);
+          envelope = planEnvelope(data);
         }
-        const authorization = await requireAuthorization(client, identity, 'write_proposed_plan');
-        const { data, error } = await client.rpc('create_mcp_proposed_plan', {
-          p_user_id: identity.userId,
-          p_authorization_id: authorization.id,
-          p_agent_identifier: identity.agentIdentifier,
-          p_raw_plan_text: rawPlanText,
-          p_plan_data: planData,
+        if (!envelope.plan || typeof envelope.plan !== 'object' || Array.isArray(envelope.plan)) {
+          throw new Error('AGym proposed-plan RPC returned an invalid response.');
+        }
+        return jsonContent({
+          plan: envelope.plan,
+          conflicts: envelope.conflicts,
+          caveat: 'This is an agent-authored proposal awaiting user review. It is not a confirmed outcome or active plan.',
         });
-        if (error) throw new Error(`Could not create proposed plan: ${error.message}`);
-        return jsonContent({ plan: data, caveat: 'This is an agent-authored proposal awaiting user review. It is not a confirmed outcome or active plan.' });
       } catch (error) {
         return errorContent(error instanceof Error ? error.message : 'AGym plan creation failed.');
       }

@@ -140,21 +140,67 @@ assert.ok(scheduledPlan, 'expected the newly created gym plan in list_plans');
 assert.equal(scheduledPlan.scheduled_for, today, 'list_plans must expose scheduled_for so agents can see the schedule');
 console.log('5) valid gym plan OK: scheduled_for=today and visible via list_plans');
 
+// 5b) validGym is the second gym plan scheduled for today (after step 2's
+// "Bench strength" plan): its advisory conflict must be notice-tier only --
+// same-day duplicate proposals are the routine "ask for changes" loop, not a
+// warning -- and must reference the first plan.
+assert.equal(validGym.json.conflicts.checked, true, 'conflict check should run for a scheduled gym plan');
+assert.equal(validGym.json.conflicts.severity, 'notice', 'a second same-day gym plan should be a routine revision, not a warning');
+assert.ok(validGym.json.conflicts.reasons.includes('duplicate_proposal'), 'expected duplicate_proposal reason');
+assert.ok(validGym.json.conflicts.plans.some((p: { id: string }) => p.id === created.json.plan.id), 'conflicting plan should reference the first proposal');
+console.log('5b) conflict advisory OK: severity=notice for a same-day duplicate proposal');
+
 // 6) Audit log grew (get_context + list_plans x2 + create_proposed_plan RPC x2).
 const grew = auditCount() - before;
 assert.ok(grew >= 3, `expected >=3 new audit rows, got ${grew}`);
 console.log(`6) audit log OK: +${grew} rows since baseline`);
 
-// 7) Authorization gate: user revokes read_context -> get_context must fail with no data.
+// 7) Advisory conflicts escalate to "warning" once one of today's plans is
+// accepted (active), and further to named amplifiers once that active plan
+// is user-revised and already has a linked execution -- but creation is
+// never blocked either way.
+psql(`update public.plans set status = 'active' where id = '${created.json.plan.id}';`);
+const plansBeforeWarning = planCount();
+const warningProposal = await call('create_proposed_plan', {
+  raw_plan_text: 'Third same-day proposal',
+  plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: today, title: 'Third session', exercises: [{ client_id: 'row', name: 'Barbell row', sets: [{ reps: 8, weight_kg: 60, rest_seconds: 90 }] }] },
+});
+assert.equal(warningProposal.isError, false, `warning-tier create_proposed_plan errored: ${warningProposal.text}`);
+assert.equal(warningProposal.json.conflicts.severity, 'warning', 'an accepted same-day plan must escalate to warning');
+assert.ok(warningProposal.json.conflicts.reasons.includes('active_plan_accepted'), 'expected active_plan_accepted reason');
+assert.equal(warningProposal.json.conflicts.counts.active, 1, 'expected exactly one competing active plan');
+assert.equal(warningProposal.json.plan.status, 'proposed', 'the new plan itself must still be created as proposed');
+assert.equal(planCount(), plansBeforeWarning + 1, 'a warning-tier conflict must not block plan creation');
+console.log('7a) conflict advisory OK: accepting a same-day plan escalates a later proposal to severity=warning, still non-blocking');
+
+psql(`
+  update public.plans set user_revision_data = '{"kind":"gym_workout","schema_version":1,"scheduled_for":"${today}","title":"Hand-revised","exercises":[]}'::jsonb, user_revision_updated_at = now()
+  where id = '${created.json.plan.id}';
+  insert into public.workout_executions (user_id, plan_id, scheduled_for, planned_snapshot, status, completed_at)
+  values ('${USER_ID}', '${created.json.plan.id}', '${today}', '{}'::jsonb, 'completed', now());
+`);
+const amplifiedProposal = await call('create_proposed_plan', { raw_plan_text: 'Fourth same-day proposal', plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: today, title: 'Fourth session', exercises: [{ client_id: 'row', name: 'Barbell row', sets: [{ reps: 8, weight_kg: 62.5, rest_seconds: 90 }] }] } });
+assert.equal(amplifiedProposal.isError, false, `amplified create_proposed_plan errored: ${amplifiedProposal.text}`);
+assert.ok(amplifiedProposal.json.conflicts.reasons.includes('active_plan_user_revised'), 'expected active_plan_user_revised reason');
+assert.ok(amplifiedProposal.json.conflicts.reasons.includes('active_plan_has_execution'), 'expected active_plan_has_execution reason');
+console.log('7b) conflict advisory OK: a hand-revised, already-executed active plan surfaces both amplifier reasons');
+
+const nonGymProposal = await call('create_proposed_plan', { raw_plan_text: 'Non-gym proposal for conflict test' });
+assert.equal(nonGymProposal.isError, false, `non-gym create_proposed_plan errored: ${nonGymProposal.text}`);
+assert.equal(nonGymProposal.json.conflicts.checked, false, 'a non-gym plan must skip the conflict check entirely');
+assert.equal(nonGymProposal.json.conflicts.severity, 'none');
+console.log('7c) conflict advisory OK: a non-gym plan skips the conflict check without erroring');
+
+// 8) Authorization gate: user revokes read_context -> get_context must fail with no data.
 // Revoke via privileged psql: the MCP service_role deliberately cannot mutate its own grants.
 psql(`update public.agent_authorizations set revoked_at = now() where user_id='${USER_ID}' and action='read_context';`);
 const denied = await call('get_context', { limit: 5 });
 assert.equal(denied.isError, true, 'get_context must fail after revocation');
 assert.match(denied.text, /No active read_context authorization/);
-console.log('7) authz gate OK: revoked read_context -> get_context denied, no data returned');
+console.log('8) authz gate OK: revoked read_context -> get_context denied, no data returned');
 // Note: revocation is permanent (DB trigger blocks un-revoke); the seed recreates the user each run.
 
-// 8) Named-client grants are exact: Claude Code has no authority until the
+// 9) Named-client grants are exact: Claude Code has no authority until the
 // user separately grants each action. Codex remains denied at this point too.
 const claudeReadDenied = await callAs('claude-code', 'get_context', { limit: 1, include_raw_notes: false });
 assert.equal(claudeReadDenied.isError, true, 'Claude Code must not inherit Hermes read access');
@@ -166,7 +212,7 @@ const codexReadDenied = await callAs('codex', 'get_context', { limit: 1, include
 assert.equal(codexReadDenied.isError, true, 'Codex must not inherit another client\'s read access');
 const codexWriteDenied = await callAs('codex', 'create_proposed_plan', { raw_plan_text: 'Named-client proposal' });
 assert.equal(codexWriteDenied.isError, true, 'Codex must not write without its own grant');
-console.log('8) named clients denied until each has its own grant');
+console.log('9) named clients denied until each has its own grant');
 
 // Grants and revocations are owner-only database operations; the service-role
 // MCP client intentionally cannot grant itself access.
@@ -178,7 +224,7 @@ const claudeReadAllowed = await callAs('claude-code', 'get_context', { limit: 1,
 assert.equal(claudeReadAllowed.isError, false, 'Claude Code read grant should permit only Claude Code');
 const claudeWriteAllowed = await callAs('claude-code', 'create_proposed_plan', { raw_plan_text: 'Named-client proposal' });
 assert.equal(claudeWriteAllowed.isError, false, 'Claude Code write grant should permit proposal creation');
-console.log('9) Claude Code allowed only after its own read/write grants');
+console.log('10) Claude Code allowed only after its own read/write grants');
 
 // Codex remains denied until its separate grants exist, then continues to work
 // after Claude Code's read authorization is revoked.
@@ -198,6 +244,6 @@ const claudeRevoked = await callAs('claude-code', 'get_context', { limit: 1, inc
 assert.equal(claudeRevoked.isError, true, 'revoked Claude Code read grant must deny Claude Code');
 const codexUnaffected = await callAs('codex', 'get_context', { limit: 1, include_raw_notes: false });
 assert.equal(codexUnaffected.isError, false, 'revoking Claude Code must not affect Codex');
-console.log('10) named-client isolation OK: Claude Code revocation leaves Codex grants active');
+console.log('11) named-client isolation OK: Claude Code revocation leaves Codex grants active');
 
 console.log('\nMCP E2E round-trip: ALL PASS');

@@ -4,4 +4,6 @@ dist/
 .env
 .env.*
 !.env.example
+# Local Claude/Hermes runtime portal. It symlinks into ~/.hermes and can expose secrets.
+.claude/hermes-home
 .DS_Store

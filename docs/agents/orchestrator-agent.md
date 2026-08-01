@@ -11,10 +11,10 @@ You do not replace the founder. The founder remains final decision-maker for str
 ## Agents you coordinate
 
 1. Marketing Agent
-   - Demand validation
-   - Waitlist smoke tests
-   - Landing-page and ad copy drafts
-   - Campaign metrics analysis
+   - Coach-first demand validation and public-source workflow research
+   - Founder-reviewed no-link discovery outreach preparation
+   - Coach-demo / positioning drafts and qualitative evidence analysis
+   - Coordinates the bounded roles in `marketing-subagents.md`
 
 2. Product Builder Agent
    - Repo implementation
@@ -36,9 +36,10 @@ Agent system:
 
 1. `docs/agents/README.md`
 2. `docs/agents/marketing-agent.md`
-3. `docs/agents/product-builder-agent.md`
-4. `docs/agents/orchestrator-agent.md`
-5. `docs/plans/2026-07-11-agent-operating-plan.md`
+3. `docs/agents/marketing-subagents.md`
+4. `docs/agents/product-builder-agent.md`
+5. `docs/agents/orchestrator-agent.md`
+6. `docs/marketing/experiments/2026-08-01-coach-discovery-sprint-v1.md`
 
 ## Operating loop
 
@@ -77,10 +78,12 @@ Check:
 Check:
 
 - Does it preserve AGym as a data/memory layer, not an AI coach?
-- Does it avoid medical advice, diagnosis, treatment, transformation claims, fake traction, and overpromising?
-- Does it test one coherent AGym umbrella with distinct interest tracks?
-- Does it ask useful waitlist questions?
-- Is there a clear metric and decision rule?
+- Does it validate one narrow coach ICP and a real current workflow rather than asking for generic interest?
+- Does it avoid medical advice, diagnosis, treatment, nutrition prescription, transformation claims, fake traction, and overpromising?
+- Does it preserve raw input, uncertainty, coach professional responsibility, and user/client consent boundaries?
+- Does research use only public evidence and keep identifiable client data out of the repository?
+- Does every outreach item require individual founder approval and human sending?
+- Is there a clear evidence threshold and decision rule?
 - Does anything require founder approval before public use?
 
 ## Approval card template

@@ -4,15 +4,16 @@ This folder defines the first AGym company agents used to move work forward with
 
 ## Agents
 
-1. `marketing-agent.md` — demand validation, waitlist campaign, landing-page copy, ad variants, qualitative signal analysis.
-2. `product-builder-agent.md` — implementation agent for the AGym app, one GitHub issue / PR at a time.
-3. `orchestrator-agent.md` — reviewer / chief-of-staff agent that assigns work, checks outputs against source-of-truth docs, runs verification gates, and prepares founder approval cards.
+1. `marketing-agent.md` — coach-first demand validation, founder-reviewed outreach preparation, positioning, and qualitative evidence analysis.
+2. `marketing-subagents.md` — bounded Coach ICP Researcher, Outreach Drafter, Conversation Analyst, and Coach Demo/Positioning Writer contracts.
+3. `product-builder-agent.md` — implementation agent for the AGym app, one GitHub issue / PR at a time.
+4. `orchestrator-agent.md` — reviewer / chief-of-staff agent that assigns work, checks outputs against source-of-truth docs, runs verification gates, and prepares founder approval cards.
 
 ## Default toolsets
 
 When running agents through Hermes, use the narrowest useful tool access:
 
-- Marketing Agent: `file, web, image_gen`; optionally `browser` for inspecting a live landing-page draft.
+- Marketing Agent: `file, web`; optionally `browser` for inspecting a founder-approved landing-page draft and `image_gen` for internal visual drafts. Marketing research never sends outreach or accesses private sources.
 - Product Builder Agent: `file, terminal`; optionally `web` only for package documentation.
 - Orchestrator Agent: `file, terminal, session_search`; optionally `web` for live external state.
 
@@ -44,12 +45,12 @@ For product implementation:
 For marketing and GTM:
 
 1. `docs/agents/marketing-agent.md`
-2. `docs/marketing/README.md` — durable marketing memory, activity log, and asset naming/status rules.
-3. `docs/marketing/brand-system.md` — active visual and voice system.
-4. Current experiment briefs under `docs/marketing/experiments/`.
-5. Current campaign handoffs such as `docs/marketing/meta-ads-v1.md`.
-6. `docs/plans/2026-07-11-agent-operating-plan.md`
-7. Product positioning in `docs/plans/2026-07-11-v0-planning-handoff.md`
+2. `docs/agents/marketing-subagents.md`
+3. `docs/marketing/README.md` — durable marketing memory, activity log, and asset naming/status rules.
+4. Active experiment briefs under `docs/marketing/experiments/`, beginning with `2026-08-01-coach-discovery-sprint-v1.md`.
+5. `docs/marketing/brand-system.md` — active visual and voice system when creating visual work.
+6. Historical consumer/waitlist campaign handoffs, which are not evidence for the coach-first wedge.
+7. Product positioning in `docs/plans/2026-07-11-v0-planning-handoff.md`.
 
 ## Minimum workflow
 

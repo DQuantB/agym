@@ -159,9 +159,22 @@ I’m exploring a future workflow concept, not a finished product: preserving a 
 - no implication that AGym has real-time monitoring, integrations, a coach dashboard, AI prescriptions, or medical/nutrition capability;
 - no public quote, logo, testimonial, or case study without explicit written permission.
 
+## Local workbench
+
+The no-cost local workbench is `scripts/coach-prospect-workbench.mts`. It does not fetch, scrape, log in, or send. It only produces public search queries, validates manually gathered public-source records, applies the rubric, and renders the founder-review queue.
+
+```bash
+npm run prospects:queries
+npm run prospects:score -- docs/marketing/fixtures/coach-prospect-candidates.example.json
+npm run prospects:render -- docs/marketing/fixtures/coach-prospect-candidates.example.json
+```
+
+Copy the example JSON to a local, Git-ignored working file before adding real public candidates. Never add private contact details, client information, or sensitive data to a candidate file.
+
 ## First execution checklist
 
-- [ ] Founder approves this ICP and operating guide.
+- [x] Founder approved the ICP.
+- [ ] Founder approves this operating guide.
 - [ ] Researcher produces five candidates using the template and public sources.
 - [ ] Founder chooses `approve`, `edit`, or `skip` for each prospect/message.
 - [ ] Founder sends up to five approved no-link messages manually.

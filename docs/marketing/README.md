@@ -7,10 +7,11 @@ This directory is the durable source of truth for AGym marketing work. It is not
 1. `../agents/marketing-agent.md` — coach-first product boundaries, claims rules, agent workflow, and approval limits.
 2. `../agents/marketing-subagents.md` — bounded worker contracts and output schemas.
 3. `experiments/2026-08-01-coach-discovery-sprint-v1.md` — active research protocol for the coach-first wedge.
-4. `brand-system.md` — current visual/voice system when visual work is required.
-5. `experiments/` — experiment briefs, results, and explicit founder decisions.
-6. `assets/` — versioned source and finished assets; never use a filename alone as a performance claim.
-7. `waitlist-smoke-test-v1.md`, `advertising-strategy-v1.md`, and historical paid/social assets — earlier consumer-oriented work, retained for traceability only; not active proof or an execution plan for Coach Discovery Sprint v1.
+4. `coach-discovery-operator-guide-v1.md` — the active public-source scan, qualification, message, and founder-review protocol.
+5. `brand-system.md` — current visual/voice system when visual work is required.
+6. `experiments/` — experiment briefs, results, and explicit founder decisions.
+7. `assets/` — versioned source and finished assets; never use a filename alone as a performance claim.
+8. `waitlist-smoke-test-v1.md`, `advertising-strategy-v1.md`, and historical paid/social assets — earlier consumer-oriented work, retained for traceability only; not active proof or an execution plan for Coach Discovery Sprint v1.
 
 If these files disagree on product scope or claims, `../agents/marketing-agent.md` wins. Product implementation source documents still control what AGym actually does.
 
@@ -42,6 +43,14 @@ States:
 - `live` — externally published; include date and channel in the experiment record.
 
 ## Activity log
+
+### 2026-08-01 — Coach Discovery operator guide v1
+
+- Founder approved the first ICP: independent online strength/hypertrophy coaches with approximately 10–50 clients and recurring remote client check-ins.
+- Added `coach-discovery-operator-guide-v1.md`: repeatable public-source search queries, a qualification rubric, founder-review queue schema, three no-link discovery openers, approved follow-ups, and a manual sending protocol.
+- The guide creates an execution system without enabling outreach automation, private-source collection, prospect data enrichment, product links, or unreviewed sending.
+- Status: internal-ready research process only. The first five named prospects and messages still require founder review before any contact.
+- Next question: which public channel should supply the first five candidates—Instagram/YouTube coach content, coach newsletters/podcasts, or LinkedIn/X workflow posts?
 
 ### 2026-08-01 — Coach Discovery Marketing Agent v2 foundation
 

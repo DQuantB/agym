@@ -26,6 +26,8 @@ Independent online strength/hypertrophy coaches who manage roughly 10–50 clien
 
 ## Method
 
+Follow `../coach-discovery-operator-guide-v1.md` for the public-source scan rubric, qualification score, founder-review queue, exact no-link messages, and manual sending protocol.
+
 1. Research up to 30 public-source prospects and relevant communities.
 2. Founder reviews five no-link discovery openers at a time.
 3. Founder personally sends 3–5 approved messages per day.

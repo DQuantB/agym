@@ -4,17 +4,14 @@ This directory is the durable source of truth for AGym marketing work. It is not
 
 ## Source-of-truth order
 
-1. `../agents/marketing-agent.md` — product boundaries, claims rules, agent workflow, and approval limits.
-2. `brand-system.md` — current marketing visual/voice system and asset-status rules.
-3. `waitlist-smoke-test-v1.md` — original waitlist-test design.
-4. `meta-ads-v1.md` — historical v1 paid-social creative handoff.
-5. `reference-study-2026-07-11.md` — founder-provided visual-reference analysis and proposed concept-board territories.
-6. `concept-board-v1.md` — founder decision selecting Concept B and the approved secondary input from C.
-7. `meta-ads-v3-training-translation.md` — current internally reviewed, training-explicit Concept B Meta creative handoff.
-8. `performance-interface-v2.md` — historical v2 creative handoff; not an active system.
-9. `advertising-strategy-v1.md` — founder-approved waitlist advertising strategy, currently v1.1 (demo-first funnel, direct-first organic, gated paid legibility check).
-10. `experiments/` — experiment briefs, results, and explicit founder decisions.
-11. `assets/` — versioned source and finished assets; never use a filename alone as a performance claim.
+1. `../agents/marketing-agent.md` — coach-first product boundaries, claims rules, agent workflow, and approval limits.
+2. `../agents/marketing-subagents.md` — bounded worker contracts and output schemas.
+3. `experiments/2026-08-01-coach-discovery-sprint-v1.md` — active research protocol for the coach-first wedge.
+4. `coach-discovery-operator-guide-v1.md` — the active public-source scan, qualification, message, and founder-review protocol.
+5. `brand-system.md` — current visual/voice system when visual work is required.
+6. `experiments/` — experiment briefs, results, and explicit founder decisions.
+7. `assets/` — versioned source and finished assets; never use a filename alone as a performance claim.
+8. `waitlist-smoke-test-v1.md`, `advertising-strategy-v1.md`, and historical paid/social assets — earlier consumer-oriented work, retained for traceability only; not active proof or an execution plan for Coach Discovery Sprint v1.
 
 If these files disagree on product scope or claims, `../agents/marketing-agent.md` wins. Product implementation source documents still control what AGym actually does.
 
@@ -46,6 +43,23 @@ States:
 - `live` — externally published; include date and channel in the experiment record.
 
 ## Activity log
+
+### 2026-08-01 — Coach Discovery operator guide v1
+
+- Founder approved the first ICP: independent online strength/hypertrophy coaches with approximately 10–50 clients and recurring remote client check-ins.
+- Added `coach-discovery-operator-guide-v1.md`: repeatable public-source search queries, a qualification rubric, founder-review queue schema, three no-link discovery openers, approved follow-ups, and a manual sending protocol.
+- The guide creates an execution system without enabling outreach automation, private-source collection, prospect data enrichment, product links, or unreviewed sending.
+- Status: internal-ready research process only. The first five named prospects and messages still require founder review before any contact.
+- Next question: which public channel should supply the first five candidates—Instagram/YouTube coach content, coach newsletters/podcasts, or LinkedIn/X workflow posts?
+
+### 2026-08-01 — Coach Discovery Marketing Agent v2 foundation
+
+- Founder selected a coach-first demand-validation wedge: independent online strength/hypertrophy coaches who need better context from recurring client check-ins and may use their own LLMs for preparation.
+- Rewrote `docs/agents/marketing-agent.md` as Coach Discovery v2, preserving AGym's non-coach, no-medical-claims, raw-input/uncertainty boundaries.
+- Added `docs/agents/marketing-subagents.md` with four bounded roles: public ICP/community research, founder-reviewed no-link outreach drafting, conversation analysis, and future-prototype demo/positioning writing.
+- Added `experiments/2026-08-01-coach-discovery-sprint-v1.md`: a 15-conversation evidence gate, anonymized ledger template, and explicit founder approvals before any outreach or prototype explanation.
+- Status: internal research protocol only. No coach was contacted, no personal data was collected, and no product capability or market demand has been validated.
+- Next question: does the founder confirm the first ICP and approve research of the first five public-source prospects?
 
 ### 2026-07-11 — waitlist and Meta v1 package
 

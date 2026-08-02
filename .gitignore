@@ -7,3 +7,5 @@ dist/
 # Local Claude/Hermes runtime portal. It symlinks into ~/.hermes and can expose secrets.
 .claude/hermes-home
 .DS_Store
+# Founder-private coach research queue. Keep real prospect notes and any approved message drafts out of Git.
+docs/marketing/fixtures/coach-prospect-candidates.local.json

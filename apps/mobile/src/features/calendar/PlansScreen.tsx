@@ -156,7 +156,10 @@ export function PlansScreen() {
   const totalProposalCount = agenda.proposals.reduce((sum, group) => sum + group.occurrences.length, 0);
 
   return (
-    <Screen eyebrow="PLANS" title="Agenda">
+    <Screen
+      eyebrow="PLANS" title="Agenda"
+      action={<Button label="+ Create workout" variant="tertiary" accessibilityLabel="Create a workout without an agent" onPress={() => router.push({ pathname: '/workout', params: { mode: 'create' } } as never)} />}
+    >
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {restoreStatus ? <StatusCard tone={restoreStatus.tone} title="Previous plan" detail={restoreStatus.text} /> : null}
         {agenda.proposals.length ? (

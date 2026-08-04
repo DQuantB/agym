@@ -50,6 +50,12 @@ export async function replaceFutureGymWorkoutPlan(client: SupabaseClient, planId
   if (error) fail(error, 'save this future workout revision');
 }
 
+/** In-app workout creation for users who don't rely on an AI agent to write a plan. */
+export async function createManualGymPlan(client: SupabaseClient, planData: GymPlan): Promise<void> {
+  const { error } = await client.rpc('create_manual_gym_plan', { p_plan_data: planData, p_scheduled_for: planData.scheduled_for });
+  if (error) fail(error, 'create this workout');
+}
+
 export async function startRemoteExecution(client: SupabaseClient, userId: string, planId: string, plan: GymPlan, actualData: ActualData): Promise<string> {
   const { data, error } = await client.from('workout_executions').insert({ user_id: userId, plan_id: planId, scheduled_for: plan.scheduled_for, planned_snapshot: plan, execution_data: actualData }).select('id').single();
   if (error) fail(error, 'start this accepted workout');

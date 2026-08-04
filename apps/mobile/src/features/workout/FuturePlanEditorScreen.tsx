@@ -29,6 +29,7 @@ export function FuturePlanEditorScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const newExerciseCounter = useRef(0);
+  const newAlternativeCounter = useRef(0);
 
   useEffect(() => {
     const client = getSupabaseClient();
@@ -102,6 +103,31 @@ export function FuturePlanEditorScreen() {
           />
           {issueFor(issues, `exercises[${exerciseIndex}].name`) ? <Text style={styles.fieldError}>{issueFor(issues, `exercises[${exerciseIndex}].name`)}</Text> : null}
 
+          {(exercise.alternatives ?? []).map((alternative, alternativeIndex) => (
+            <View key={alternative.client_id} style={styles.set}>
+              <Text style={styles.label}>Alternative {alternativeIndex + 1}</Text>
+              <TextInput
+                accessibilityLabel={`Exercise ${exerciseIndex + 1} alternative ${alternativeIndex + 1} name`}
+                style={styles.input}
+                editable={!saving}
+                value={alternative.name}
+                onChangeText={(name) => mutate((next) => { next.exercises[exerciseIndex].alternatives![alternativeIndex].name = name; })}
+              />
+              {issueFor(issues, `exercises[${exerciseIndex}].alternatives[${alternativeIndex}].name`) ? <Text style={styles.fieldError}>{issueFor(issues, `exercises[${exerciseIndex}].alternatives[${alternativeIndex}].name`)}</Text> : null}
+              <Button label="Remove alternative" variant="destructive" disabled={saving} onPress={() => mutate((next) => { next.exercises[exerciseIndex].alternatives!.splice(alternativeIndex, 1); })} />
+            </View>
+          ))}
+          <Button
+            label="+ Add alternative" variant="tertiary" disabled={saving}
+            onPress={() => {
+              newAlternativeCounter.current += 1;
+              mutate((next) => {
+                const target = next.exercises[exerciseIndex];
+                target.alternatives = [...(target.alternatives ?? []), { client_id: `user-alt-${Date.now()}-${newAlternativeCounter.current}`, name: 'New option' }];
+              });
+            }}
+          />
+
           {exercise.sets.map((set, setIndex) => (
             <View key={setIndex} style={styles.set}>
               <Text style={styles.label}>Set {setIndex + 1}</Text>
@@ -122,15 +148,15 @@ export function FuturePlanEditorScreen() {
                   onDecrement={() => mutate((next) => { next.exercises[exerciseIndex].sets[setIndex].reps = adjustReps(set.reps, -1); })}
                   onIncrement={() => mutate((next) => { next.exercises[exerciseIndex].sets[setIndex].reps = adjustReps(set.reps, 1); })}
                 />
-                <View style={styles.restField}>
-                  <Text style={styles.restLabel}>REST SEC</Text>
-                  <TextInput
-                    accessibilityLabel={`${exercise.name} set ${setIndex + 1} rest seconds`}
-                    keyboardType="number-pad" style={styles.restInput} editable={!saving}
-                    value={String(set.rest_seconds ?? standardRestSeconds)}
-                    onChangeText={(value) => mutate((next) => { next.exercises[exerciseIndex].sets[setIndex].rest_seconds = Math.max(0, Math.round(Number(value)) || 0); })}
-                  />
-                </View>
+              </View>
+              <View style={styles.restRow}>
+                <Text style={styles.restLabel}>REST SEC</Text>
+                <TextInput
+                  accessibilityLabel={`${exercise.name} set ${setIndex + 1} rest seconds`}
+                  keyboardType="number-pad" style={styles.restInput} editable={!saving}
+                  value={String(set.rest_seconds ?? standardRestSeconds)}
+                  onChangeText={(value) => mutate((next) => { next.exercises[exerciseIndex].sets[setIndex].rest_seconds = Math.max(0, Math.round(Number(value)) || 0); })}
+                />
               </View>
               {issueFor(issues, `exercises[${exerciseIndex}].sets[${setIndex}].reps`) ? <Text style={styles.fieldError}>{issueFor(issues, `exercises[${exerciseIndex}].sets[${setIndex}].reps`)}</Text> : null}
               {issueFor(issues, `exercises[${exerciseIndex}].sets[${setIndex}].weight_kg`) ? <Text style={styles.fieldError}>{issueFor(issues, `exercises[${exerciseIndex}].sets[${setIndex}].weight_kg`)}</Text> : null}
@@ -176,12 +202,12 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },
   message: { color: colors.muted, lineHeight: 20 },
   card: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.md },
-  set: { borderTopColor: colors.border, borderTopWidth: 1, gap: spacing.xs, paddingTop: spacing.sm },
-  fieldsRow: { flexDirection: 'row', gap: spacing.xs },
+  set: { borderTopColor: colors.border, borderTopWidth: 1, gap: spacing.sm, paddingTop: spacing.sm },
+  fieldsRow: { flexDirection: 'row', gap: spacing.md },
   label: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   input: { minHeight: 44, borderColor: colors.border, borderWidth: 1, borderRadius: radius.sm, color: colors.text, paddingHorizontal: spacing.sm },
-  restField: { flex: 1, gap: spacing.xs },
+  restRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   restLabel: { color: colors.muted, fontWeight: '700', fontSize: 12, letterSpacing: 1 },
-  restInput: { minHeight: 44, borderColor: colors.border, borderWidth: 1, borderRadius: radius.sm, color: colors.text, paddingHorizontal: spacing.sm, textAlign: 'center' },
+  restInput: { minHeight: 44, width: 88, borderColor: colors.border, borderWidth: 1, borderRadius: radius.sm, color: colors.text, paddingHorizontal: spacing.sm, textAlign: 'center' },
   fieldError: { color: colors.danger, fontSize: 12, fontWeight: '700' },
 });

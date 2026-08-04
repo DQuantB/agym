@@ -81,6 +81,18 @@ it('reports whether the current exercise can be deferred, matching deferCurrentE
   expect(canDeferCurrentExercise(changed, repairFocusedWorkoutSession(changed))).toBe(false);
 });
 
+it('steps over an exercise once every one of its sets is skipped, and treats it as finished for deferral', () => {
+  const changed = structuredClone(actualData);
+  changed.exercises[0].sets[0].skipped_reason = 'Equipment unavailable';
+  changed.exercises[0].sets[1].skipped_reason = 'Equipment unavailable';
+  const session = repairFocusedWorkoutSession(changed);
+
+  expect(getCurrentWorkoutSet(changed, session)).toEqual({ exerciseId: 'row', exerciseIndex: 1, setIndex: 0 });
+
+  changed.exercises[2].sets[0].completed = true;
+  expect(canDeferCurrentExercise(changed, repairFocusedWorkoutSession(changed))).toBe(false);
+});
+
 it('stores an exact, serializable absolute rest end timestamp', () => {
   const session = setRestEnd(repairFocusedWorkoutSession(actualData), 1_725_000_000_000);
 

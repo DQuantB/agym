@@ -27,6 +27,13 @@ export function validatePlanRevision(plan: GymPlan): PlanRevisionIssue[] {
       if (set.weight_kg != null && (!Number.isFinite(set.weight_kg) || set.weight_kg < 0)) issues.push({ path: `${setPath}.weight_kg`, message: 'Weight must be zero or a positive number.' });
       if (set.rest_seconds != null && (!Number.isInteger(set.rest_seconds) || set.rest_seconds < 0)) issues.push({ path: `${setPath}.rest_seconds`, message: 'Rest must be a whole number of seconds, zero or more.' });
     });
+
+    if (exercise.alternatives && exercise.alternatives.length > 4) issues.push({ path: `${exercisePath}.alternatives`, message: 'At most 4 alternatives are allowed.' });
+    (exercise.alternatives ?? []).forEach((alternative, alternativeIndex) => {
+      const alternativePath = `${exercisePath}.alternatives[${alternativeIndex}]`;
+      if (!alternative.client_id.trim()) issues.push({ path: `${alternativePath}.client_id`, message: 'Alternative is missing an id.' });
+      if (!alternative.name.trim()) issues.push({ path: `${alternativePath}.name`, message: 'Alternative name is required.' });
+    });
   });
 
   return issues;

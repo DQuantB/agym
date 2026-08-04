@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -16,7 +16,7 @@ import {
   type FocusedWorkoutSession,
 } from './focusedWorkoutSession';
 import { deleteLocalExecutionDraft, loadLocalExecutionDraft, saveLocalExecutionDraft, type LocalSyncState } from './localDraftStore';
-import { findPlannedSet, formatPlannedDelta } from './plannedReference';
+import { findPlannedExercise, findPlannedSet, formatPlannedDelta } from './plannedReference';
 import { PlannedReferenceRow } from './PlannedReferenceRow';
 import { RestTimer } from './RestTimer';
 import { SyncBadge } from './SyncBadge';
@@ -202,6 +202,10 @@ export function WorkoutExecutionScreen() {
   const plannedRef = findPlannedSet(loaded.plan, exercise, current.setIndex);
   const plannedDelta = formatPlannedDelta(plannedRef, set);
   const canDefer = canDeferCurrentExercise(editor.actualData, session);
+  const plannedExercise = findPlannedExercise(loaded.plan, exercise);
+  const exerciseOptions = plannedExercise?.alternatives?.length
+    ? [{ client_id: plannedExercise.client_id, name: plannedExercise.name, catalogue_exercise_id: undefined as string | undefined }, ...plannedExercise.alternatives]
+    : null;
 
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
     <View style={styles.topBar}>
@@ -220,6 +224,33 @@ export function WorkoutExecutionScreen() {
       </View>
       <Text style={styles.setLabel}>Set {current.setIndex + 1} of {exercise.sets.length}</Text>
     </View>
+
+    {exerciseOptions ? (
+      <View style={styles.alternativesRow}>
+        {exerciseOptions.map((option) => {
+          const isMain = option.client_id === plannedExercise?.client_id;
+          const selected = isMain ? !exercise.selected_alternative_id : exercise.selected_alternative_id === option.client_id;
+          return (
+            <Pressable
+              key={option.client_id}
+              accessibilityRole="button"
+              accessibilityLabel={`Do ${option.name}`}
+              accessibilityState={{ selected }}
+              style={[styles.alternativeChip, selected ? styles.alternativeChipActive : null]}
+              onPress={() => dispatch({
+                type: 'select_exercise_alternative',
+                exerciseIndex: current.exerciseIndex,
+                name: option.name,
+                catalogueExerciseId: option.catalogue_exercise_id,
+                selectedAlternativeId: isMain ? null : option.client_id,
+              })}
+            >
+              <Text style={[styles.alternativeChipText, selected ? styles.alternativeChipTextActive : null]}>{option.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    ) : null}
 
     <PlannedReferenceRow reference={plannedRef} delta={plannedDelta} />
 
@@ -267,12 +298,27 @@ export function WorkoutExecutionScreen() {
     </View>
 
     {skipExpanded ? <View style={styles.card}>
-      <Text style={styles.fieldLabel}>Skip this set</Text>
+      <Text style={styles.fieldLabel}>Skip</Text>
       <TextInput accessibilityLabel="Skip reason" style={styles.input} placeholder="Reason (preserved verbatim)" placeholderTextColor={colors.muted} value={skipReason} onChangeText={setSkipReason} />
-      <Button
-        label="Confirm skip" variant="secondary" fullWidth disabled={!skipReason.trim()}
-        onPress={() => { dispatch({ type: 'skip_set', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex, reason: skipReason }); setSkipReason(''); setSkipExpanded(false); }}
-      />
+      <View style={styles.secondaryRow}>
+        <View style={styles.secondaryRowItem}>
+          <Button
+            label="Skip this set" variant="secondary" fullWidth disabled={!skipReason.trim()}
+            onPress={() => { dispatch({ type: 'skip_set', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex, reason: skipReason }); setSkipReason(''); setSkipExpanded(false); }}
+          />
+        </View>
+        <View style={styles.secondaryRowItem}>
+          <Button
+            label="Skip whole exercise" variant="secondary" fullWidth disabled={!skipReason.trim()}
+            onPress={() => {
+              dispatch({ type: 'skip_exercise', exerciseIndex: current.exerciseIndex, reason: skipReason });
+              setSession((value) => setRestEnd(value, null));
+              setSkipReason('');
+              setSkipExpanded(false);
+            }}
+          />
+        </View>
+      </View>
     </View> : null}
 
     {notesExpanded ? <View style={styles.card}>
@@ -310,6 +356,11 @@ const styles = StyleSheet.create({
   exercise: { color: colors.text, fontSize: 28, fontWeight: '700' },
   addedChip: { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, color: colors.orange, fontSize: 11, fontWeight: '800', paddingHorizontal: spacing.xs, paddingVertical: 2 },
   setLabel: { color: colors.muted, fontSize: 16 },
+  alternativesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  alternativeChip: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.pill, borderWidth: 1, justifyContent: 'center', minHeight: hit.min, paddingHorizontal: spacing.md },
+  alternativeChipActive: { backgroundColor: colors.surfaceRaised, borderColor: colors.orange },
+  alternativeChipText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  alternativeChipTextActive: { color: colors.orange },
   card: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   fieldsRow: { flexDirection: 'row', gap: spacing.md },
   fieldLabel: { color: colors.muted, fontWeight: '700' },

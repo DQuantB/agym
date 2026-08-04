@@ -8,10 +8,12 @@ export type ExecutionEditorAction =
   | { type: 'toggle_set'; exerciseIndex: number; setIndex: number }
   | { type: 'complete_set'; exerciseIndex: number; setIndex: number }
   | { type: 'skip_set'; exerciseIndex: number; setIndex: number; reason: string }
+  | { type: 'skip_exercise'; exerciseIndex: number; reason: string }
   | { type: 'add_set'; exerciseIndex: number }
   | { type: 'add_exercise' }
   | { type: 'add_catalogue_exercise'; name: string; catalogueExerciseId: string }
   | { type: 'set_exercise_name'; exerciseIndex: number; name: string }
+  | { type: 'select_exercise_alternative'; exerciseIndex: number; name: string; catalogueExerciseId?: string; selectedAlternativeId: string | null }
   | { type: 'set_notes'; notes: string };
 
 export function executionEditorReducer(state: ExecutionEditorState, action: ExecutionEditorAction): ExecutionEditorState {
@@ -44,6 +46,20 @@ export function executionEditorReducer(state: ExecutionEditorState, action: Exec
   if (action.type === 'set_exercise_name') {
     const name = action.name.trim();
     exercise.name = name || 'New exercise';
+    return { ...state, actualData: { ...state.actualData, exercises } };
+  }
+  if (action.type === 'select_exercise_alternative') {
+    exercise.name = action.name;
+    exercise.catalogue_exercise_id = action.catalogueExerciseId;
+    exercise.selected_alternative_id = action.selectedAlternativeId;
+    return { ...state, actualData: { ...state.actualData, exercises } };
+  }
+  if (action.type === 'skip_exercise') {
+    const reason = action.reason.trim();
+    for (const set of exercise.sets) {
+      set.completed = false;
+      set.skipped_reason = reason;
+    }
     return { ...state, actualData: { ...state.actualData, exercises } };
   }
 

@@ -128,17 +128,27 @@ console.log('4) protocol-level gym validation OK: invalid payloads rejected befo
 const today = new Date().toISOString().slice(0, 10);
 const validGym = await callProtocol('create_proposed_plan', {
   raw_plan_text: 'Protocol-validated squat day',
-  plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: today, title: 'Squat day', exercises: [{ client_id: 'squat', name: 'Back squat', sets: [{ reps: 5, weight_kg: 100, rest_seconds: 180 }] }] },
+  plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: today, title: 'Squat day', exercises: [{ client_id: 'squat', name: 'Back squat', alternatives: [{ client_id: 'front-squat', name: 'Front squat' }], sets: [{ reps: 5, weight_kg: 100, rest_seconds: 180 }] }] },
 });
 assert.equal(validGym.isError, false, `valid gym plan rejected: ${validGym.text}`);
 assert.equal(validGym.json.plan.scheduled_for, today, 'gym plan must be scheduled for today');
+assert.deepEqual(
+  validGym.json.plan.plan_data.exercises[0].alternatives,
+  [{ client_id: 'front-squat', name: 'Front squat' }],
+  'exercise alternatives must survive the MCP schema and RPC round trip',
+);
 
 const plansWithSchedule = await call('list_plans', { limit: 20 });
 assert.equal(plansWithSchedule.isError, false, `list_plans errored: ${plansWithSchedule.text}`);
 const scheduledPlan = plansWithSchedule.json.plans.find((p: { id: string }) => p.id === validGym.json.plan.id);
 assert.ok(scheduledPlan, 'expected the newly created gym plan in list_plans');
 assert.equal(scheduledPlan.scheduled_for, today, 'list_plans must expose scheduled_for so agents can see the schedule');
-console.log('5) valid gym plan OK: scheduled_for=today and visible via list_plans');
+assert.deepEqual(
+  scheduledPlan.plan_data.exercises[0].alternatives,
+  [{ client_id: 'front-squat', name: 'Front squat' }],
+  'exercise alternatives must also round-trip through list_plans',
+);
+console.log('5) valid gym plan OK: scheduled_for=today, alternatives round-trip, and visible via list_plans');
 
 // 5b) validGym is the second gym plan scheduled for today (after step 2's
 // "Bench strength" plan): its advisory conflict must be notice-tier only --

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
@@ -10,9 +10,9 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { formatWeekdayDate } from '@/lib/dateLabels';
 import { colors, radius, spacing } from '@/theme/tokens';
 
-import { loadCalendarPlans, type CalendarPlan } from './calendarApi';
+import { acceptCalendarProposals, loadCalendarPlans, loadSupersededPlansByDate, restoreSupersededPlan, type CalendarPlan, type SupersededPlan } from './calendarApi';
 import { mapCalendarScreenState } from './calendarState';
-import { buildPlanAgenda } from './planAgenda';
+import { buildPlanAgenda, formatProposalBatchConfirmation, summarizeBulkAcceptResults, type AgendaEntry } from './planAgenda';
 
 function todayLocalDate(): string {
   const now = new Date();
@@ -24,23 +24,90 @@ export function PlansScreen() {
   const router = useRouter();
   const [proposals, setProposals] = useState<CalendarPlan[]>([]);
   const [scheduled, setScheduled] = useState<CalendarPlan[]>([]);
+  const [supersededByDate, setSupersededByDate] = useState<Map<string, SupersededPlan>>(new Map());
   const [message, setMessage] = useState<string | null>(null);
+  const [restoreStatus, setRestoreStatus] = useState<{ tone: 'warning' | 'confirmed'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const [pastExpanded, setPastExpanded] = useState(false);
+  const [bulkAccepting, setBulkAccepting] = useState(false);
+  const [bulkAcceptStatus, setBulkAcceptStatus] = useState<{ tone: 'warning' | 'confirmed'; text: string } | null>(null);
+
+  const refresh = useCallback(async () => {
+    const client = getSupabaseClient();
+    if (!client) { setMessage('This device has no public AGYM data connection yet.'); return; }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const [plans, superseded] = await Promise.all([loadCalendarPlans(client), loadSupersededPlansByDate(client)]);
+      setProposals(plans.proposals);
+      setScheduled(plans.scheduled);
+      setSupersededByDate(superseded);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not load calendar plans.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useFocusEffect(useCallback(() => {
     if (!auth.ready || !auth.configured || !auth.session) { setLoading(false); return undefined; }
-    const client = getSupabaseClient();
-    if (!client) { setMessage('This device has no public AGYM data connection yet.'); return undefined; }
     let active = true;
-    setLoading(true);
-    setMessage(null);
-    void loadCalendarPlans(client)
-      .then((result) => { if (active) { setProposals(result.proposals); setScheduled(result.scheduled); } })
-      .catch((error: unknown) => { if (active) setMessage(error instanceof Error ? error.message : 'Could not load calendar plans.'); })
-      .finally(() => { if (active) setLoading(false); });
+    void refresh().then(() => { if (!active) return; });
     return () => { active = false; };
-  }, [auth.configured, auth.ready, auth.session]));
+  }, [auth.configured, auth.ready, auth.session, refresh]));
+
+  function goBackToPrevious(entry: { id: string; title: string; previousPlan?: SupersededPlan }) {
+    if (!entry.previousPlan) return;
+    const previous = entry.previousPlan;
+    Alert.alert(
+      `Go back to "${previous.title}"?`,
+      `This replaces "${entry.title}" with your previous plan for that day. Nothing is deleted — either plan can be restored again later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Go back', onPress: () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+            setRestoringId(previous.id);
+            setRestoreStatus(null);
+            void restoreSupersededPlan(client, previous.id)
+              .then(({ restoredTitle }) => { setRestoreStatus({ tone: 'confirmed', text: `Restored "${restoredTitle}".` }); return refresh(); })
+              .catch((error: unknown) => setRestoreStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not restore this plan.' }))
+              .finally(() => setRestoringId(null));
+          },
+        },
+      ],
+    );
+  }
+
+  function acceptAll(entries: AgendaEntry[]) {
+    const client = getSupabaseClient();
+    if (!client || bulkAccepting || entries.length === 0) return;
+    Alert.alert(
+      `Accept all ${entries.length} proposals?`,
+      `${formatProposalBatchConfirmation(entries)}\n\nEach becomes planned training. Any day that already has an accepted plan keeps the previous one in your history and can be restored.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Accept all ${entries.length}`, onPress: () => {
+            setBulkAccepting(true);
+            setBulkAcceptStatus(null);
+            void acceptCalendarProposals(client, entries.map((entry) => entry.id))
+              .then(async (results) => {
+                const { acceptedCount, failed } = summarizeBulkAcceptResults(results, entries);
+                setBulkAcceptStatus(failed.length
+                  ? { tone: 'warning', text: `${acceptedCount} of ${entries.length} accepted. Could not accept: ${failed.map((item) => `${item.title} (${item.error})`).join('; ')}.` }
+                  : { tone: 'confirmed', text: `Accepted all ${acceptedCount} proposals.` });
+                await refresh();
+              })
+              .catch((error: unknown) => setBulkAcceptStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not accept these proposals.' }))
+              .finally(() => setBulkAccepting(false));
+          },
+        },
+      ],
+    );
+  }
 
   const state = mapCalendarScreenState({
     configured: auth.configured, authenticated: Boolean(auth.session), loading: !auth.ready || loading,
@@ -53,15 +120,26 @@ export function PlansScreen() {
   if (state.kind === 'error') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard tone="warning" title="Plans unavailable" detail={state.message} /></Screen>;
 
   const today = todayLocalDate();
-  const agenda = buildPlanAgenda({ proposals: state.proposals, scheduled: state.scheduled, today });
+  const agenda = buildPlanAgenda({ proposals: state.proposals, scheduled: state.scheduled, today, supersededByDate });
   const upcoming = [...agenda.today, ...agenda.upcoming];
 
   return (
     <Screen eyebrow="PLANS" title="Agenda">
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {restoreStatus ? <StatusCard tone={restoreStatus.tone} title="Previous plan" detail={restoreStatus.text} /> : null}
         {agenda.proposals.length ? (
           <>
-            <Text style={styles.sectionHeader}>✧ NEEDS YOUR REVIEW ({agenda.proposals.length})</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeader}>✧ NEEDS YOUR REVIEW ({agenda.proposals.length})</Text>
+              {agenda.proposals.length > 1 ? (
+                <Button
+                  label={`Accept all ${agenda.proposals.length}`} variant="primary" busy={bulkAccepting}
+                  accessibilityLabel={`Accept all ${agenda.proposals.length} proposals`}
+                  onPress={() => acceptAll(agenda.proposals)}
+                />
+              ) : null}
+            </View>
+            {bulkAcceptStatus ? <StatusCard tone={bulkAcceptStatus.tone} title="Accept all" detail={bulkAcceptStatus.text} /> : null}
             {agenda.proposals.map((entry) => (
               <Pressable
                 key={entry.id} accessibilityRole="button" accessibilityLabel={`Review agent proposal. ${entry.accessibilityLabel}`}
@@ -91,6 +169,14 @@ export function PlansScreen() {
               ) : (
                 <Button label="Edit" variant="secondary" accessibilityLabel={`Edit ${entry.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: entry.id } } as never)} />
               )}
+              {entry.previousPlan ? (
+                <Button
+                  label={`↺ Go back to "${entry.previousPlan.title}"`} variant="tertiary"
+                  busy={restoringId === entry.previousPlan.id} disabled={restoringId !== null}
+                  accessibilityLabel={`Go back to previous plan "${entry.previousPlan.title}" for ${entry.whenLabel}`}
+                  onPress={() => goBackToPrevious(entry)}
+                />
+              ) : null}
             </View>
           </View>
         )) : <StatusCard title="No scheduled sessions" detail="Only accepted plans can become scheduled training." />}
@@ -122,6 +208,7 @@ export function PlansScreen() {
 
 const styles = StyleSheet.create({
   list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  sectionHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   sectionHeader: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: spacing.md },
   proposalCard: { backgroundColor: colors.surface, borderColor: colors.orange, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   proposalEyebrow: { color: colors.orange, fontSize: 12, fontWeight: '800' },

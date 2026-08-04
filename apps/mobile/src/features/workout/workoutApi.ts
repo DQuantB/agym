@@ -2,11 +2,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 const setSchema = z.object({ reps: z.number().int().min(1), weight_kg: z.number().nullable().optional(), rest_seconds: z.number().int().min(0).default(120) });
-const exerciseSchema = z.object({ client_id: z.string().min(1), name: z.string().min(1), catalogue_exercise_id: z.string().uuid().optional(), sets: z.array(setSchema).min(1) });
+const exerciseAlternativeSchema = z.object({ client_id: z.string().min(1), name: z.string().min(1), catalogue_exercise_id: z.string().uuid().optional() });
+const exerciseSchema = z.object({ client_id: z.string().min(1), name: z.string().min(1), catalogue_exercise_id: z.string().uuid().optional(), alternatives: z.array(exerciseAlternativeSchema).max(4).optional(), sets: z.array(setSchema).min(1) });
 export const gymPlanSchema = z.object({ kind: z.literal('gym_workout'), schema_version: z.literal(1), scheduled_for: z.string(), title: z.string().min(1), exercises: z.array(exerciseSchema).min(1), notes: z.string().optional() });
 export type GymPlan = z.infer<typeof gymPlanSchema>;
+export type ExerciseAlternative = z.infer<typeof exerciseAlternativeSchema>;
 export type ActualSet = z.infer<typeof setSchema> & { completed: boolean; skipped_reason: string | null; user_added: boolean };
-export type ActualExercise = Omit<z.infer<typeof exerciseSchema>, 'sets'> & { user_added: boolean; sets: ActualSet[] };
+export type ActualExercise = Omit<z.infer<typeof exerciseSchema>, 'sets'> & { user_added: boolean; selected_alternative_id?: string | null; sets: ActualSet[] };
 export type ActualData = { kind: 'gym_workout_execution'; schema_version: 1; exercises: ActualExercise[] };
 export type RemoteExecution = { id: string; status: 'in_progress' | 'completed'; executionData: ActualData; additionalNotes: string };
 

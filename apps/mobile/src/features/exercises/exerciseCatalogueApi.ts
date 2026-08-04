@@ -42,6 +42,20 @@ function fromRow(row: CatalogueRow): CatalogueExercise {
   };
 }
 
+// Columns a search word may match against. Searching only `name` meant a query
+// like "barbell" or "biceps" (equipment/target, not name) or word order like
+// "press bench" (vs. "Bench press") returned nothing even though a matching
+// exercise existed.
+const SEARCHABLE_COLUMNS = ['name', 'target', 'muscle_group', 'equipment', 'category', 'body_part'] as const;
+
+function searchWords(text: string): string[] {
+  return text
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.replace(/[,.()%]/g, ''))
+    .filter((word) => word.length > 0);
+}
+
 export async function searchExerciseCatalogue(
   client: SupabaseClient,
   query: { text: string; bodyPart?: string | null },
@@ -53,8 +67,13 @@ export async function searchExerciseCatalogue(
     .order('name', { ascending: true })
     .limit(limit);
 
-  const text = query.text.trim();
-  if (text) request = request.ilike('name', `%${text}%`);
+  // Each word must match at least one searchable column (its own OR group);
+  // calling .or() once per word ANDs the groups together, so "barbell chest"
+  // finds chest exercises using a barbell regardless of word order or which
+  // column each word actually matches.
+  for (const word of searchWords(query.text)) {
+    request = request.or(SEARCHABLE_COLUMNS.map((column) => `${column}.ilike.%${word}%`).join(','));
+  }
   if (query.bodyPart) request = request.eq('body_part', query.bodyPart);
 
   const { data, error } = await request;

@@ -5,7 +5,7 @@ import { searchExerciseCatalogue } from './exerciseCatalogueApi';
 
 function mockClient(result: { data: unknown[]; error: null }) {
   const query: Record<string, ReturnType<typeof vi.fn>> & PromiseLike<typeof result> = {} as never;
-  for (const method of ['select', 'ilike', 'eq', 'order', 'limit']) query[method] = vi.fn(() => query);
+  for (const method of ['select', 'or', 'eq', 'order', 'limit']) query[method] = vi.fn(() => query);
   query.then = (resolve) => Promise.resolve(result).then(resolve);
   const from = vi.fn(() => query);
   return { client: { from } as unknown as SupabaseClient, query };
@@ -30,16 +30,36 @@ it('maps a catalogue row into the mobile shape, including source-language instru
   }]);
 });
 
-it('applies a text filter only when the query text is non-blank', async () => {
+it('applies no text filter when the query text is blank', async () => {
   const { client, query } = mockClient({ data: [], error: null });
   await searchExerciseCatalogue(client, { text: '  ' });
-  expect(query.ilike).not.toHaveBeenCalled();
+  expect(query.or).not.toHaveBeenCalled();
 });
 
-it('filters by name and body part together when both are given', async () => {
+it('matches a single word across every searchable column, not just name', async () => {
+  const { client, query } = mockClient({ data: [], error: null });
+  await searchExerciseCatalogue(client, { text: 'barbell' });
+  expect(query.or).toHaveBeenCalledWith('name.ilike.%barbell%,target.ilike.%barbell%,muscle_group.ilike.%barbell%,equipment.ilike.%barbell%,category.ilike.%barbell%,body_part.ilike.%barbell%');
+});
+
+it('requires every word to match (its own column), regardless of order', async () => {
+  const { client, query } = mockClient({ data: [], error: null });
+  await searchExerciseCatalogue(client, { text: 'press bench' });
+  expect(query.or).toHaveBeenCalledTimes(2);
+  expect(query.or).toHaveBeenNthCalledWith(1, expect.stringContaining('name.ilike.%press%'));
+  expect(query.or).toHaveBeenNthCalledWith(2, expect.stringContaining('name.ilike.%bench%'));
+});
+
+it('strips characters that would break the PostgREST filter syntax out of a search word', async () => {
+  const { client, query } = mockClient({ data: [], error: null });
+  await searchExerciseCatalogue(client, { text: 'bench,press(test)' });
+  expect(query.or).toHaveBeenCalledWith(expect.stringContaining('name.ilike.%benchpresstest%'));
+});
+
+it('filters by body part alongside a text search when both are given', async () => {
   const { client, query } = mockClient({ data: [], error: null });
   await searchExerciseCatalogue(client, { text: 'press', bodyPart: 'chest' });
-  expect(query.ilike).toHaveBeenCalledWith('name', '%press%');
+  expect(query.or).toHaveBeenCalledWith(expect.stringContaining('name.ilike.%press%'));
   expect(query.eq).toHaveBeenCalledWith('body_part', 'chest');
 });
 

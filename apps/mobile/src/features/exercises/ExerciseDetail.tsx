@@ -16,15 +16,15 @@ export function ExerciseDetail({ exercise, onUse, onBack }: Props) {
   const instructions = pickInstructionText(exercise.instructions);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.eyebrow}>{exercise.bodyPart.toUpperCase()} · {exercise.equipment}</Text>
       <Text style={styles.title}>{exercise.name}</Text>
       <Text style={styles.meta}>Targets {exercise.target}{exercise.secondaryMuscles.length ? ` · also ${exercise.secondaryMuscles.join(', ')}` : ''}</Text>
       {instructions ? <Text style={styles.instructions}>{instructions}</Text> : (
         <Text style={styles.instructions}>No written instructions available for this exercise.</Text>
       )}
-      <Button title={`Use "${exercise.name}"`} variant="primary" onPress={() => onUse(exercise)} />
-      <Button title="Back to search" onPress={onBack} />
+      <Button label={`Use "${exercise.name}"`} variant="primary" fullWidth onPress={() => onUse(exercise)} />
+      <Button label="Back to search" variant="tertiary" fullWidth onPress={onBack} />
     </ScrollView>
   );
 }

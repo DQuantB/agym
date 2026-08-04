@@ -1,6 +1,7 @@
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
+import { Button } from '@/components/Button';
 import { colors, radius, spacing, type } from '@/theme/tokens';
 
 export function remainingSeconds(endsAt: number | null, now = Date.now()): number {
@@ -31,12 +32,8 @@ export function RestTimer({ endsAt, onAddTime, onDismiss }: Props) {
     <View style={styles.card} accessibilityLabel={`Rest timer, ${display(seconds)} remaining`}>
       <Text style={styles.label}>● REST · {display(seconds)}</Text>
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Add 30 seconds of rest" hitSlop={8} onPress={onAddTime} style={styles.action}>
-          <Text style={styles.actionText}>+30 sec</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="End rest now" hitSlop={8} onPress={onDismiss} style={styles.action}>
-          <Text style={styles.actionText}>End rest</Text>
-        </Pressable>
+        <Button label="+30 sec" variant="secondary" accessibilityLabel="Add 30 seconds of rest" onPress={onAddTime} />
+        <Button label="End rest" variant="secondary" accessibilityLabel="End rest now" onPress={onDismiss} />
       </View>
     </View>
   );
@@ -46,6 +43,4 @@ const styles = StyleSheet.create({
   card: { alignItems: 'center', backgroundColor: colors.surfaceRaised, borderColor: colors.orange, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', padding: spacing.sm },
   label: { ...type.heading, color: colors.orange },
   actions: { flexDirection: 'row', gap: spacing.sm },
-  action: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, justifyContent: 'center', minHeight: 44, paddingHorizontal: spacing.sm },
-  actionText: { color: colors.text, fontSize: 13, fontWeight: '700' },
 });

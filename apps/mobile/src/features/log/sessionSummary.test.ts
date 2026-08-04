@@ -102,3 +102,22 @@ it('totals sessions across history without silently dropping bodyweight volume',
 it('returns zeroed totals for an empty history', () => {
   expect(historyTotals([])).toEqual({ sessionCount: 0, totalVolumeKg: 0, totalSets: 0, lastSessionDate: null });
 });
+
+it('surfaces which planned exercise a substitution replaced', () => {
+  const substituted = workout({
+    actual: {
+      kind: 'gym_workout_execution', schema_version: 1,
+      exercises: [
+        { client_id: 'row', name: 'Lat pulldown', user_added: false, selected_alternative_id: 'lat-pulldown', sets: [
+          { reps: 10, weight_kg: 55, rest_seconds: 90, completed: true, skipped_reason: null, user_added: false },
+        ] },
+      ],
+    },
+  });
+  const summary = summarizeSession(substituted);
+  expect(summary.exercises[0]).toMatchObject({ name: 'Lat pulldown', substitutedFrom: 'Row' });
+});
+
+it('reports no substitution for an exercise performed as planned', () => {
+  expect(summarizeSession(workout()).exercises[0].substitutedFrom).toBeNull();
+});

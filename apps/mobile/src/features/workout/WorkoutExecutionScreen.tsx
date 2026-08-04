@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
 import { NumberField } from '@/components/NumberField';
 import { adjustReps, adjustWeight, formatWeightValue, parseRepsInput, parseWeightInput } from '@/components/numberFieldMath';
 import { ExercisePicker } from '@/features/exercises/ExercisePicker';
@@ -15,7 +16,7 @@ import {
   type FocusedWorkoutSession,
 } from './focusedWorkoutSession';
 import { deleteLocalExecutionDraft, loadLocalExecutionDraft, saveLocalExecutionDraft, type LocalSyncState } from './localDraftStore';
-import { findPlannedSet, formatPlannedDelta } from './plannedReference';
+import { findPlannedExercise, findPlannedSet, formatPlannedDelta } from './plannedReference';
 import { PlannedReferenceRow } from './PlannedReferenceRow';
 import { RestTimer } from './RestTimer';
 import { SyncBadge } from './SyncBadge';
@@ -153,7 +154,7 @@ export function WorkoutExecutionScreen() {
     const progress = computeWorkoutProgress(editorRef.current.actualData);
     Alert.alert('Review actual session', `${progress.completedSets} completed set${progress.completedSets === 1 ? '' : 's'} · ${progress.skippedSets} skipped with a reason.\n\nThe planned workout stays unchanged. Confirming creates immutable user-confirmed history.`, [
       { text: 'Keep editing', style: 'cancel' },
-      { text: 'Confirm session', style: 'destructive', onPress: () => void confirm() },
+      { text: 'Confirm session', onPress: () => void confirm() },
     ]);
   }
 
@@ -189,9 +190,8 @@ export function WorkoutExecutionScreen() {
           <View style={styles.summaryMetric}><Text style={styles.summaryValue}>{formatVolumeKg(volume.kg)}</Text><Text style={styles.summaryLabel}>{volume.bodyweightSets > 0 ? `${volume.bodyweightSets} bodyweight excluded` : 'load volume'}</Text></View>
         </View>
         <Text style={styles.message}>Your actual workout is saved locally. Review it before confirming immutable history.</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Finish and review actual session" style={styles.primaryButton} onPress={reviewAndConfirm}>
-          <Text style={styles.primaryButtonText}>FINISH — REVIEW ACTUAL</Text>
-        </Pressable>
+        <Button label="FINISH — REVIEW ACTUAL" variant="primary" fullWidth accessibilityLabel="Finish and review actual session" onPress={reviewAndConfirm} />
+        {message ? <Text style={styles.message}>{message}</Text> : null}
       </View>
     </View>;
   }
@@ -202,8 +202,12 @@ export function WorkoutExecutionScreen() {
   const plannedRef = findPlannedSet(loaded.plan, exercise, current.setIndex);
   const plannedDelta = formatPlannedDelta(plannedRef, set);
   const canDefer = canDeferCurrentExercise(editor.actualData, session);
+  const plannedExercise = findPlannedExercise(loaded.plan, exercise);
+  const exerciseOptions = plannedExercise?.alternatives?.length
+    ? [{ client_id: plannedExercise.client_id, name: plannedExercise.name, catalogue_exercise_id: undefined as string | undefined }, ...plannedExercise.alternatives]
+    : null;
 
-  return <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+  return <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
     <View style={styles.topBar}>
       <Text style={styles.planTitle} numberOfLines={1}>{loaded.plan.title}</Text>
       <SyncBadge state={syncState} lastSyncError={syncError} onRetry={() => void sync()} />
@@ -220,6 +224,33 @@ export function WorkoutExecutionScreen() {
       </View>
       <Text style={styles.setLabel}>Set {current.setIndex + 1} of {exercise.sets.length}</Text>
     </View>
+
+    {exerciseOptions ? (
+      <View style={styles.alternativesRow}>
+        {exerciseOptions.map((option) => {
+          const isMain = option.client_id === plannedExercise?.client_id;
+          const selected = isMain ? !exercise.selected_alternative_id : exercise.selected_alternative_id === option.client_id;
+          return (
+            <Pressable
+              key={option.client_id}
+              accessibilityRole="button"
+              accessibilityLabel={`Do ${option.name}`}
+              accessibilityState={{ selected }}
+              style={[styles.alternativeChip, selected ? styles.alternativeChipActive : null]}
+              onPress={() => dispatch({
+                type: 'select_exercise_alternative',
+                exerciseIndex: current.exerciseIndex,
+                name: option.name,
+                catalogueExerciseId: option.catalogue_exercise_id,
+                selectedAlternativeId: isMain ? null : option.client_id,
+              })}
+            >
+              <Text style={[styles.alternativeChipText, selected ? styles.alternativeChipTextActive : null]}>{option.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    ) : null}
 
     <PlannedReferenceRow reference={plannedRef} delta={plannedDelta} />
 
@@ -245,42 +276,49 @@ export function WorkoutExecutionScreen() {
       </View>
     </View>
 
-    <Pressable
-      accessibilityRole="button" accessibilityLabel="Complete set"
-      style={styles.primaryButton}
+    <Button
+      label="COMPLETE SET" variant="primary" fullWidth accessibilityLabel="Complete set"
       onPress={() => {
         dispatch({ type: 'complete_set', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex });
         setSession((value) => setRestEnd(value, Date.now() + set.rest_seconds * 1_000));
       }}
-    >
-      <Text style={styles.primaryButtonText}>COMPLETE SET</Text>
-    </Pressable>
+    />
 
     <View style={styles.secondaryRow}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Skip this set" style={styles.secondaryButton} onPress={() => setSkipExpanded((value) => !value)}>
-        <Text style={styles.secondaryButtonText}>Skip set</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={canDefer ? `Move ${exercise.name} to later` : `Cannot move ${exercise.name} to later — it is the last remaining exercise`}
-        disabled={!canDefer}
-        style={[styles.secondaryButton, !canDefer && styles.secondaryButtonDisabled]}
-        onPress={() => setSession((value) => deferCurrentExercise(editor.actualData, value))}
-      >
-        <Text style={[styles.secondaryButtonText, !canDefer && styles.secondaryButtonTextDisabled]}>Move to later</Text>
-      </Pressable>
+      <View style={styles.secondaryRowItem}>
+        <Button label="Skip set" variant="secondary" fullWidth accessibilityLabel="Skip this set" onPress={() => setSkipExpanded((value) => !value)} />
+      </View>
+      <View style={styles.secondaryRowItem}>
+        <Button
+          label="Move to later" variant="secondary" fullWidth disabled={!canDefer}
+          accessibilityLabel={canDefer ? `Move ${exercise.name} to later` : `Cannot move ${exercise.name} to later — it is the last remaining exercise`}
+          onPress={() => setSession((value) => deferCurrentExercise(editor.actualData, value))}
+        />
+      </View>
     </View>
 
     {skipExpanded ? <View style={styles.card}>
-      <Text style={styles.fieldLabel}>Skip this set</Text>
+      <Text style={styles.fieldLabel}>Skip</Text>
       <TextInput accessibilityLabel="Skip reason" style={styles.input} placeholder="Reason (preserved verbatim)" placeholderTextColor={colors.muted} value={skipReason} onChangeText={setSkipReason} />
-      <Pressable
-        accessibilityRole="button" accessibilityLabel="Confirm skip" disabled={!skipReason.trim()}
-        style={[styles.secondaryButton, !skipReason.trim() && styles.secondaryButtonDisabled]}
-        onPress={() => { dispatch({ type: 'skip_set', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex, reason: skipReason }); setSkipReason(''); setSkipExpanded(false); }}
-      >
-        <Text style={[styles.secondaryButtonText, !skipReason.trim() && styles.secondaryButtonTextDisabled]}>Confirm skip</Text>
-      </Pressable>
+      <View style={styles.secondaryRow}>
+        <View style={styles.secondaryRowItem}>
+          <Button
+            label="Skip this set" variant="secondary" fullWidth disabled={!skipReason.trim()}
+            onPress={() => { dispatch({ type: 'skip_set', exerciseIndex: current.exerciseIndex, setIndex: current.setIndex, reason: skipReason }); setSkipReason(''); setSkipExpanded(false); }}
+          />
+        </View>
+        <View style={styles.secondaryRowItem}>
+          <Button
+            label="Skip whole exercise" variant="secondary" fullWidth disabled={!skipReason.trim()}
+            onPress={() => {
+              dispatch({ type: 'skip_exercise', exerciseIndex: current.exerciseIndex, reason: skipReason });
+              setSession((value) => setRestEnd(value, null));
+              setSkipReason('');
+              setSkipExpanded(false);
+            }}
+          />
+        </View>
+      </View>
     </View> : null}
 
     {notesExpanded ? <View style={styles.card}>
@@ -289,11 +327,12 @@ export function WorkoutExecutionScreen() {
     </View> : null}
 
     <View style={styles.tertiaryRow}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Add an actual set" hitSlop={6} onPress={() => dispatch({ type: 'add_set', exerciseIndex: current.exerciseIndex })}><Text style={styles.tertiaryText}>+ set</Text></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Add an actual exercise" hitSlop={6} onPress={() => setPickerVisible(true)}><Text style={styles.tertiaryText}>+ exercise</Text></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={notesExpanded ? 'Hide notes' : 'Add notes'} hitSlop={6} onPress={() => setNotesExpanded((value) => !value)}><Text style={styles.tertiaryText}>Notes</Text></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Finish workout" hitSlop={6} onPress={reviewAndConfirm}><Text style={styles.tertiaryText}>Finish workout</Text></Pressable>
+      <Button label="+ set" variant="tertiary" accessibilityLabel="Add an actual set" onPress={() => dispatch({ type: 'add_set', exerciseIndex: current.exerciseIndex })} />
+      <Button label="+ exercise" variant="tertiary" accessibilityLabel="Add an actual exercise" onPress={() => setPickerVisible(true)} />
+      <Button label="Notes" variant="tertiary" accessibilityLabel={notesExpanded ? 'Hide notes' : 'Add notes'} onPress={() => setNotesExpanded((value) => !value)} />
     </View>
+
+    <Button label="Finish workout" variant="secondary" fullWidth accessibilityLabel="Finish workout" onPress={reviewAndConfirm} />
 
     {message ? <Text style={styles.message}>{message}</Text> : null}
 
@@ -317,21 +356,20 @@ const styles = StyleSheet.create({
   exercise: { color: colors.text, fontSize: 28, fontWeight: '700' },
   addedChip: { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, color: colors.orange, fontSize: 11, fontWeight: '800', paddingHorizontal: spacing.xs, paddingVertical: 2 },
   setLabel: { color: colors.muted, fontSize: 16 },
+  alternativesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  alternativeChip: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.pill, borderWidth: 1, justifyContent: 'center', minHeight: hit.min, paddingHorizontal: spacing.md },
+  alternativeChipActive: { backgroundColor: colors.surfaceRaised, borderColor: colors.orange },
+  alternativeChipText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  alternativeChipTextActive: { color: colors.orange },
   card: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   fieldsRow: { flexDirection: 'row', gap: spacing.md },
   fieldLabel: { color: colors.muted, fontWeight: '700' },
   nameInput: { borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, color: colors.text, fontSize: 18, minHeight: 44, paddingHorizontal: spacing.sm },
   input: { borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, color: colors.text, minHeight: hit.min, paddingHorizontal: spacing.sm },
   notesInput: { minHeight: 96, textAlignVertical: 'top' },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.orange, borderRadius: radius.md, justifyContent: 'center', minHeight: 56 },
-  primaryButtonText: { color: colors.background, fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
   secondaryRow: { flexDirection: 'row', gap: spacing.sm },
-  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: 44 },
-  secondaryButtonDisabled: { borderColor: colors.surfaceRaised },
-  secondaryButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  secondaryButtonTextDisabled: { color: colors.muted },
-  tertiaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'space-between' },
-  tertiaryText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  secondaryRowItem: { flex: 1 },
+  tertiaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
   message: { color: colors.muted, lineHeight: 20 },
   completeCard: { gap: spacing.md },
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },

@@ -2,7 +2,7 @@ import { plannedVolumeKg } from '@/features/workout/workoutMetrics';
 import type { GymPlan } from '@/features/workout/workoutApi';
 import { formatWeekdayDate, relativeDayLabel } from '@/lib/dateLabels';
 
-import type { CalendarPlan } from './calendarApi';
+import type { AcceptProposalResult, CalendarPlan, SupersededPlan } from './calendarApi';
 
 export function countPlanSets(plan: GymPlan): number {
   return plan.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0);
@@ -31,6 +31,7 @@ export type AgendaEntry = {
   summary: string;
   bucket: AgendaBucket;
   accessibilityLabel: string;
+  previousPlan?: SupersededPlan;
 };
 
 /** Readable label for a plan's `plan_data.kind` category. Extend this map as new plan categories (run, meal, ...) ship. */
@@ -44,7 +45,7 @@ function dayChip(scheduledFor: string): { weekday: string; dayOfMonth: string } 
   return { weekday: formatWeekdayDate(scheduledFor).split(' ')[0], dayOfMonth: String(anchored.getUTCDate()) };
 }
 
-export function toAgendaEntry(plan: CalendarPlan, today: string): AgendaEntry {
+export function toAgendaEntry(plan: CalendarPlan, today: string, previousPlan?: SupersededPlan): AgendaEntry {
   const bucket: AgendaBucket = plan.status === 'proposed'
     ? 'proposal'
     : plan.scheduledFor === today ? 'today' : plan.scheduledFor > today ? 'upcoming' : 'past';
@@ -68,6 +69,7 @@ export function toAgendaEntry(plan: CalendarPlan, today: string): AgendaEntry {
     summary,
     bucket,
     accessibilityLabel: `${plan.plan.title}, ${whenLabel}, ${exerciseCount} exercises, ${setCount} sets. ${summary}.`,
+    previousPlan,
   };
 }
 
@@ -103,14 +105,34 @@ export function groupIdenticalProposals(proposals: CalendarPlan[], today: string
   });
 }
 
-export function buildPlanAgenda(input: { proposals: CalendarPlan[]; scheduled: CalendarPlan[]; today: string }): {
+export function formatProposalBatchConfirmation(entries: Pick<AgendaEntry, 'title' | 'whenLabel'>[]): string {
+  return entries.map((entry) => `• ${entry.title} — ${entry.whenLabel}`).join('\n');
+}
+
+export function summarizeBulkAcceptResults(
+  results: AcceptProposalResult[],
+  entries: Pick<AgendaEntry, 'id' | 'title'>[],
+): { acceptedCount: number; failed: { title: string; error: string }[] } {
+  const titleById = new Map(entries.map((entry) => [entry.id, entry.title]));
+  const failed = results
+    .filter((result) => !result.ok)
+    .map((result) => ({ title: titleById.get(result.id) ?? 'Unknown plan', error: result.error ?? 'Could not accept this proposal.' }));
+  return { acceptedCount: results.length - failed.length, failed };
+}
+
+export function buildPlanAgenda(input: {
+  proposals: CalendarPlan[];
+  scheduled: CalendarPlan[];
+  today: string;
+  supersededByDate?: Map<string, SupersededPlan>;
+}): {
   proposals: ProposalGroup[];
   today: AgendaEntry[];
   upcoming: AgendaEntry[];
   past: AgendaEntry[];
 } {
   const proposals = groupIdenticalProposals(input.proposals, input.today);
-  const scheduledEntries = input.scheduled.map((plan) => toAgendaEntry(plan, input.today));
+  const scheduledEntries = input.scheduled.map((plan) => toAgendaEntry(plan, input.today, input.supersededByDate?.get(plan.scheduledFor)));
   return {
     proposals,
     today: scheduledEntries.filter((entry) => entry.bucket === 'today'),

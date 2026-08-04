@@ -8,8 +8,9 @@ values
 
 insert into public.plans (user_id, raw_plan_text, plan_data, source_client, scheduled_for)
 values
-  ('00000000-0000-0000-0000-0000000000d1', 'Owner gym proposal', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date),
+  ('00000000-0000-0000-0000-0000000000d1', 'Owner gym proposal', '{"kind":"gym_workout","schema_version":1,"title":"First"}'::jsonb, 'hermes', current_date),
   ('00000000-0000-0000-0000-0000000000d1', 'Owner non-gym proposal', '{}'::jsonb, 'hermes', current_date),
+  ('00000000-0000-0000-0000-0000000000d1', 'Owner second same-date gym proposal', '{"kind":"gym_workout","schema_version":1,"title":"Second"}'::jsonb, 'hermes', current_date),
   ('00000000-0000-0000-0000-0000000000d2', 'Other gym proposal', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date);
 
 set local role authenticated;
@@ -38,12 +39,64 @@ do $$ begin
   end;
 end $$;
 
+-- Accepting a second same-date gym proposal must supersede the first rather
+-- than leaving two active rows for the same day.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
+select public.accept_gym_workout_plan(id) -> 'superseded' ->> 'title' as superseded_title
+from public.plans where raw_plan_text = 'Owner second same-date gym proposal' \gset
+
+select case when :'superseded_title' = 'First' then 'PASS: accept reports the superseded plan title' else 'FAIL: accept did not report the superseded plan title (got ' || :'superseded_title' || ')' end;
+
+do $$ begin
+  if not exists (select 1 from public.plans where raw_plan_text = 'Owner gym proposal' and status = 'superseded') then
+    raise exception 'FAIL: first same-date plan was not superseded';
+  end if;
+  if not exists (select 1 from public.plans where raw_plan_text = 'Owner second same-date gym proposal' and status = 'active') then
+    raise exception 'FAIL: second same-date plan was not activated';
+  end if;
+  if exists (
+    select 1 from public.plans
+    where user_id = '00000000-0000-0000-0000-0000000000d1' and scheduled_for = current_date
+      and coalesce(plan_data->>'kind','') = 'gym_workout' and status in ('proposed','active')
+    group by scheduled_for having count(*) > 1
+  ) then raise exception 'FAIL: more than one non-superseded gym plan remains for the date'; end if;
+  raise notice 'PASS: same-date supersede leaves exactly one active/proposed gym plan';
+end $$;
+
+-- Restoring the superseded plan swaps the pair back.
+select public.restore_superseded_gym_plan(id) -> 'superseded' ->> 'title' as restore_superseded_title
+from public.plans where raw_plan_text = 'Owner gym proposal' \gset
+
+select case when :'restore_superseded_title' = 'Second' then 'PASS: restore reports the plan it superseded' else 'FAIL: restore did not report the plan it bumped (got ' || :'restore_superseded_title' || ')' end;
+
+do $$ begin
+  if not exists (select 1 from public.plans where raw_plan_text = 'Owner gym proposal' and status = 'active') then
+    raise exception 'FAIL: restored plan is not active';
+  end if;
+  if not exists (select 1 from public.plans where raw_plan_text = 'Owner second same-date gym proposal' and status = 'superseded') then
+    raise exception 'FAIL: previously-active plan was not superseded by the restore';
+  end if;
+  begin
+    perform public.restore_superseded_gym_plan((select id from public.plans where raw_plan_text = 'Owner gym proposal'));
+    raise exception 'FAIL: restoring a non-superseded plan succeeded';
+  exception when others then raise notice 'PASS: restoring a non-superseded plan rejected'; end;
+  begin
+    perform public.restore_superseded_gym_plan((select id from public.plans where raw_plan_text = 'Owner non-gym proposal'));
+    raise exception 'FAIL: restoring a non-gym plan succeeded';
+  exception when others then raise notice 'PASS: restoring a non-gym plan rejected'; end;
+end $$;
+
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d2', true);
 do $$ begin
   begin
     perform public.accept_gym_workout_plan((select id from public.plans where raw_plan_text = 'Owner gym proposal'));
     raise exception 'FAIL: cross-user acceptance succeeded';
   exception when others then raise notice 'PASS: cross-user acceptance rejected';
+  end;
+  begin
+    perform public.restore_superseded_gym_plan((select id from public.plans where raw_plan_text = 'Owner second same-date gym proposal'));
+    raise exception 'FAIL: cross-user restore succeeded';
+  exception when others then raise notice 'PASS: cross-user restore rejected';
   end;
 end $$;
 

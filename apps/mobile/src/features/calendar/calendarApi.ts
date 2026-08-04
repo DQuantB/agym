@@ -6,6 +6,14 @@ export type CalendarPlan = { id: string; status: 'proposed' | 'active'; source: 
 
 function fail(error: { message: string } | null, action: string): never { throw new Error(`AGYM could not ${action}: ${error?.message ?? 'no data returned.'}`); }
 
+function supersededTitleFrom(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const superseded = (data as { superseded?: unknown }).superseded;
+  if (!superseded || typeof superseded !== 'object') return null;
+  const title = (superseded as { title?: unknown }).title;
+  return typeof title === 'string' ? title : null;
+}
+
 function mapPlan(row: { id: string; status: 'proposed' | 'active'; plan_data: unknown; user_revision_data?: unknown; source_client: string | null; created_at: string; scheduled_for: string | null }): CalendarPlan | null {
   const plan = effectiveGymPlan(row);
   return plan ? { id: row.id, status: row.status, source: row.source_client ?? 'external LLM', createdAt: row.created_at, scheduledFor: row.scheduled_for ?? plan.scheduled_for, plan } : null;
@@ -34,7 +42,7 @@ export async function loadProposalById(client: SupabaseClient, planId: string): 
   return mapPlan({ ...data, status: 'proposed' });
 }
 
-/** Finds already-active plans of the same category on any of the given dates, so the UI can warn the user before accepting replaces them. */
+/** Finds already-active plans of the same category on any of the given dates, so the UI can warn the user before a bulk accept replaces them. */
 export async function findActivePlanConflicts(client: SupabaseClient, kind: string, scheduledForDates: string[]): Promise<{ id: string; scheduledFor: string }[]> {
   const dates = [...new Set(scheduledForDates)];
   if (!dates.length) return [];
@@ -45,22 +53,49 @@ export async function findActivePlanConflicts(client: SupabaseClient, kind: stri
   return (data ?? []).map((row) => ({ id: row.id as string, scheduledFor: row.scheduled_for as string }));
 }
 
-export async function acceptCalendarProposal(client: SupabaseClient, planId: string): Promise<void> {
-  const { error } = await client.rpc('accept_gym_workout_plan', { p_plan_id: planId });
+export async function acceptCalendarProposal(client: SupabaseClient, planId: string): Promise<{ supersededTitle: string | null }> {
+  const { data, error } = await client.rpc('accept_gym_workout_plan', { p_plan_id: planId });
   if (error) fail(error, 'accept this Gym proposal');
+  return { supersededTitle: supersededTitleFrom(data) };
 }
 
-/** Accepts a batch of proposals one at a time (e.g. a repeated plan's occurrences) and reports which, if any, failed rather than aborting the whole batch. */
-export async function acceptCalendarProposals(client: SupabaseClient, planIds: string[]): Promise<{ accepted: string[]; failed: { id: string; message: string }[] }> {
-  const accepted: string[] = [];
-  const failed: { id: string; message: string }[] = [];
-  for (const planId of planIds) {
-    try {
-      await acceptCalendarProposal(client, planId);
-      accepted.push(planId);
-    } catch (error) {
-      failed.push({ id: planId, message: error instanceof Error ? error.message : 'Could not accept this proposal.' });
-    }
+export type SupersededPlan = { id: string; title: string };
+
+export async function loadSupersededPlansByDate(client: SupabaseClient, limit = 200): Promise<Map<string, SupersededPlan>> {
+  const { data, error } = await client.from('plans')
+    .select('id, plan_data, user_revision_data, scheduled_for, updated_at')
+    .eq('status', 'superseded').eq('plan_data->>kind', 'gym_workout').is('deleted_at', null)
+    .order('updated_at', { ascending: false }).limit(limit);
+  if (error) fail(error, 'load previous plans');
+  const byDate = new Map<string, SupersededPlan>();
+  for (const row of data ?? []) {
+    if (!row.scheduled_for || byDate.has(row.scheduled_for)) continue;
+    const plan = effectiveGymPlan(row);
+    if (plan) byDate.set(row.scheduled_for, { id: row.id, title: plan.title });
   }
-  return { accepted, failed };
+  return byDate;
+}
+
+export async function restoreSupersededPlan(client: SupabaseClient, planId: string): Promise<{ restoredTitle: string; supersededTitle: string | null }> {
+  const { data, error } = await client.rpc('restore_superseded_gym_plan', { p_plan_id: planId });
+  if (error) fail(error, 'restore this previous plan');
+  const row = data && typeof data === 'object' ? (data as { plan?: unknown }).plan : null;
+  const restoredPlan = row && typeof row === 'object' ? effectiveGymPlan(row as { plan_data: unknown; user_revision_data?: unknown }) : null;
+  return { restoredTitle: restoredPlan?.title ?? 'Gym workout', supersededTitle: supersededTitleFrom(data) };
+}
+
+export type AcceptProposalResult = { id: string; ok: boolean; supersededTitle?: string | null; error?: string };
+
+export async function acceptCalendarProposals(client: SupabaseClient, planIds: string[]): Promise<AcceptProposalResult[]> {
+  const { data, error } = await client.rpc('accept_gym_workout_plans', { p_plan_ids: planIds });
+  if (error) fail(error, 'accept these Gym proposals');
+  const results = data && typeof data === 'object' ? (data as { results?: unknown }).results : null;
+  if (!Array.isArray(results)) return [];
+  return results.map((item) => {
+    const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    const id = typeof record.id === 'string' ? record.id : '';
+    const ok = record.ok === true;
+    if (!ok) return { id, ok: false, error: typeof record.error === 'string' ? record.error : 'Could not accept this proposal.' };
+    return { id, ok: true, supersededTitle: supersededTitleFrom(record.result) };
+  });
 }

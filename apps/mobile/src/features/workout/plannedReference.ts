@@ -1,7 +1,7 @@
-import type { ActualExercise, ActualSet, GymPlan } from './workoutApi';
+import type { ActualExercise, ActualSet, ExerciseAlternative, GymPlan } from './workoutApi';
 
 export type PlannedSet = { reps: number; weight_kg?: number | null; rest_seconds?: number };
-export type PlannedExercise = { client_id: string; name: string; sets: PlannedSet[] };
+export type PlannedExercise = { client_id: string; name: string; alternatives?: ExerciseAlternative[]; sets: PlannedSet[] };
 
 export type PlannedSetRef =
   | { kind: 'planned'; exerciseName: string; plannedSetCount: number; set: PlannedSet }

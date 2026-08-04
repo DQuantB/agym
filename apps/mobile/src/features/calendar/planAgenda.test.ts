@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 
-import { buildPlanAgenda, countPlanSets, groupIdenticalProposals, planCategoryLabel, planExerciseSummary, toAgendaEntry } from './planAgenda';
+import { buildPlanAgenda, countPlanSets, formatProposalBatchConfirmation, groupIdenticalProposals, planCategoryLabel, planExerciseSummary, summarizeBulkAcceptResults, toAgendaEntry } from './planAgenda';
 import type { CalendarPlan } from './calendarApi';
 import type { GymPlan } from '@/features/workout/workoutApi';
 
@@ -94,4 +94,54 @@ it('labels a known plan category and falls back to a title-cased prefix of the k
   expect(planCategoryLabel('run_workout')).toBe('Run');
   expect(planCategoryLabel('meal_plan')).toBe('Meal');
   expect(planCategoryLabel('sleep')).toBe('Sleep');
+});
+
+it('attaches the previous plan for a date that has one, and leaves others without it', () => {
+  const supersededByDate = new Map([['2026-07-21', { id: 'old-1', title: 'Old bench day' }]]);
+  const agenda = buildPlanAgenda({
+    proposals: [],
+    scheduled: [
+      calendarPlan({ id: 's-today', scheduledFor: '2026-07-21' }),
+      calendarPlan({ id: 's-later', scheduledFor: '2026-07-24' }),
+    ],
+    today: '2026-07-21',
+    supersededByDate,
+  });
+  expect(agenda.today[0].previousPlan).toEqual({ id: 'old-1', title: 'Old bench day' });
+  expect(agenda.upcoming[0].previousPlan).toBeUndefined();
+});
+
+it('omits previousPlan entirely when no supersededByDate map is given', () => {
+  const entry = toAgendaEntry(calendarPlan({ scheduledFor: '2026-07-21' }), '2026-07-21');
+  expect(entry.previousPlan).toBeUndefined();
+});
+
+it('formats a bulk-accept confirmation as one bulleted line per proposal', () => {
+  const entries = [
+    { title: 'Squat day', whenLabel: 'Mon 27 Jul' },
+    { title: 'Bench day', whenLabel: 'Wed 29 Jul' },
+  ];
+  expect(formatProposalBatchConfirmation(entries)).toBe('• Squat day — Mon 27 Jul\n• Bench day — Wed 29 Jul');
+});
+
+it('returns an empty confirmation string for an empty batch', () => {
+  expect(formatProposalBatchConfirmation([])).toBe('');
+});
+
+it('summarizes a bulk-accept batch, naming failures by their entry title', () => {
+  const entries = [{ id: 'mon', title: 'Squat day' }, { id: 'wed', title: 'Bench day' }, { id: 'fri', title: 'Deadlift day' }];
+  const results = [
+    { id: 'mon', ok: true as const },
+    { id: 'wed', ok: false as const, error: 'gym plan is not awaiting acceptance' },
+    { id: 'fri', ok: true as const },
+  ];
+  expect(summarizeBulkAcceptResults(results, entries)).toEqual({
+    acceptedCount: 2,
+    failed: [{ title: 'Bench day', error: 'gym plan is not awaiting acceptance' }],
+  });
+});
+
+it('reports zero failures when every item in the batch succeeds', () => {
+  const entries = [{ id: 'mon', title: 'Squat day' }];
+  expect(summarizeBulkAcceptResults([{ id: 'mon', ok: true as const }], entries)).toEqual({ acceptedCount: 1, failed: [] });
 });

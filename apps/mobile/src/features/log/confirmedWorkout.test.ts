@@ -76,6 +76,31 @@ it('drops an exercise with no valid sets rather than surfacing an empty exercise
   expect(parsed?.actual.exercises).toEqual([]);
 });
 
+it('preserves a chosen exercise alternative and its options through normalization', () => {
+  const parsed = parseConfirmedWorkout({
+    id: 'evt-1', confirmed_at: '2026-07-21T18:42:00.000Z',
+    final_fields: rpcFinalFields({
+      planned_snapshot: {
+        kind: 'gym_workout', schema_version: 1, scheduled_for: '2026-07-21', title: 'Upper strength',
+        exercises: [{
+          client_id: 'row', name: 'Barbell row', sets: [{ reps: 8, weight_kg: 60, rest_seconds: 90 }],
+          alternatives: [{ client_id: 'lat-pulldown', name: 'Lat pulldown' }],
+        }],
+      },
+      actual: {
+        kind: 'gym_workout_execution', schema_version: 1,
+        exercises: [{
+          client_id: 'row', name: 'Lat pulldown', user_added: false, selected_alternative_id: 'lat-pulldown',
+          alternatives: [{ client_id: 'lat-pulldown', name: 'Lat pulldown' }],
+          sets: [{ reps: 10, weight_kg: 50, rest_seconds: 90, completed: true, skipped_reason: null, user_added: false }],
+        }],
+      },
+    }),
+  });
+  expect(parsed?.planned?.exercises[0].alternatives).toEqual([{ client_id: 'lat-pulldown', name: 'Lat pulldown' }]);
+  expect(parsed?.actual.exercises[0]).toMatchObject({ name: 'Lat pulldown', selected_alternative_id: 'lat-pulldown' });
+});
+
 it('leaves startedAt and completedAt null for logApi to merge in from workout_executions', () => {
   const parsed = parseConfirmedWorkout({ id: 'evt-1', confirmed_at: '2026-07-21T18:42:00.000Z', final_fields: rpcFinalFields() });
   expect(parsed?.startedAt).toBeNull();

@@ -3,14 +3,16 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
+import { DisclosureRow } from '@/components/DisclosureRow';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
 import { formatWeekdayDate } from '@/lib/dateLabels';
 import { colors, radius, spacing } from '@/theme/tokens';
 
-import { acceptCalendarProposals, findActivePlanConflicts, loadCalendarPlans, type CalendarPlan } from './calendarApi';
+import { acceptCalendarProposals, findActivePlanConflicts, loadCalendarPlans, loadSupersededPlansByDate, restoreSupersededPlan, type CalendarPlan, type SupersededPlan } from './calendarApi';
 import { mapCalendarScreenState } from './calendarState';
-import { buildPlanAgenda, type ProposalGroup } from './planAgenda';
+import { buildPlanAgenda, formatProposalBatchConfirmation, summarizeBulkAcceptResults, type ProposalGroup } from './planAgenda';
 
 function todayLocalDate(): string {
   const now = new Date();
@@ -22,26 +24,39 @@ export function PlansScreen() {
   const router = useRouter();
   const [proposals, setProposals] = useState<CalendarPlan[]>([]);
   const [scheduled, setScheduled] = useState<CalendarPlan[]>([]);
+  const [supersededByDate, setSupersededByDate] = useState<Map<string, SupersededPlan>>(new Map());
   const [message, setMessage] = useState<string | null>(null);
+  const [restoreStatus, setRestoreStatus] = useState<{ tone: 'warning' | 'confirmed'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const [pastExpanded, setPastExpanded] = useState(false);
   const [acceptingGroup, setAcceptingGroup] = useState<string | null>(null);
+  const [bulkAccepting, setBulkAccepting] = useState(false);
+  const [bulkAcceptStatus, setBulkAcceptStatus] = useState<{ tone: 'warning' | 'confirmed'; text: string } | null>(null);
 
-  const refresh = useCallback(() => {
-    if (!auth.ready || !auth.configured || !auth.session) { setLoading(false); return undefined; }
+  const refresh = useCallback(async () => {
     const client = getSupabaseClient();
-    if (!client) { setMessage('This device has no public AGYM data connection yet.'); return undefined; }
-    let active = true;
+    if (!client) { setMessage('This device has no public AGYM data connection yet.'); return; }
     setLoading(true);
     setMessage(null);
-    void loadCalendarPlans(client)
-      .then((result) => { if (active) { setProposals(result.proposals); setScheduled(result.scheduled); } })
-      .catch((error: unknown) => { if (active) setMessage(error instanceof Error ? error.message : 'Could not load calendar plans.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [auth.configured, auth.ready, auth.session]);
+    try {
+      const [plans, superseded] = await Promise.all([loadCalendarPlans(client), loadSupersededPlansByDate(client)]);
+      setProposals(plans.proposals);
+      setScheduled(plans.scheduled);
+      setSupersededByDate(superseded);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not load calendar plans.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useFocusEffect(useCallback(() => refresh(), [refresh]));
+  useFocusEffect(useCallback(() => {
+    if (!auth.ready || !auth.configured || !auth.session) { setLoading(false); return undefined; }
+    let active = true;
+    void refresh().then(() => { if (!active) return; });
+    return () => { active = false; };
+  }, [auth.configured, auth.ready, auth.session, refresh]));
 
   async function acceptGroup(group: ProposalGroup) {
     const client = getSupabaseClient();
@@ -60,14 +75,68 @@ export function PlansScreen() {
         text: conflicts.length ? `Replace ${conflicts.length} and accept all ${count}` : `Accept all ${count}`,
         onPress: () => {
           void acceptCalendarProposals(client, group.occurrences.map((occurrence) => occurrence.id))
-            .then((result) => {
+            .then((results) => {
               refresh();
-              if (result.failed.length) Alert.alert('Some sessions could not be accepted', result.failed.map((failure) => failure.message).join('\n'));
+              const { failed } = summarizeBulkAcceptResults(results, group.occurrences.map((occurrence) => ({ id: occurrence.id, title: group.entry.title })));
+              if (failed.length) Alert.alert('Some sessions could not be accepted', failed.map((failure) => `${failure.title}: ${failure.error}`).join('\n'));
             })
             .catch((error: unknown) => Alert.alert('Could not accept these sessions', error instanceof Error ? error.message : 'Unknown error.'))
             .finally(() => setAcceptingGroup(null));
         },
       }],
+    );
+  }
+
+  function goBackToPrevious(entry: { id: string; title: string; previousPlan?: SupersededPlan }) {
+    if (!entry.previousPlan) return;
+    const previous = entry.previousPlan;
+    Alert.alert(
+      `Go back to "${previous.title}"?`,
+      `This replaces "${entry.title}" with your previous plan for that day. Nothing is deleted — either plan can be restored again later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Go back', onPress: () => {
+            const client = getSupabaseClient();
+            if (!client) return;
+            setRestoringId(previous.id);
+            setRestoreStatus(null);
+            void restoreSupersededPlan(client, previous.id)
+              .then(({ restoredTitle }) => { setRestoreStatus({ tone: 'confirmed', text: `Restored "${restoredTitle}".` }); return refresh(); })
+              .catch((error: unknown) => setRestoreStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not restore this plan.' }))
+              .finally(() => setRestoringId(null));
+          },
+        },
+      ],
+    );
+  }
+
+  function acceptAllGroups(groups: ProposalGroup[]) {
+    const client = getSupabaseClient();
+    const entries = groups.flatMap((group) => group.occurrences.map((occurrence) => ({ id: occurrence.id, title: group.entry.title, whenLabel: occurrence.whenLabel })));
+    if (!client || bulkAccepting || entries.length === 0) return;
+    Alert.alert(
+      `Accept all ${entries.length} proposals?`,
+      `${formatProposalBatchConfirmation(entries)}\n\nEach becomes planned training. Any day that already has an accepted plan keeps the previous one in your history and can be restored.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Accept all ${entries.length}`, onPress: () => {
+            setBulkAccepting(true);
+            setBulkAcceptStatus(null);
+            void acceptCalendarProposals(client, entries.map((entry) => entry.id))
+              .then(async (results) => {
+                const { acceptedCount, failed } = summarizeBulkAcceptResults(results, entries);
+                setBulkAcceptStatus(failed.length
+                  ? { tone: 'warning', text: `${acceptedCount} of ${entries.length} accepted. Could not accept: ${failed.map((item) => `${item.title} (${item.error})`).join('; ')}.` }
+                  : { tone: 'confirmed', text: `Accepted all ${acceptedCount} proposals.` });
+                await refresh();
+              })
+              .catch((error: unknown) => setBulkAcceptStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not accept these proposals.' }))
+              .finally(() => setBulkAccepting(false));
+          },
+        },
+      ],
     );
   }
 
@@ -82,15 +151,27 @@ export function PlansScreen() {
   if (state.kind === 'error') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard tone="warning" title="Plans unavailable" detail={state.message} /></Screen>;
 
   const today = todayLocalDate();
-  const agenda = buildPlanAgenda({ proposals: state.proposals, scheduled: state.scheduled, today });
+  const agenda = buildPlanAgenda({ proposals: state.proposals, scheduled: state.scheduled, today, supersededByDate });
   const upcoming = [...agenda.today, ...agenda.upcoming];
+  const totalProposalCount = agenda.proposals.reduce((sum, group) => sum + group.occurrences.length, 0);
 
   return (
     <Screen eyebrow="PLANS" title="Agenda">
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {restoreStatus ? <StatusCard tone={restoreStatus.tone} title="Previous plan" detail={restoreStatus.text} /> : null}
         {agenda.proposals.length ? (
           <>
-            <Text style={styles.sectionHeader}>✧ NEEDS YOUR REVIEW ({agenda.proposals.length})</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeader}>✧ NEEDS YOUR REVIEW ({totalProposalCount})</Text>
+              {totalProposalCount > 1 ? (
+                <Button
+                  label={`Accept all ${totalProposalCount}`} variant="primary" busy={bulkAccepting}
+                  accessibilityLabel={`Accept all ${totalProposalCount} proposals`}
+                  onPress={() => acceptAllGroups(agenda.proposals)}
+                />
+              ) : null}
+            </View>
+            {bulkAcceptStatus ? <StatusCard tone={bulkAcceptStatus.tone} title="Accept all" detail={bulkAcceptStatus.text} /> : null}
             {agenda.proposals.map((group) => {
               const { entry, occurrences } = group;
               const repeats = occurrences.length > 1;
@@ -140,23 +221,30 @@ export function PlansScreen() {
               <Text style={styles.title}>{entry.title}</Text>
               <Text style={styles.detail}>{entry.exerciseCount} exercises · {entry.setCount} sets</Text>
               {entry.bucket === 'today' ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Start ${entry.title}`} style={styles.primaryButton} onPress={() => router.push('/workout' as never)}>
-                  <Text style={styles.primaryButtonText}>START WORKOUT</Text>
-                </Pressable>
+                <Button label="START WORKOUT" variant="primary" fullWidth accessibilityLabel={`Start ${entry.title}`} onPress={() => router.push('/workout' as never)} />
               ) : (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${entry.title}`} style={styles.secondaryButton} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: entry.id } } as never)}>
-                  <Text style={styles.secondaryButtonText}>Edit</Text>
-                </Pressable>
+                <Button label="Edit" variant="secondary" accessibilityLabel={`Edit ${entry.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: entry.id } } as never)} />
               )}
+              {entry.previousPlan ? (
+                <Button
+                  label={`↺ Go back to "${entry.previousPlan.title}"`} variant="tertiary"
+                  busy={restoringId === entry.previousPlan.id} disabled={restoringId !== null}
+                  accessibilityLabel={`Go back to previous plan "${entry.previousPlan.title}" for ${entry.whenLabel}`}
+                  onPress={() => goBackToPrevious(entry)}
+                />
+              ) : null}
             </View>
           </View>
         )) : <StatusCard title="No scheduled sessions" detail="Only accepted plans can become scheduled training." />}
 
         {agenda.past.length ? (
           <>
-            <Pressable accessibilityRole="button" accessibilityLabel={pastExpanded ? 'Hide past scheduled sessions' : 'Show past scheduled sessions'} style={styles.disclosure} onPress={() => setPastExpanded((value) => !value)}>
-              <Text style={styles.disclosureText}>{pastExpanded ? '▾' : '▸'} Past scheduled ({agenda.past.length})</Text>
-            </Pressable>
+            <DisclosureRow
+              label={`Past scheduled (${agenda.past.length})`}
+              expanded={pastExpanded}
+              onToggle={() => setPastExpanded((value) => !value)}
+              accessibilityLabel={pastExpanded ? 'Hide past scheduled sessions' : 'Show past scheduled sessions'}
+            />
             {pastExpanded ? agenda.past.map((entry) => (
               <View key={entry.id} style={styles.scheduledRow}>
                 <View style={styles.dayChip}><Text style={styles.dayChipWeekday}>{entry.dayChip.weekday}</Text><Text style={styles.dayChipNumber}>{entry.dayChip.dayOfMonth}</Text></View>
@@ -176,6 +264,7 @@ export function PlansScreen() {
 
 const styles = StyleSheet.create({
   list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  sectionHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   sectionHeader: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: spacing.md },
   proposalCard: { backgroundColor: colors.surface, borderColor: colors.orange, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   proposalEyebrow: { color: colors.orange, fontSize: 12, fontWeight: '800' },
@@ -185,16 +274,12 @@ const styles = StyleSheet.create({
   reviewButton: { alignItems: 'center', backgroundColor: colors.orange, borderRadius: radius.md, justifyContent: 'center', marginTop: spacing.xs, minHeight: 48 },
   reviewButtonText: { color: colors.background, fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
   proposalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.md },
+  secondaryButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   groupAcceptButton: { flex: 1, marginTop: 0 },
   scheduledRow: { flexDirection: 'row', gap: spacing.sm },
   dayChip: { alignItems: 'center', backgroundColor: colors.surfaceRaised, borderRadius: radius.md, gap: 2, paddingVertical: spacing.sm, width: 52 },
   dayChipWeekday: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   dayChipNumber: { color: colors.text, fontSize: 20, fontWeight: '700' },
   scheduledBody: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, flex: 1, gap: spacing.xs, padding: spacing.md },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.orange, borderRadius: radius.md, justifyContent: 'center', marginTop: spacing.xs, minHeight: 44 },
-  primaryButtonText: { color: colors.background, fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
-  secondaryButton: { alignItems: 'center', alignSelf: 'flex-start', borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, justifyContent: 'center', marginTop: spacing.xs, minHeight: 44, paddingHorizontal: spacing.md },
-  secondaryButtonText: { color: colors.text, fontSize: 13, fontWeight: '700' },
-  disclosure: { justifyContent: 'center', marginTop: spacing.sm, minHeight: 44 },
-  disclosureText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
 });

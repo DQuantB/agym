@@ -17,6 +17,7 @@ export type SetRow = {
 export type ExerciseSummary = {
   name: string;
   userAdded: boolean;
+  substitutedFrom: string | null;
   plannedSetCount: number | null;
   actualSetCount: number;
   skippedCount: number;
@@ -72,6 +73,7 @@ function toExerciseSummary(exercise: ActualExercise, w: ConfirmedWorkout): Exerc
   return {
     name: exercise.name,
     userAdded: exercise.user_added,
+    substitutedFrom: exercise.selected_alternative_id && plannedExercise ? plannedExercise.name : null,
     plannedSetCount: plannedExercise ? plannedExercise.sets.length : null,
     actualSetCount: exercise.sets.length,
     skippedCount: rows.filter((row) => row.outcome === 'skipped').length,

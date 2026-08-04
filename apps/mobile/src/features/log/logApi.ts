@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { parseConfirmedWorkout, type ConfirmedWorkout } from './confirmedWorkout';
+import { parseTrainingSessionRow, type TrainingSessionRow } from './trainingGrid';
 
 export type EvidenceHistoryItem = { id: string; label: 'RAW SELF-REPORT' | 'PARSED DRAFT · UNCERTAIN' | 'USER-CONFIRMED'; date: string; detail: string };
 export type RawEvidence = { id: string; text: string; createdAt: string };
@@ -44,6 +45,22 @@ export async function loadConfirmedWorkoutDetail(client: SupabaseClient, canonic
     if (rawRow) rawEvidence = { id: rawRow.id, text: rawRow.raw_text, createdAt: rawRow.created_at };
   }
   return { workout, rawEvidence };
+}
+
+/**
+ * Completed-session rows for the History density grid, bucketed by
+ * scheduled_for (a real date column, unlike canonical_events.confirmed_at).
+ * Unlike loadCompletedWorkouts this is date-ranged, not limit-bounded, and
+ * reads workout_executions directly rather than canonical_events.
+ */
+export async function loadTrainingGridRange(client: SupabaseClient, fromDate: string, toDate: string): Promise<TrainingSessionRow[]> {
+  const { data, error } = await client.from('workout_executions')
+    .select('scheduled_for, planned_snapshot, execution_data')
+    .eq('status', 'completed')
+    .gte('scheduled_for', fromDate).lte('scheduled_for', toDate)
+    .order('scheduled_for', { ascending: true });
+  if (error) throw new Error(`AGYM could not load training density history: ${error.message}`);
+  return (data ?? []).map(parseTrainingSessionRow).filter((row): row is TrainingSessionRow => row !== null);
 }
 
 export async function loadEvidenceHistory(client: SupabaseClient): Promise<EvidenceHistoryItem[]> {

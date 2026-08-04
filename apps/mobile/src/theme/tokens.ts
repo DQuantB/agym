@@ -25,3 +25,13 @@ export const type = {
 } as const;
 
 export const hit = { min: 44, primary: 56 } as const;
+
+/** Shared four-tone semantic map (MOBILE-UI-v2.md:58): neutral/proposal/confirmed/warning. */
+export const tone = { neutral: colors.muted, proposal: colors.orange, confirmed: colors.green, warning: colors.gold } as const;
+
+/**
+ * 5-step density ramp for the training grid (index 0 = no session). Every
+ * cell here represents a confirmed session, so the ramp is built on
+ * colors.green, the app's semantic "confirmed" color.
+ */
+export const trainingDensity = [colors.surface, '#1E3B2A', '#2C6A46', '#469D67', colors.green] as const;

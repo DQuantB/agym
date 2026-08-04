@@ -36,7 +36,7 @@ export function SessionDetailScreen() {
   const progress = computeWorkoutProgress(workout.actual);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.confirmed}>✓ USER CONFIRMED · {card.dateLabel} · {card.timeLabel}</Text>
       <Text style={styles.title}>{card.title}</Text>
       <Text style={styles.message}>Immutable. Confirming never changed the plan or the raw evidence.</Text>
@@ -52,6 +52,7 @@ export function SessionDetailScreen() {
           <View style={styles.exerciseHeaderRow}>
             <Text style={styles.exerciseName}>{exercise.name}</Text>
             {exercise.userAdded ? <Text style={styles.addedChip}>+ ADDED</Text> : null}
+            {exercise.substitutedFrom ? <Text style={styles.addedChip}>↺ SUBSTITUTED FOR {exercise.substitutedFrom.toUpperCase()}</Text> : null}
           </View>
           {exercise.rows.map((row) => (
             <View key={row.ordinal} style={styles.setRow}>

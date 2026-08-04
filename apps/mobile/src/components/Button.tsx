@@ -1,44 +1,58 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors, hit, radius, spacing } from '@/theme/tokens';
-
-type Variant = 'primary' | 'secondary' | 'danger';
+import { resolveButtonVisual, type ButtonVariant } from './buttonVariant';
 
 type Props = {
-  title: string;
+  label: string;
   onPress: () => void;
-  variant?: Variant;
+  variant?: ButtonVariant;
   disabled?: boolean;
+  busy?: boolean;
   accessibilityLabel?: string;
+  fullWidth?: boolean;
 };
 
-/** Themed replacement for React Native's default `Button`, which renders as an unstyled OS-native control and breaks AGYM's dark/orange design system. */
-export function Button({ title, onPress, variant = 'secondary', disabled = false, accessibilityLabel }: Props) {
+export function Button({ label, onPress, variant = 'secondary', disabled, busy, accessibilityLabel, fullWidth }: Props) {
+  const isDisabled = Boolean(disabled || busy);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      style={[styles.base, variantStyles[variant], disabled && styles.disabled]}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: isDisabled, busy: Boolean(busy) }}
+      disabled={isDisabled}
       onPress={onPress}
+      style={({ pressed }) => {
+        const visual = resolveButtonVisual(variant, { pressed, disabled: isDisabled });
+        return [
+          styles.base,
+          fullWidth ? styles.fullWidth : null,
+          {
+            backgroundColor: visual.backgroundColor,
+            borderColor: visual.borderColor,
+            borderWidth: visual.borderWidth,
+            borderRadius: visual.borderRadius,
+            minHeight: visual.minHeight,
+            opacity: visual.opacity,
+          },
+        ];
+      }}
     >
-      <Text style={[styles.text, variantTextStyles[variant]]}>{title}</Text>
+      {busy ? <ActivityIndicator color={resolveButtonVisual(variant).textColor} /> : null}
+      <Text
+        style={{
+          color: resolveButtonVisual(variant).textColor,
+          fontSize: resolveButtonVisual(variant).fontSize,
+          fontWeight: resolveButtonVisual(variant).fontWeight,
+          letterSpacing: resolveButtonVisual(variant).letterSpacing,
+        }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: { alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, minHeight: hit.min, paddingHorizontal: spacing.md },
-  primary: { backgroundColor: colors.orange },
-  secondary: { borderColor: colors.border, borderWidth: 1 },
-  danger: { borderColor: colors.danger, borderWidth: 1 },
-  disabled: { opacity: 0.5 },
-  text: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
-  primaryText: { color: colors.background, fontWeight: '800' },
-  secondaryText: { color: colors.text },
-  dangerText: { color: colors.danger },
+  base: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: 8, justifyContent: 'center', paddingHorizontal: 16 },
+  fullWidth: { alignSelf: 'stretch' },
 });
-
-const variantStyles = { primary: styles.primary, secondary: styles.secondary, danger: styles.danger };
-const variantTextStyles = { primary: styles.primaryText, secondary: styles.secondaryText, danger: styles.dangerText };

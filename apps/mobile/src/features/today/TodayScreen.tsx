@@ -6,7 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, hit, spacing } from '@/theme/tokens';
 
 import { addCalendarDays, buildHomeCalendarDays, weekStart } from './homeSchedule';
 import { loadTodayRemoteData, loadUpcomingActivePlans, type TodayRemoteData } from './todayApi';
@@ -78,30 +78,30 @@ export function TodayScreen() {
   return (
     <Screen
       eyebrow={`AGYM · HOME · ${date}`} title="Home"
-      action={<Pressable accessibilityRole="button" accessibilityLabel="Log something" onPress={() => router.push('/capture' as never)}><Text style={styles.actionText}>+ Log something</Text></Pressable>}
+      action={<Button label="+ Log something" variant="tertiary" accessibilityLabel="Log something" onPress={() => router.push('/capture' as never)} />}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {proposal && state.kind !== 'proposal_waiting' ? <StatusCard tone="proposal" title="✧ Agent proposal" detail={`${proposal.title}. Nothing has been applied yet — review it in Plans before it can become scheduled training.`} /> : null}
         <View style={styles.calendarCard}>
           <View style={styles.calendarHeader}><Text style={styles.monthLabel}>{month}</Text><Text style={styles.eventCount}>{plannedInWeek} planned</Text></View>
           <View style={styles.weekNavigation}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Previous day" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, -1))} style={styles.dayArrow}><Text style={styles.dayArrowText}>‹</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Previous week" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, -7))} style={styles.dayArrow}><Text style={styles.dayArrowText}>‹</Text></Pressable>
             <View style={styles.calendarGrid}>
               {days.map((day) => {
                 const selected = day.date === selectedDate;
-                return <Pressable key={day.date} accessibilityRole="button" accessibilityLabel={`${day.weekday} ${day.date}${day.plan ? `: ${day.plan.title}` : ': no scheduled workout'}`} onPress={() => setSelectedDate(day.date)} style={styles.day}>
+                return <Pressable key={day.date} accessibilityRole="button" accessibilityLabel={`${day.weekday} ${day.date}${day.plan ? `: ${day.plan.title}` : ': no scheduled workout'}`} accessibilityState={{ selected }} hitSlop={6} onPress={() => setSelectedDate(day.date)} style={styles.day}>
                   <Text style={styles.weekday}>{day.weekday}</Text><View style={[styles.dayNumberWrap, selected ? styles.daySelected : null]}><Text style={[styles.dayNumber, selected ? styles.dayNumberSelected : null]}>{day.dayOfMonth}</Text></View><View style={[styles.dot, day.plan ? styles.dotWithPlan : null]} />
                 </Pressable>;
               })}
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Next day" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, 1))} style={styles.dayArrow}><Text style={styles.dayArrowText}>›</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Next week" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, 7))} style={styles.dayArrow}><Text style={styles.dayArrowText}>›</Text></Pressable>
           </View>
-          {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : selectedDate > date ? 'Review or adjust this future workout before its scheduled day.' : 'This workout is in the past and cannot be changed.'}</Text>{selectedDate > date ? <Button title="View & edit workout" variant="primary" accessibilityLabel={`View and edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
+          {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : selectedDate > date ? 'Review or adjust this future workout before its scheduled day.' : 'This workout is in the past and cannot be changed.'}</Text>{selectedDate > date ? <Button label="Edit workout" variant="primary" fullWidth accessibilityLabel={`Edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
         </View>
-        {stateCard(state)}
-        {state.kind === 'ready' ? <Button title="Start workout" variant="primary" accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
-        {state.kind === 'in_progress' ? <Button title="Resume workout" variant="primary" accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
-        {state.kind === 'no_session' ? <Button title="Log an unplanned workout" accessibilityLabel="Log an unplanned workout" onPress={() => router.push('/capture' as never)} /> : null}
+        {selectedDate === date ? stateCard(state) : null}
+        {selectedDate === date && state.kind === 'ready' ? <Button label="Start workout" variant="primary" fullWidth accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
+        {selectedDate === date && state.kind === 'in_progress' ? <Button label="Resume workout" variant="primary" fullWidth accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
+        {selectedDate === date && state.kind === 'no_session' ? <Button label="Log an unplanned workout" variant="secondary" fullWidth accessibilityLabel="Log an unplanned workout" onPress={() => router.push('/capture' as never)} /> : null}
       </ScrollView>
     </Screen>
   );
@@ -109,13 +109,12 @@ export function TodayScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
-  actionText: { color: colors.orange, fontSize: 13, fontWeight: '700' },
   calendarCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 20, gap: spacing.sm, padding: spacing.md },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   monthLabel: { color: colors.text, fontSize: 20, fontWeight: '700' },
   eventCount: { color: colors.muted, fontSize: 14, fontWeight: '700' },
   weekNavigation: { alignItems: 'center', flexDirection: 'row' },
-  dayArrow: { alignItems: 'center', justifyContent: 'center', minHeight: 76, width: 20 },
+  dayArrow: { alignItems: 'center', justifyContent: 'center', minHeight: 76, width: hit.min },
   dayArrowText: { color: colors.text, fontSize: 28, lineHeight: 32 },
   calendarGrid: { flex: 1, flexDirection: 'row', justifyContent: 'space-between' },
   day: { alignItems: 'center', flex: 1, gap: 4, minHeight: 76 },

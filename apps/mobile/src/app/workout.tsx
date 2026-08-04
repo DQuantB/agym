@@ -12,7 +12,7 @@ export default function WorkoutRoute() {
   const router = useRouter();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader onBack={() => router.back()} />
+      <ScreenHeader onBack={() => router.back()} title={mode === 'edit' ? 'Edit workout' : undefined} />
       {mode === 'edit' ? <FuturePlanEditorScreen /> : <WorkoutExecutionScreen />}
     </View>
   );

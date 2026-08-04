@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '@/theme/tokens';
+import { colors, spacing, tone } from '@/theme/tokens';
 
 type Props = {
   eyebrow: string;
@@ -33,16 +33,15 @@ export function Screen({ eyebrow, title, children, action, onBack }: Props) {
   );
 }
 
-export function StatusCard({ title, detail, tone = 'neutral' }: { title: string; detail: string; tone?: 'neutral' | 'proposal' | 'confirmed' | 'warning' }) {
-  const color = tone === 'proposal' ? colors.orange : tone === 'confirmed' ? colors.green : tone === 'warning' ? colors.gold : colors.muted;
-  return <View style={styles.card}><Text style={[styles.cardTitle, { color }]}>{title}</Text><Text style={styles.detail}>{detail}</Text></View>;
+export function StatusCard({ title, detail, tone: statusTone = 'neutral' }: { title: string; detail: string; tone?: keyof typeof tone }) {
+  return <View style={styles.card}><Text style={[styles.cardTitle, { color: tone[statusTone] }]}>{title}</Text><Text style={styles.detail}>{detail}</Text></View>;
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: spacing.lg, gap: spacing.md },
   headerRow: { alignItems: 'flex-end', flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
-  back: { alignItems: 'center', height: 44, justifyContent: 'center', marginBottom: 4, width: 32 },
-  backText: { color: colors.text, fontSize: 26, lineHeight: 28 },
+  back: { alignItems: 'center', height: 44, justifyContent: 'center', marginBottom: 4, width: 44 },
+  backText: { color: colors.text, fontSize: 28, lineHeight: 30 },
   headerText: { flex: 1 },
   action: { paddingBottom: 6 },
   eyebrow: { color: colors.orange, fontSize: 12, fontWeight: '700', letterSpacing: 1.5 },

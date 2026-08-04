@@ -4,16 +4,14 @@ This directory is the durable source of truth for AGym marketing work. It is not
 
 ## Source-of-truth order
 
-1. `../agents/marketing-agent.md` — product boundaries, claims rules, agent workflow, and approval limits.
-2. `brand-system.md` — current marketing visual/voice system and asset-status rules.
-3. `waitlist-smoke-test-v1.md` — original waitlist-test design.
-4. `meta-ads-v1.md` — historical v1 paid-social creative handoff.
-5. `reference-study-2026-07-11.md` — founder-provided visual-reference analysis and proposed concept-board territories.
-6. `concept-board-v1.md` — founder decision selecting Concept B and the approved secondary input from C.
-7. `meta-ads-v3-training-translation.md` — current internally reviewed, training-explicit Concept B Meta creative handoff.
-8. `performance-interface-v2.md` — historical v2 creative handoff; not an active system.
-9. `experiments/` — experiment briefs, results, and explicit founder decisions.
-10. `assets/` — versioned source and finished assets; never use a filename alone as a performance claim.
+1. `../agents/marketing-agent.md` — coach-first product boundaries, claims rules, agent workflow, and approval limits.
+2. `../agents/marketing-subagents.md` — bounded worker contracts and output schemas.
+3. `experiments/2026-08-01-coach-discovery-sprint-v1.md` — active research protocol for the coach-first wedge.
+4. `coach-discovery-operator-guide-v1.md` — the active public-source scan, qualification, message, and founder-review protocol.
+5. `brand-system.md` — current visual/voice system when visual work is required.
+6. `experiments/` — experiment briefs, results, and explicit founder decisions.
+7. `assets/` — versioned source and finished assets; never use a filename alone as a performance claim.
+8. `waitlist-smoke-test-v1.md`, `advertising-strategy-v1.md`, and historical paid/social assets — earlier consumer-oriented work, retained for traceability only; not active proof or an execution plan for Coach Discovery Sprint v1.
 
 If these files disagree on product scope or claims, `../agents/marketing-agent.md` wins. Product implementation source documents still control what AGym actually does.
 
@@ -45,6 +43,23 @@ States:
 - `live` — externally published; include date and channel in the experiment record.
 
 ## Activity log
+
+### 2026-08-01 — Coach Discovery operator guide v1
+
+- Founder approved the first ICP: independent online strength/hypertrophy coaches with approximately 10–50 clients and recurring remote client check-ins.
+- Added `coach-discovery-operator-guide-v1.md`: repeatable public-source search queries, a qualification rubric, founder-review queue schema, three no-link discovery openers, approved follow-ups, and a manual sending protocol.
+- The guide creates an execution system without enabling outreach automation, private-source collection, prospect data enrichment, product links, or unreviewed sending.
+- Status: internal-ready research process only. The first five named prospects and messages still require founder review before any contact.
+- Next question: which public channel should supply the first five candidates—Instagram/YouTube coach content, coach newsletters/podcasts, or LinkedIn/X workflow posts?
+
+### 2026-08-01 — Coach Discovery Marketing Agent v2 foundation
+
+- Founder selected a coach-first demand-validation wedge: independent online strength/hypertrophy coaches who need better context from recurring client check-ins and may use their own LLMs for preparation.
+- Rewrote `docs/agents/marketing-agent.md` as Coach Discovery v2, preserving AGym's non-coach, no-medical-claims, raw-input/uncertainty boundaries.
+- Added `docs/agents/marketing-subagents.md` with four bounded roles: public ICP/community research, founder-reviewed no-link outreach drafting, conversation analysis, and future-prototype demo/positioning writing.
+- Added `experiments/2026-08-01-coach-discovery-sprint-v1.md`: a 15-conversation evidence gate, anonymized ledger template, and explicit founder approvals before any outreach or prototype explanation.
+- Status: internal research protocol only. No coach was contacted, no personal data was collected, and no product capability or market demand has been validated.
+- Next question: does the founder confirm the first ICP and approve research of the first five public-source prospects?
 
 ### 2026-07-11 — waitlist and Meta v1 package
 
@@ -126,3 +141,72 @@ States:
 - Finished assets, clean backgrounds, source renderer, copy, QA, and approval boundaries are recorded in `meta-ads-v3-training-translation.md` and `assets/meta-ads-v3/`.
 - Status: internally reviewed only; no publishing, spend, email collection, or performance data. These are not evidence that either copy or visual works.
 - Next question: founder review—does the training-explicit B system now feel clear and visually right enough to use as the primary waitlist-ad control?
+
+### 2026-07-18 — founder-approved waitlist advertising strategy v1
+
+- Founder confirmed the go-to-market sequence: waitlist first to validate demand, then open the waitlist to beta users and iterate on the app.
+- Founder decisions: organic-first with a **€50–150 small paid Meta test** afterward (no paid-first launch); priority channels are **Reddit/niche communities, X build-in-public, and Meta ads**; Product Hunt/directories deferred; landing page + form **do not exist yet** and are Phase 0.
+- Created `advertising-strategy-v1.md`: Phase 0 landing page build (reusing `waitlist-smoke-test-v1.md` copy and Concept B visuals), Phase 1 two-week organic push holding M1 constant, Phase 2 gated €50–150 Meta test using the v3 S3/S4 assets as an S3-vs-S4 visual test, Phase 3 decision review, plus beta-transition plan and kill/scale rules.
+- Everything remains hypothesis: no publishing, spend, email collection, or performance data yet. Targets in the strategy are unvalidated planning numbers.
+- Open items: subreddit/community scouting, founder X reach (cold-start?), landing-page surface choice, and explicit founder approval of the v3 creative as the paid control (still outstanding from 2026-07-11).
+- Next question: build and founder-approve the landing page + form so Phase 1 organic can start.
+
+### 2026-07-18 — strategy revised to v1.1 after critique
+
+- Marketing critique surfaced three weaknesses in v1; founder accepted all three and asked for a better plan.
+- Decisions recorded:
+  1. **Meta demoted.** At €50–150 Meta cannot target the ICP (people who paste workout logs into AI) and yields ~30–60 clicks — too small for demand signal. It is now an optional ≤€50 creative-legibility check, gated on Phase 1 results and founder approval. Remaining budget reserved.
+  2. **Demo-first validation.** Waitlist emails are weak evidence for a data-layer product. The landing page will lead with a micro-demo of the real loop (paste/pick messy log → parsed preview → correct → then waitlist). Prefer embedding the real v0 parser; fall back to a clearly labeled scripted preview. New primary metrics are behavioral: demo-start rate, demo→signup rate.
+  3. **Direct-first organic.** Under a cold-start X assumption, DMs (20–30, founder-approved) and reply-first participation are the primary engine; community feedback posts next; build-in-public posts secondary.
+- Also recorded: the three-track layout is expected to depress raw conversion; this is an accepted experiment cost and must not be misread later.
+- `advertising-strategy-v1.md` rewritten in place as v1.1 with a changelog; v1 remains described there.
+- Status: still all hypothesis — nothing published, no spend, no emails collected.
+- Next question: can the v0 parser slice be embedded in the landing page within Week 1 (demo option 1 vs 2)?
+
+### 2026-07-18 — outreach and paid-channel tactics clarified
+
+- Founder asked whether to start Reddit/X messaging now, whether outreach can be automated with a bot/AI, and whether paid budget should move from Meta to Reddit/X. Guidance recorded:
+  1. **Outreach timing split.** No-link discovery conversations (current workaround, is re-explaining painful) may start immediately; pitch messages with a link wait for the live demo page. Best prospects are scarce — don't burn them on a first impression without the demo.
+  2. **No automated sending.** Bot DMs violate Reddit/X spam rules, risk account bans that would kill the organic plan, are easily detected by the AI-native ICP, and breach the marketing-agent guardrail requiring founder approval per contact. AI may prospect, draft, and triage; a human reviews and sends every message. On Reddit, public helpful comment before DM; on X, replies first since DMs are often closed.
+  3. **Paid budget reallocation (pending founder confirmation): Reddit ads replace Meta** as the preferred ≤€100 paid probe, because subreddit targeting reaches the actual ICP, which Meta interest targeting cannot. X ads rejected (poor targeting, high CPM at small budgets). Same gate: live demo page + some organic pull + founder approval before any spend.
+- Status: recommendations 1–2 adopted as working practice; 3 awaits explicit founder confirmation before the strategy doc's Phase 2 is rewritten around Reddit ads.
+- Next question: founder confirms Reddit-ads swap, and the discovery-conversation prospect list (10–20 names/threads) gets built.
+
+### 2026-07-18 — step-by-step launch playbook created
+
+- Created `launch-playbook-v1.md`, the operational companion to `advertising-strategy-v1.md` (v1.1): Week 0 prep (account choice, community scouting doc, prospect list, discovery conversations with a ≥5/15 pain-confirmation checkpoint, demo-feasibility decision), Week 1 demo-first page build + QA + go-live gate, Week 2 daily organic loop (DM follow-ups, reply-first, one community post/day, two X posts) with a Day-7 midpoint review, Week 3 second wave + gated ≤€100 Reddit-ads probe with kill rules, end-of-Week-3 decision memo and beta go/no-go.
+- Playbook encodes the standing rules: human sends everything, founder gates on publish/spend/emails/DMs, M1 message held constant, same-day memory updates.
+- Paid channel written as Reddit ads per the 2026-07-18 guidance; Meta dropped from the playbook (strategy doc Phase 2 still mentions Meta until the founder's explicit confirmation is logged).
+- New artifacts the playbook will create: `community-scouting-2026-07.md`, `prospects-2026-07.md`, `experiments/2026-07-XX-waitlist-launch-v1.md`.
+- Status: plan only; nothing executed, published, or spent.
+- Next question: founder answers the three Week-0 blockers — which X/Reddit accounts to use, parser embeddability (demo option 1 vs 2), and confirmation of the Reddit-ads swap.
+
+### 2026-07-18 — founder has no X or Reddit accounts; cold-start adjustments
+
+- New context: the founder has **no existing X or Reddit accounts**. Both platforms suppress new accounts (Reddit: karma/age gates + link shadowbans; X: no reach, DMs closed to non-followers).
+- Playbook updated accordingly:
+  1. Create both accounts immediately (founder-personal X handle; aging clock starts now). X Premium (~€8/mo) recommended for reply visibility + open DMs — possibly better ROI than the first ad euros.
+  2. Organic subreddit posts deferred to Week 3–4; Weeks 0–2 on Reddit are comment-only warm-up with zero AGym mentions.
+  3. Cold-start channels added with no account-age penalty and the same ICP: **Show HN** (slots into Week 2 once the demo is stable — strong local-first/data-ownership fit), **Indie Hackers**, and **Discord** fitness/QS/AI servers.
+  4. Reddit **ads** gain relative importance since promoted posts bypass karma gates.
+- Status: playbook v1 amended in place; still nothing executed or spent.
+- Next question: accounts created? And does the founder approve the €8/mo X Premium as the first marketing spend?
+
+### 2026-07-18 — execution calendar + social presence program
+
+- Founder asked for a concrete task list, daily/weekly/monthly plan with deliverables, and a social-presence build-out. Created `execution-calendar-v1.md`:
+  - master task checklist by phase (Week 0 → Week 4+/beta) with founder-vs-agent ownership per task;
+  - daily rhythm (~45–60 founder-min: outreach queue, reply-first engagement, draft approvals, dogfooded training logging);
+  - weekly rhythm (2 X posts, 1 community touchpoint, 10–15 outreach messages, Friday review note);
+  - monthly arcs — M1 validate demand (beta go/no-go), M2 beta + presence, M3 iterate + scale decision — each with deliverables and KPI focus;
+  - social presence program: four X content pillars (build-in-public, the context pain, data-ownership opinions, dogfooded training log), Reddit karma-building protocol, Discord approach, and monthly presence targets framed as hypotheses (M1 50–100 followers → M3 300–500 with inbound DMs).
+- Positioning choice recorded: presence goal is credibility with 200–500 right people, conversations over impressions; no engagement bait; founder voice on everything.
+- Status: planning artifact; nothing executed. All targets are unvalidated hypotheses.
+- Next question: founder completes the "Do now" block (accounts, X Premium decision, demo feasibility, Reddit-ads confirmation) so Week 0 can actually start.
+
+### 2026-07-18 — social visual prompt library created
+
+- Created `visual-prompts-v1.md`: reusable image-generation prompts for all social placements under Concept B — four IG pillar posts (pain, dogfood log, data ownership, build-in-public), 9:16 story, Reddit-native ad, IG ad (reuses S4 via renderer, no new generation), avatar, X banner, and landing hero (prefers adapting the existing S3 background).
+- Every prompt is split into an image prompt (background/object layer only — model may render no readable text) and a deterministic overlay spec (headline, training anchors, `RAW > REVIEWED > READY`, disclosures), per the brand-system rule. A universal negative prompt and a per-asset QA checklist are included.
+- Status: prompt library only; no assets generated yet. Any generated asset starts as `draft` and follows the standard naming/review path.
+- Next question: generate the first batch (suggested: D1 avatar + D2 banner first, needed for account creation, then A1) and internally review against the QA checklist.

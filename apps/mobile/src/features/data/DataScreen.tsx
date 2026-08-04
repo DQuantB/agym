@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
@@ -9,6 +9,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 
 import { grantAgentAuthorization, type AuthorizationAction, type AuthorizationAgent } from './authorizationApi';
+import { loadMyCoachLink, redeemCoachCode, unlinkCoach, type CoachLink } from './coachLinkApi';
 import {
   deleteAccount,
   loadAuthorizations,
@@ -82,6 +83,18 @@ export function DataScreen() {
   const [accountStatus, setAccountStatus] = useState<Status>(null);
   const [exporting, setExporting] = useState(false);
   const [pendingPermission, setPendingPermission] = useState<string | null>(null);
+  const [coachLink, setCoachLink] = useState<CoachLink | null>(null);
+  const [coachCode, setCoachCode] = useState('');
+  const [coachStatus, setCoachStatus] = useState<Status>(null);
+  const [coachBusy, setCoachBusy] = useState(false);
+
+  const refreshCoachLink = useCallback(() => {
+    const client = getSupabaseClient();
+    if (!client || !auth.session) return;
+    void loadMyCoachLink(client)
+      .then(setCoachLink)
+      .catch((error: unknown) => setCoachStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not load your coach.' }));
+  }, [auth.session]);
 
   useFocusEffect(useCallback(() => {
     const client = getSupabaseClient();
@@ -93,8 +106,44 @@ export function DataScreen() {
       .then((rows) => { if (active) setGrants(rows); })
       .catch((cause: unknown) => { if (active) setLoadError(cause instanceof Error ? cause.message : 'Could not load permissions.'); })
       .finally(() => { if (active) setLoading(false); });
+    refreshCoachLink();
     return () => { active = false; };
-  }, [auth.session]));
+  }, [auth.session, refreshCoachLink]));
+
+  const linkCoach = () => {
+    const client = getSupabaseClient();
+    if (!client || !coachCode.trim() || coachBusy) return;
+
+    setCoachBusy(true);
+    setCoachStatus(null);
+    void redeemCoachCode(client, coachCode)
+      .then((link) => {
+        setCoachLink(link);
+        setCoachCode('');
+        setCoachStatus({ tone: 'confirmed', text: `Linked to ${link.coachName}.` });
+      })
+      .catch((error: unknown) => setCoachStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not link this coach code.' }))
+      .finally(() => setCoachBusy(false));
+  };
+
+  const removeCoach = () => {
+    const client = getSupabaseClient();
+    if (!client || !coachLink) return;
+
+    Alert.alert('Remove coach?', `${coachLink.coachName} will no longer be able to see your training history.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive', onPress: () => {
+          setCoachBusy(true);
+          setCoachStatus(null);
+          void unlinkCoach(client, coachLink.id)
+            .then(() => { setCoachLink(null); setCoachStatus({ tone: 'confirmed', text: 'Coach removed.' }); })
+            .catch((error: unknown) => setCoachStatus({ tone: 'warning', text: error instanceof Error ? error.message : 'Could not remove this coach.' }))
+            .finally(() => setCoachBusy(false));
+        },
+      },
+    ]);
+  };
 
   const refreshGrants = () => {
     const client = getSupabaseClient();
@@ -186,6 +235,35 @@ export function DataScreen() {
           title="Connected sources"
           detail="No device imports are connected in this mobile alpha. Workout evidence comes from your confirmed AGYM sessions."
         />
+
+        <Text style={styles.sectionHeader}>COACH</Text>
+        {coachStatus ? <StatusCard tone={coachStatus.tone} title="Coach" detail={coachStatus.text} /> : null}
+        {coachLink ? (
+          <View style={styles.scopeRow}>
+            <StatusCard title={`Linked to ${coachLink.coachName}`} detail={`Since ${new Date(coachLink.linkedAt).toLocaleDateString()}. Your coach can see your confirmed training history and accepted plans.`} />
+            <Button label="Remove coach" variant="destructive" busy={coachBusy} accessibilityLabel="Remove your coach" onPress={removeCoach} />
+          </View>
+        ) : (
+          <View style={styles.scopeRow}>
+            <StatusCard title="No coach linked" detail="Enter a code from your coach to share your confirmed training history and accepted plans with them." />
+            <TextInput
+              accessibilityLabel="Coach code"
+              placeholder="Coach code"
+              placeholderTextColor={colors.muted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              value={coachCode}
+              onChangeText={setCoachCode}
+              style={styles.input}
+            />
+            <Button
+              label="Link coach" variant="secondary"
+              busy={coachBusy} disabled={!coachCode.trim()}
+              accessibilityLabel="Link coach with this code"
+              onPress={linkCoach}
+            />
+          </View>
+        )}
 
         <Text style={styles.sectionHeader}>MODEL ACCESS</Text>
         {loadError ? <StatusCard tone="warning" title="Permissions unavailable" detail={loadError} /> : null}
@@ -279,4 +357,5 @@ const styles = StyleSheet.create({
   agentGroup: { gap: spacing.sm },
   agentLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },
   scopeRow: { gap: spacing.xs },
+  input: { minHeight: 44, paddingHorizontal: spacing.sm, borderRadius: 8, borderColor: colors.border, borderWidth: 1, color: colors.text },
 });

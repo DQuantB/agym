@@ -42,7 +42,9 @@ AGym is an AI-native fitness/health data-layer product, not primarily an AI coac
 agent plan → user action → raw log → parsed event → user correction → canonical memory → Coach Briefing/API context → next plan
 ```
 
-MVP vertical slice:
+**Current phase (as of 2026-08-04):** the project is well past the v0/MVP slice described below — see `docs/adr/0001-v0-source-of-truth.md` through `docs/adr/0005-coach-linking-and-monetization-phase.md` for the actual phase history. Live today: a hosted Supabase backend with auth/RLS, a shipped native mobile app (Expo/React Native, multiple TestFlight builds), remote MCP endpoints, and in-progress coach-linking + coach web dashboard + monetization work per ADR 0005. The MVP vertical slice and non-negotiables below are the *historical v0 baseline*; read the ADR chain before assuming any of them still block current work.
+
+MVP vertical slice (v0, historical):
 
 ```text
 raw text log → parsed JSON → editable preview → user confirmation → canonical event saved locally → Coach Briefing markdown generated → JSON export available
@@ -55,7 +57,7 @@ Non-negotiables:
 - No medical diagnosis or treatment claims. Use caution and recommend human/specialist review around pain, injury, extreme dieting, or eating-disorder-like signals.
 - Users own their data; export and delete must be supported.
 - No opaque resale and no research/training use without explicit consent.
-- Do not build a full AI coach, native mobile app, wearable integration, trainer dashboard, full auth/backend, payments, or public launch in the MVP.
+- A coach dashboard, coach-client linking, and monetization scaffolding are now in scope per ADR 0005 (founder override, 2026-08-04) — this supersedes the old blanket "no trainer dashboard, no payments" MVP rule. Full AI coach behavior (automated plan authorship, medical claims), wearable integration, and public launch remain out of scope.
 
 Implementation constraints:
 

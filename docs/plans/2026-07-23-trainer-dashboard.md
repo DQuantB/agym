@@ -2,7 +2,7 @@
 
 > **For Hermes:** implement one ticket per clean branch/worktree using `subagent-driven-development`; run a specification review, then a code-quality review, before moving to the next ticket.
 
-**Status:** proposed. This is post-alpha product work; it does not authorize production access to real client health data.
+**Status:** superseded, 2026-08-04 — see `docs/adr/0005-coach-linking-and-monetization-phase.md`. Gate 0 (below) was never run; the founder consciously overrode it rather than satisfying it. The current build uses a simpler redeemable-code linking mechanism instead of this doc's consent/scope-grant model. This plan remains the reference design to fall back to if the simpler mechanism proves insufficient (no audit trail, no per-scope consent, no revocation UI in the first cut).
 
 **Goal:** let an invited trainer sign in to a dedicated web workspace, see only clients who have explicitly and revocably shared a narrow data scope, and read a per-client weekly briefing without gaining direct access to the client’s raw health log.
 

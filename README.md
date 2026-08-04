@@ -10,7 +10,11 @@ It is not primarily an AI coach app. Users already use AI assistants, human coac
 agent plan → user action → raw log → parsed event → user correction → canonical memory → Coach Briefing/API context → next plan
 ```
 
-## MVP vertical slice
+## Current status (2026-08-04)
+
+The sections below describe the original v0/MVP slice and are kept as historical record — the project has since moved through several phases. Read `docs/adr/0001-v0-source-of-truth.md` through `docs/adr/0005-coach-linking-and-monetization-phase.md` for what actually changed and why. In short: AGym now has a hosted Supabase backend (auth + RLS), a shipped native mobile app with multiple TestFlight builds, remote MCP endpoints, and in-progress coach-linking, a coach web dashboard, and monetization scaffolding (ADR 0005). The "Non-goals for v0" list below is no longer all accurate; see that ADR for which items it supersedes.
+
+## MVP vertical slice (v0, historical)
 
 The first MVP is the Unstructured Logger + Coach Briefing Generator:
 
@@ -54,27 +58,26 @@ AGym stores and summarizes self-reported log data. It does not diagnose, treat, 
 
 Pain, injury, extreme dieting, eating-disorder-like signals, or other safety-sensitive inputs must be represented carefully and routed to human/specialist review language rather than automated medical claims.
 
-## Non-goals for v0
+## Non-goals for v0 (historical — see ADR 0002-0005 for what's since shipped or been superseded)
 
-Do not build these in the first MVP:
+Original v0 non-goal list. Struck-through items have since shipped or been explicitly superseded; see the linked ADR.
 
-- full AI coach;
-- medical diagnosis, treatment, or clinical claims;
-- native mobile app;
-- wearable integrations;
-- trainer dashboard;
-- full auth;
-- full backend;
-- payments;
-- production deployment;
-- public launch;
-- proprietary model;
-- recommendation engine;
-- analytics dashboards;
-- social/community features;
-- API/MCP endpoint;
-- import from third-party fitness apps;
-- paid APIs without explicit approval.
+- full AI coach — still a non-goal (no automated plan authorship or medical claims);
+- medical diagnosis, treatment, or clinical claims — still a non-goal;
+- ~~native mobile app~~ — shipped; see ADR 0004;
+- wearable integrations — still a non-goal;
+- ~~trainer dashboard~~ — superseded; see ADR 0005;
+- ~~full auth~~ / ~~full backend~~ — shipped (Supabase auth + RLS); see ADR 0002;
+- ~~payments~~ — monetization scaffolding superseded this; see ADR 0005 (no live payment processor yet);
+- production deployment — the web app is deployed (`https://agym-murex.vercel.app`); a public launch is still a non-goal;
+- public launch — still a non-goal;
+- proprietary model — still a non-goal;
+- recommendation engine — still a non-goal;
+- analytics dashboards — still a non-goal;
+- social/community features — still a non-goal;
+- ~~API/MCP endpoint~~ — shipped; see ADR 0002-0004;
+- import from third-party fitness apps — still a non-goal;
+- paid APIs without explicit approval — still requires explicit approval.
 
 ## Development status
 

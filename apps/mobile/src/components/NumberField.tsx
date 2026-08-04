@@ -17,13 +17,16 @@ type Props = {
 };
 
 export function NumberField({ label, value, onChangeText, onDecrement, onIncrement, decrementLabel, incrementLabel, keyboardType, accessibilityLabel, disabled }: Props) {
-  // `value` is the parent's canonical, reformatted number (e.g. "50." -> "50"
-  // as soon as it round-trips through the reducer). Mirroring it straight
-  // into a controlled TextInput fights the user mid-keystroke -- typing "50"
-  // can visibly stall on "5", and a trailing decimal point gets stripped
-  // before the next digit lands. Buffer what's on screen locally instead,
-  // and only resync from the parent while the field isn't focused (i.e. for
-  // external changes: the +/- steppers, or switching to a different set).
+  // Committing every keystroke to the parent used to run onChangeText through
+  // a whole-plan structuredClone + re-render on every character. That's slow
+  // enough on a real device to hit React Native's known issue where a
+  // controlled TextInput's native text gets clobbered by a stale JS value
+  // mid-keystroke, once the JS thread falls behind the native input --
+  // typing "40" could visibly commit as "4" if the second keystroke's native
+  // event landed while a prior render was still in flight. Buffer locally
+  // while focused and commit to the parent only on blur (and immediately for
+  // the +/- steppers, which don't go through this buffer at all) so the
+  // parent never re-renders mid-keystroke.
   const [text, setText] = useState(value);
   const focused = useRef(false);
 
@@ -46,8 +49,8 @@ export function NumberField({ label, value, onChangeText, onDecrement, onIncreme
           editable={!disabled}
           value={text}
           onFocus={() => { focused.current = true; }}
-          onBlur={() => { focused.current = false; setText(value); }}
-          onChangeText={(next) => { setText(next); onChangeText(next); }}
+          onBlur={() => { focused.current = false; onChangeText(text); }}
+          onChangeText={setText}
         />
         <Pressable accessibilityRole="button" accessibilityLabel={incrementLabel} hitSlop={8} disabled={disabled} onPress={onIncrement} style={[styles.step, disabled ? styles.stepDisabled : null]}>
           <Text style={styles.stepText}>+</Text>

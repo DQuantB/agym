@@ -11,6 +11,7 @@ import { formatWeekdayDate } from '@/lib/dateLabels';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 import type { ConfirmedWorkout } from './confirmedWorkout';
+import { computeExercisePrs } from './exercisePrs';
 import { loadCompletedWorkouts, loadEvidenceHistory, type EvidenceHistoryItem } from './logApi';
 import { historyTotals, toSessionCard } from './sessionSummary';
 import { TrainingDensityGrid } from './TrainingDensityGrid';
@@ -24,6 +25,7 @@ export function HistoryScreen() {
   const [evidenceExpanded, setEvidenceExpanded] = useState(false);
   const [evidence, setEvidence] = useState<EvidenceHistoryItem[] | null>(null);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [prsExpanded, setPrsExpanded] = useState(false);
 
   useFocusEffect(useCallback(() => {
     const client = getSupabaseClient();
@@ -53,6 +55,7 @@ export function HistoryScreen() {
   if (!auth.session) return <Screen eyebrow="HISTORY" title="Training log"><StatusCard title="Sign in required" detail="Sign in to view your owner-scoped training history." /></Screen>;
 
   const totals = historyTotals(workouts);
+  const prs = computeExercisePrs(workouts);
 
   return (
     <Screen
@@ -84,6 +87,30 @@ export function HistoryScreen() {
             </Pressable>
           );
         })}
+
+        {workouts.length ? (
+          <>
+            <DisclosureRow
+              label={`Personal records${prs.length ? ` (${prs.length})` : ''}`}
+              expanded={prsExpanded}
+              onToggle={() => setPrsExpanded((value) => !value)}
+              accessibilityLabel={prsExpanded ? 'Hide personal records' : 'Show personal records'}
+            />
+            {prsExpanded ? (
+              !prs.length ? <StatusCard title="No personal records yet" detail="Complete a workout with logged weight or reps to see records here." />
+                : prs.map((pr) => (
+                  <View key={pr.exerciseName} style={styles.evidenceCard}>
+                    <Text style={styles.evidenceLabel}>{pr.exerciseName}</Text>
+                    <Text style={styles.evidenceDetail}>
+                      {pr.weightKg !== null ? `${pr.weightKg} kg × ${pr.reps} reps` : `${pr.reps} reps`}
+                      {pr.estimatedOneRepMaxKg !== null ? ` · est. 1RM ${pr.estimatedOneRepMaxKg} kg` : ''}
+                      {' · '}{formatWeekdayDate(pr.achievedOn)}
+                    </Text>
+                  </View>
+                ))
+            ) : null}
+          </>
+        ) : null}
 
         <DisclosureRow
           label={`Unlinked evidence${evidence ? ` (${evidence.length})` : ''}`}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { Button } from '@/components/Button';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 
@@ -55,13 +56,13 @@ export function FuturePlanEditorScreen() {
           <View style={styles.field}><Text style={styles.label}>reps</Text><TextInput accessibilityLabel={`${exercise.name} set ${setIndex + 1} reps`} keyboardType="number-pad" style={styles.input} value={String(set.reps)} onChangeText={(value) => mutate((next) => { next.exercises[exerciseIndex].sets[setIndex].reps = Math.max(1, Number(value) || 1); })} /></View>
           <View style={styles.field}><Text style={styles.label}>rest sec</Text><TextInput accessibilityLabel={`${exercise.name} set ${setIndex + 1} rest seconds`} keyboardType="number-pad" style={styles.input} value={String(set.rest_seconds ?? standardRestSeconds)} onChangeText={(value) => mutate((next) => { next.exercises[exerciseIndex].sets[setIndex].rest_seconds = Math.max(0, Number(value) || 0); })} /></View>
         </View>
-        {exercise.sets.length > 1 ? <Button title="Remove set" color={colors.muted} onPress={() => mutate((next) => { next.exercises[exerciseIndex].sets.splice(setIndex, 1); })} /> : null}
+        {exercise.sets.length > 1 ? <Button title="Remove set" variant="danger" onPress={() => mutate((next) => { next.exercises[exerciseIndex].sets.splice(setIndex, 1); })} /> : null}
       </View>)}
       <Button title="+ Add set" onPress={() => mutate((next) => { next.exercises[exerciseIndex].sets.push({ reps: 1, weight_kg: null, rest_seconds: standardRestSeconds }); })} />
-      {plan.exercises.length > 1 ? <Button title="Remove exercise" color={colors.muted} onPress={() => mutate((next) => { next.exercises.splice(exerciseIndex, 1); })} /> : null}
+      {plan.exercises.length > 1 ? <Button title="Remove exercise" variant="danger" onPress={() => mutate((next) => { next.exercises.splice(exerciseIndex, 1); })} /> : null}
     </View>)}
     <Button title="+ Add exercise" onPress={() => mutate((next) => { next.exercises.push({ client_id: `user-revision-${Date.now()}`, name: 'New exercise', sets: [{ reps: 1, weight_kg: null, rest_seconds: standardRestSeconds }] }); })} />
-    <Button title={saving ? 'Saving…' : 'Save future workout'} color={colors.orange} disabled={saving} onPress={() => void save()} />
+    <Button title={saving ? 'Saving…' : 'Save future workout'} variant="primary" disabled={saving} onPress={() => void save()} />
   </ScrollView>;
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
 

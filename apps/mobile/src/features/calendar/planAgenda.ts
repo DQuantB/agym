@@ -20,6 +20,8 @@ export type AgendaEntry = {
   id: string;
   title: string;
   source: string;
+  kind: string;
+  categoryLabel: string;
   scheduledFor: string;
   dayChip: { weekday: string; dayOfMonth: string };
   whenLabel: string;
@@ -30,6 +32,12 @@ export type AgendaEntry = {
   bucket: AgendaBucket;
   accessibilityLabel: string;
 };
+
+/** Readable label for a plan's `plan_data.kind` category. Extend this map as new plan categories (run, meal, ...) ship. */
+export function planCategoryLabel(kind: string): string {
+  const known: Record<string, string> = { gym_workout: 'Gym' };
+  return known[kind] ?? kind.replace(/_.*/, '').replace(/^\w/, (char) => char.toUpperCase());
+}
 
 function dayChip(scheduledFor: string): { weekday: string; dayOfMonth: string } {
   const anchored = new Date(`${scheduledFor}T12:00:00.000Z`);
@@ -49,6 +57,8 @@ export function toAgendaEntry(plan: CalendarPlan, today: string): AgendaEntry {
     id: plan.id,
     title: plan.plan.title,
     source: plan.source,
+    kind: plan.plan.kind,
+    categoryLabel: planCategoryLabel(plan.plan.kind),
     scheduledFor: plan.scheduledFor,
     dayChip: dayChip(plan.scheduledFor),
     whenLabel,
@@ -61,13 +71,45 @@ export function toAgendaEntry(plan: CalendarPlan, today: string): AgendaEntry {
   };
 }
 
+/** Identifies proposals that are the same training content repeated on different dates, so the user reviews and accepts them once instead of day by day. */
+function planContentSignature(plan: GymPlan): string {
+  const exercises = plan.exercises.map((exercise) => ({
+    name: exercise.name,
+    sets: exercise.sets.map((set) => ({ reps: set.reps, weight_kg: set.weight_kg ?? null, rest_seconds: set.rest_seconds })),
+  }));
+  return JSON.stringify({ kind: plan.kind, title: plan.title, notes: plan.notes ?? null, exercises });
+}
+
+export type ProposalGroup = {
+  key: string;
+  entry: AgendaEntry;
+  occurrences: { id: string; scheduledFor: string; whenLabel: string }[];
+};
+
+export function groupIdenticalProposals(proposals: CalendarPlan[], today: string): ProposalGroup[] {
+  const groups = new Map<string, CalendarPlan[]>();
+  for (const proposal of proposals) {
+    const key = `${proposal.source}::${planContentSignature(proposal.plan)}`;
+    const existing = groups.get(key);
+    if (existing) existing.push(proposal); else groups.set(key, [proposal]);
+  }
+  return [...groups.entries()].map(([key, plans]) => {
+    const occurrences = [...plans].sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+    return {
+      key,
+      entry: toAgendaEntry(occurrences[0], today),
+      occurrences: occurrences.map((plan) => ({ id: plan.id, scheduledFor: plan.scheduledFor, whenLabel: relativeDayLabel(plan.scheduledFor, today) })),
+    };
+  });
+}
+
 export function buildPlanAgenda(input: { proposals: CalendarPlan[]; scheduled: CalendarPlan[]; today: string }): {
-  proposals: AgendaEntry[];
+  proposals: ProposalGroup[];
   today: AgendaEntry[];
   upcoming: AgendaEntry[];
   past: AgendaEntry[];
 } {
-  const proposals = input.proposals.map((plan) => toAgendaEntry(plan, input.today));
+  const proposals = groupIdenticalProposals(input.proposals, input.today);
   const scheduledEntries = input.scheduled.map((plan) => toAgendaEntry(plan, input.today));
   return {
     proposals,

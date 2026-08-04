@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
 import { Screen, StatusCard } from '@/components/Screen';
 import {
   deleteAccount,
@@ -137,7 +138,7 @@ export default function DataScreen() {
         title="Sources in"
         detail="No device imports are connected in this mobile alpha. Workout evidence comes from your confirmed AGYM sessions."
       />
-      <Button title={exporting ? 'Preparing JSON export…' : 'Export my JSON data'} disabled={exporting} onPress={exportData} />
+      <Button title={exporting ? 'Preparing JSON export…' : 'Export my JSON data'} variant="primary" disabled={exporting} onPress={exportData} />
       <Text style={{ color: colors.text, fontWeight: '700' }}>READERS OUT</Text>
       {agentPermissions.map((permission) => {
         const authorization = activeGrant(permission.agent, permission.action);
@@ -146,7 +147,7 @@ export default function DataScreen() {
           <View key={key}>
             <StatusCard title={permission.title} detail={permission.detail} />
             {authorization
-              ? <Button title={`Revoke ${permission.label} ${permission.action}`} onPress={() => Alert.alert('Revoke permission?', `Stop ${permission.label} from ${permission.action}.`, [
+              ? <Button title={`Revoke ${permission.label} ${permission.action}`} variant="danger" onPress={() => Alert.alert('Revoke permission?', `Stop ${permission.label} from ${permission.action}.`, [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Revoke', style: 'destructive', onPress: () => revoke(authorization.id) },
               ])} />
@@ -163,6 +164,7 @@ export default function DataScreen() {
             />
             <Button
               title="Revoke access"
+              variant="danger"
               onPress={() => Alert.alert('Revoke permission?', `Stop ${grant.agent} from ${grant.action}.`, [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Revoke', style: 'destructive', onPress: () => revoke(grant.id) },
@@ -176,7 +178,7 @@ export default function DataScreen() {
       ) : null}
       <Button
         title="Delete account + data"
-        color={colors.orange}
+        variant="danger"
         onPress={() => Alert.alert(
           'Delete account and all data?',
           'This removes your hosted AGYM account and its data, then clears local workout drafts. This cannot be undone.',

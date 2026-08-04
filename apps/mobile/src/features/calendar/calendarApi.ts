@@ -34,7 +34,33 @@ export async function loadProposalById(client: SupabaseClient, planId: string): 
   return mapPlan({ ...data, status: 'proposed' });
 }
 
+/** Finds already-active plans of the same category on any of the given dates, so the UI can warn the user before accepting replaces them. */
+export async function findActivePlanConflicts(client: SupabaseClient, kind: string, scheduledForDates: string[]): Promise<{ id: string; scheduledFor: string }[]> {
+  const dates = [...new Set(scheduledForDates)];
+  if (!dates.length) return [];
+  const { data, error } = await client.from('plans')
+    .select('id, scheduled_for')
+    .eq('status', 'active').eq('plan_data->>kind', kind).in('scheduled_for', dates).is('deleted_at', null);
+  if (error) fail(error, 'check for existing plans on these dates');
+  return (data ?? []).map((row) => ({ id: row.id as string, scheduledFor: row.scheduled_for as string }));
+}
+
 export async function acceptCalendarProposal(client: SupabaseClient, planId: string): Promise<void> {
   const { error } = await client.rpc('accept_gym_workout_plan', { p_plan_id: planId });
   if (error) fail(error, 'accept this Gym proposal');
+}
+
+/** Accepts a batch of proposals one at a time (e.g. a repeated plan's occurrences) and reports which, if any, failed rather than aborting the whole batch. */
+export async function acceptCalendarProposals(client: SupabaseClient, planIds: string[]): Promise<{ accepted: string[]; failed: { id: string; message: string }[] }> {
+  const accepted: string[] = [];
+  const failed: { id: string; message: string }[] = [];
+  for (const planId of planIds) {
+    try {
+      await acceptCalendarProposal(client, planId);
+      accepted.push(planId);
+    } catch (error) {
+      failed.push({ id: planId, message: error instanceof Error ? error.message : 'Could not accept this proposal.' });
+    }
+  }
+  return { accepted, failed };
 }

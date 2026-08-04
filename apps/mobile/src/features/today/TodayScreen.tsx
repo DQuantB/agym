@@ -1,8 +1,9 @@
-import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, spacing } from '@/theme/tokens';
@@ -95,11 +96,11 @@ export function TodayScreen() {
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Next day" hitSlop={8} onPress={() => setSelectedDate((value) => addCalendarDays(value, 1))} style={styles.dayArrow}><Text style={styles.dayArrowText}>›</Text></Pressable>
           </View>
-          {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : selectedDate > date ? 'Review or adjust this future workout before its scheduled day.' : 'This workout is in the past and cannot be changed.'}</Text>{selectedDate > date ? <Button title="View & edit workout" color={colors.orange} accessibilityLabel={`View and edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
+          {selectedPlan ? <View style={styles.selectedPlan}><Text style={styles.selectedLabel}>{selectedDate === date ? 'TODAY' : `SCHEDULED · ${selectedDate}`}</Text><Text style={styles.selectedTitle}>{selectedPlan.title}</Text><Text style={styles.selectedDetail}>{selectedDate === date ? 'This accepted workout can be started below.' : selectedDate > date ? 'Review or adjust this future workout before its scheduled day.' : 'This workout is in the past and cannot be changed.'}</Text>{selectedDate > date ? <Button title="View & edit workout" variant="primary" accessibilityLabel={`View and edit future workout ${selectedPlan.title}`} onPress={() => router.push({ pathname: '/workout', params: { mode: 'edit', planId: selectedPlan.id } } as never)} /> : null}</View> : <Text style={styles.noPlan}>No accepted training is scheduled for {selectedDate}.</Text>}
         </View>
         {stateCard(state)}
-        {state.kind === 'ready' ? <Button title="Start workout" color={colors.orange} accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
-        {state.kind === 'in_progress' ? <Button title="Resume workout" color={colors.orange} accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
+        {state.kind === 'ready' ? <Button title="Start workout" variant="primary" accessibilityLabel="Start accepted planned workout" onPress={() => router.push('/workout' as never)} /> : null}
+        {state.kind === 'in_progress' ? <Button title="Resume workout" variant="primary" accessibilityLabel="Resume saved workout" onPress={() => router.push('/workout' as never)} /> : null}
         {state.kind === 'no_session' ? <Button title="Log an unplanned workout" accessibilityLabel="Log an unplanned workout" onPress={() => router.push('/capture' as never)} /> : null}
       </ScrollView>
     </Screen>

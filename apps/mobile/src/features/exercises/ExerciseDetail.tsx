@@ -1,5 +1,6 @@
-import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { colors, spacing } from '@/theme/tokens';
 
 import { pickInstructionText } from './catalogueDisplay';
@@ -22,7 +23,7 @@ export function ExerciseDetail({ exercise, onUse, onBack }: Props) {
       {instructions ? <Text style={styles.instructions}>{instructions}</Text> : (
         <Text style={styles.instructions}>No written instructions available for this exercise.</Text>
       )}
-      <Button title={`Use "${exercise.name}"`} color={colors.orange} onPress={() => onUse(exercise)} />
+      <Button title={`Use "${exercise.name}"`} variant="primary" onPress={() => onUse(exercise)} />
       <Button title="Back to search" onPress={onBack} />
     </ScrollView>
   );

@@ -47,4 +47,32 @@ do $$ begin
   end;
 end $$;
 
+-- Accepting a second gym proposal for the same date supersedes the first
+-- acceptance above ('Owner gym proposal' is now active for current_date).
+reset role;
+insert into public.plans (user_id, raw_plan_text, plan_data, source_client, scheduled_for)
+values
+  ('00000000-0000-0000-0000-0000000000d1', 'Owner replacement gym proposal', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date),
+  ('00000000-0000-0000-0000-0000000000d1', 'Owner other-day gym proposal', '{"kind":"gym_workout","schema_version":1}'::jsonb, 'hermes', current_date + 1),
+  ('00000000-0000-0000-0000-0000000000d1', 'Owner other-category proposal', '{"kind":"run_workout","schema_version":1}'::jsonb, 'hermes', current_date);
+update public.plans set status = 'active' where raw_plan_text = 'Owner other-category proposal';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
+
+select public.accept_gym_workout_plan(id)
+from public.plans where user_id = '00000000-0000-0000-0000-0000000000d1' and raw_plan_text = 'Owner replacement gym proposal';
+
+select case when status = 'superseded' then 'PASS: same-day same-category active plan is superseded' else 'FAIL: prior active plan not superseded, status=' || status end
+from public.plans where raw_plan_text = 'Owner gym proposal';
+select case when status = 'active' then 'PASS: newly accepted plan becomes active' else 'FAIL: replacement plan status=' || status end
+from public.plans where raw_plan_text = 'Owner replacement gym proposal';
+select case when status = 'active' then 'PASS: different-category active plan on the same day is untouched' else 'FAIL: other-category plan status=' || status end
+from public.plans where raw_plan_text = 'Owner other-category proposal';
+
+select public.accept_gym_workout_plan(id)
+from public.plans where user_id = '00000000-0000-0000-0000-0000000000d1' and raw_plan_text = 'Owner other-day gym proposal';
+select case when status = 'active' then 'PASS: different-day same-category active plan is untouched' else 'FAIL: other-day plan status=' || status end
+from public.plans where raw_plan_text = 'Owner replacement gym proposal';
+
 rollback;

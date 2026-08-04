@@ -32,12 +32,15 @@ export default function ProposalScreen() {
     if (!client || !proposal || accepting) return;
     setAccepting(true);
     try {
-      await acceptCalendarProposal(client, proposal.id);
+      const { supersededTitle } = await acceptCalendarProposal(client, proposal.id);
       if (openEditor) {
         router.replace({ pathname: '/workout', params: { mode: 'edit', planId: proposal.id } } as never);
         return;
       }
-      Alert.alert('Plan accepted', 'This Gym plan is now planned training. Its agent-authored contents remain unchanged.', [{ text: 'Back to calendar', onPress: () => router.back() }]);
+      const detail = supersededTitle
+        ? `This Gym plan is now planned training, replacing "${supersededTitle}" for that day. Your previous plan is kept and can be restored from Plans.`
+        : 'This Gym plan is now planned training. Its agent-authored contents remain unchanged.';
+      Alert.alert('Plan accepted', detail, [{ text: 'Back to calendar', onPress: () => router.back() }]);
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Could not accept proposal.';
       setMessage(detail);

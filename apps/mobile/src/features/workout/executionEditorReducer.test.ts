@@ -48,3 +48,48 @@ it('completes a set without allowing a second action to undo it', () => {
 
   expect(repeated.actualData.exercises[0].sets[0]).toMatchObject({ completed: true, skipped_reason: null });
 });
+
+it('skips every set of an exercise with one action, including one already completed', () => {
+  const twoSetState: ExecutionEditorState = {
+    actualData: {
+      kind: 'gym_workout_execution',
+      schema_version: 1,
+      exercises: [{ client_id: 'row', name: 'Barbell row', user_added: false, sets: [
+        { reps: 8, weight_kg: 40, rest_seconds: 90, completed: false, skipped_reason: null, user_added: false },
+        { reps: 8, weight_kg: 40, rest_seconds: 90, completed: true, skipped_reason: null, user_added: false },
+      ] }],
+    },
+    additionalNotes: '',
+  };
+  const result = executionEditorReducer(twoSetState, { type: 'skip_exercise', exerciseIndex: 0, reason: 'Equipment unavailable' });
+
+  expect(result.actualData.exercises[0].sets).toEqual([
+    { reps: 8, weight_kg: 40, rest_seconds: 90, completed: false, skipped_reason: 'Equipment unavailable', user_added: false },
+    { reps: 8, weight_kg: 40, rest_seconds: 90, completed: false, skipped_reason: 'Equipment unavailable', user_added: false },
+  ]);
+});
+
+it('trims the skip_exercise reason, same as skip_set', () => {
+  const result = executionEditorReducer(initial, { type: 'skip_exercise', exerciseIndex: 0, reason: '  Sore knee  ' });
+
+  expect(result.actualData.exercises[0].sets[0].skipped_reason).toBe('Sore knee');
+});
+
+it('switches to an alternative exercise while preserving the slot client_id', () => {
+  const result = executionEditorReducer(initial, {
+    type: 'select_exercise_alternative', exerciseIndex: 0, name: 'Front squat', catalogueExerciseId: 'cat-front-squat', selectedAlternativeId: 'front-squat',
+  });
+
+  expect(result.actualData.exercises[0]).toMatchObject({ client_id: 'squat', name: 'Front squat', catalogue_exercise_id: 'cat-front-squat', selected_alternative_id: 'front-squat' });
+});
+
+it('reverts to the main option by clearing selected_alternative_id', () => {
+  const switched = executionEditorReducer(initial, {
+    type: 'select_exercise_alternative', exerciseIndex: 0, name: 'Front squat', selectedAlternativeId: 'front-squat',
+  });
+  const reverted = executionEditorReducer(switched, {
+    type: 'select_exercise_alternative', exerciseIndex: 0, name: 'Squat', selectedAlternativeId: null,
+  });
+
+  expect(reverted.actualData.exercises[0]).toMatchObject({ client_id: 'squat', name: 'Squat', selected_alternative_id: null });
+});

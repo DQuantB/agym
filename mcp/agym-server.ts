@@ -13,10 +13,14 @@ const contextInputSchema = {
 
 const planStatusSchema = z.enum(['proposed', 'active', 'superseded', 'archived']);
 const gymSetSchema = z.object({ reps: z.number().int().min(1).max(100), weight_kg: z.number().min(0).max(1000).nullable().optional(), rest_seconds: z.number().int().min(0).max(3600).default(120) });
+const gymExerciseAlternativeSchema = z.object({ client_id: z.string().trim().min(1).max(100), name: z.string().trim().min(1).max(120) });
 const gymPlanSchema = z.object({
   kind: z.literal('gym_workout'), schema_version: z.literal(1), scheduled_for: dateSchema,
   title: z.string().trim().min(1).max(160),
-  exercises: z.array(z.object({ client_id: z.string().trim().min(1).max(100), name: z.string().trim().min(1).max(120), sets: z.array(gymSetSchema).min(1).max(20) })).min(1).max(30),
+  exercises: z.array(z.object({
+    client_id: z.string().trim().min(1).max(100), name: z.string().trim().min(1).max(120), sets: z.array(gymSetSchema).min(1).max(20),
+    alternatives: z.array(gymExerciseAlternativeSchema).max(4).optional(),
+  })).min(1).max(30),
   notes: z.string().trim().max(2000).optional(),
 });
 const planInputSchema = {
@@ -194,7 +198,7 @@ export function registerAgymTools(server: McpServer, client: SupabaseClient, ide
   server.registerTool(
     'create_proposed_plan',
     {
-      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan. The response includes an advisory `conflicts` field noting any other Gym plan already on that date; conflicts are informational only and never block creation.',
+      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan. The response includes an advisory `conflicts` field noting any other Gym plan already on that date; conflicts are informational only and never block creation. A gym_workout exercise may include an `alternatives` array (each `{client_id, name}`, up to 4) naming other exercises usable for the same slot with the same prescribed sets — use this when more than one exercise would reasonably work (e.g. Barbell row with alternatives Lat pulldown, Seated cable row); the user chooses which to perform at workout time, so do not create separate proposals for each option.',
       inputSchema: planInputSchema,
     },
     async ({ raw_plan_text: rawPlanText, plan_data: planData }) => {

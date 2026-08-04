@@ -16,6 +16,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', true);
 select public.replace_future_gym_workout_plan(id, '{"kind":"gym_workout","schema_version":1,"scheduled_for":"2099-01-02","title":"Adjusted","exercises":[{"client_id":"squat","name":"Front squat","sets":[{"reps":4,"weight_kg":65,"rest_seconds":150}]}]}'::jsonb) from public.plans where raw_plan_text = 'Original agent workout';
 
+select public.replace_future_gym_workout_plan(id, '{"kind":"gym_workout","schema_version":1,"scheduled_for":"2099-01-02","title":"Adjusted","exercises":[{"client_id":"squat","name":"Front squat","alternatives":[{"client_id":"back-squat","name":"Back squat"}],"sets":[{"reps":4,"weight_kg":65,"rest_seconds":150}]}]}'::jsonb) from public.plans where raw_plan_text = 'Original agent workout';
+
 do $$ begin
   if not exists (select 1 from public.plans where raw_plan_text = 'Original agent workout' and plan_data->>'title' = 'Original' and user_revision_data->>'title' = 'Adjusted' and status = 'active') then raise exception 'FAIL: owner future revision did not preserve original plan'; end if;
   begin
@@ -26,6 +28,19 @@ do $$ begin
     perform public.replace_future_gym_workout_plan((select id from public.plans where raw_plan_text = 'Today agent workout'), '{"kind":"gym_workout","schema_version":1,"title":"No","scheduled_for":"2099-01-02","exercises":[]}'::jsonb);
     raise exception 'FAIL: current-day revision accepted';
   exception when others then raise notice 'PASS: current-day revision rejected'; end;
+  if not exists (
+    select 1 from public.plans
+    where raw_plan_text = 'Original agent workout'
+      and user_revision_data -> 'exercises' -> 0 -> 'alternatives' = '[{"client_id":"back-squat","name":"Back squat"}]'::jsonb
+  ) then raise exception 'FAIL: valid exercise alternatives were not preserved on revision'; end if;
+  raise notice 'PASS: valid exercise alternatives preserved on revision';
+  begin
+    perform public.replace_future_gym_workout_plan(
+      (select id from public.plans where raw_plan_text = 'Original agent workout'),
+      '{"kind":"gym_workout","schema_version":1,"scheduled_for":"2099-01-02","title":"Blank alternative","exercises":[{"client_id":"squat","name":"Front squat","alternatives":[{"client_id":"back-squat","name":"  "}],"sets":[{"reps":4,"weight_kg":65,"rest_seconds":150}]}]}'::jsonb
+    );
+    raise exception 'FAIL: revision with a blank-name alternative was accepted';
+  exception when others then raise notice 'PASS: blank-name alternative rejected'; end;
 end $$;
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e2', true);

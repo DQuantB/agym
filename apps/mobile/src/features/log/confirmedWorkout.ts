@@ -1,4 +1,4 @@
-import { gymPlanSchema, type ActualData, type ActualExercise, type ActualSet, type GymPlan } from '@/features/workout/workoutApi';
+import { gymPlanSchema, type ActualData, type ActualExercise, type ActualSet, type ExerciseAlternative, type GymPlan } from '@/features/workout/workoutApi';
 
 export type ConfirmedWorkout = {
   id: string;
@@ -31,15 +31,30 @@ function normalizeSet(value: unknown): ActualSet | null {
   return { reps, weight_kg, rest_seconds, completed, skipped_reason, user_added };
 }
 
+function normalizeAlternative(value: unknown): ExerciseAlternative | null {
+  const raw = asRecord(value);
+  if (!raw || typeof raw.client_id !== 'string' || !raw.client_id || typeof raw.name !== 'string' || !raw.name) return null;
+  return {
+    client_id: raw.client_id,
+    name: raw.name,
+    catalogue_exercise_id: typeof raw.catalogue_exercise_id === 'string' ? raw.catalogue_exercise_id : undefined,
+  };
+}
+
 function normalizeExercise(value: unknown): ActualExercise | null {
   const raw = asRecord(value);
   if (!raw || typeof raw.name !== 'string' || !Array.isArray(raw.sets)) return null;
   const sets = raw.sets.map(normalizeSet).filter((set): set is ActualSet => set !== null);
   if (!sets.length) return null;
+  const alternatives = Array.isArray(raw.alternatives)
+    ? raw.alternatives.map(normalizeAlternative).filter((alternative): alternative is ExerciseAlternative => alternative !== null)
+    : undefined;
   return {
     client_id: typeof raw.client_id === 'string' ? raw.client_id : raw.name,
     name: raw.name,
     catalogue_exercise_id: typeof raw.catalogue_exercise_id === 'string' ? raw.catalogue_exercise_id : undefined,
+    alternatives: alternatives?.length ? alternatives : undefined,
+    selected_alternative_id: typeof raw.selected_alternative_id === 'string' ? raw.selected_alternative_id : undefined,
     user_added: raw.user_added === true,
     sets,
   };

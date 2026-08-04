@@ -93,7 +93,11 @@ export function TrainingDensityGrid() {
 
       <View style={styles.gridRow}>
         <View style={styles.weekdayColumn} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {WEEKDAY_LABELS.map((label, index) => <Text key={index} style={styles.weekdayLabel}>{label}</Text>)}
+          {WEEKDAY_LABELS.map((label, index) => (
+            <View key={index} style={styles.weekdayLabelRow}>
+              <Text style={styles.weekdayLabel}>{label}</Text>
+            </View>
+          ))}
         </View>
         {weeks.map((week, weekIndex) => (
           <View key={weekIndex} style={styles.weekColumn}>
@@ -134,7 +138,8 @@ const styles = StyleSheet.create({
   metricChipTextActive: { color: colors.orange },
   gridRow: { flexDirection: 'row', gap: 3 },
   weekdayColumn: { gap: 3, marginRight: spacing.xs },
-  weekdayLabel: { color: colors.muted, fontSize: 10, fontWeight: '700', height: 16, lineHeight: 16, textAlign: 'center', width: 14 },
+  weekdayLabelRow: { alignItems: 'center', flex: 1, justifyContent: 'center', width: 14 },
+  weekdayLabel: { color: colors.muted, fontSize: 10, fontWeight: '700' },
   weekColumn: { flex: 1, gap: 3 },
   cell: { aspectRatio: 1, borderRadius: radius.sm, flex: 1 },
   cellSelected: { borderColor: colors.text, borderWidth: 1.5 },

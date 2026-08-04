@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { expect, it, vi } from 'vitest';
 
-import { acceptCalendarProposal, loadCalendarPlans } from './calendarApi';
+import { acceptCalendarProposal, acceptCalendarProposals, loadCalendarPlans, loadSupersededPlansByDate, restoreSupersededPlan } from './calendarApi';
 
 const planData = {
   kind: 'gym_workout', schema_version: 1, scheduled_for: '2026-07-22', title: 'Upper strength',
@@ -28,10 +28,69 @@ it('reads the plans table scheduled_for column and splits proposals from schedul
 });
 
 it('accepts a proposal only through the owner-scoped RPC and surfaces its error', async () => {
-  const rpc = vi.fn().mockResolvedValue({ error: null });
-  await acceptCalendarProposal({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111');
+  const rpc = vi.fn().mockResolvedValue({ data: { plan: {}, superseded: null }, error: null });
+  const result = await acceptCalendarProposal({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111');
   expect(rpc).toHaveBeenCalledWith('accept_gym_workout_plan', { p_plan_id: '11111111-1111-4111-8111-111111111111' });
+  expect(result).toEqual({ supersededTitle: null });
 
   rpc.mockResolvedValueOnce({ error: { message: 'gym plan is not awaiting acceptance' } });
   await expect(acceptCalendarProposal({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111')).rejects.toThrow('AGYM could not accept this Gym proposal: gym plan is not awaiting acceptance');
+});
+
+it('reports which previous plan an acceptance replaced', async () => {
+  const rpc = vi.fn().mockResolvedValue({ data: { plan: {}, superseded: { id: '33333333-3333-4333-8333-333333333333', title: 'Old bench day' } }, error: null });
+  const result = await acceptCalendarProposal({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111');
+  expect(result).toEqual({ supersededTitle: 'Old bench day' });
+});
+
+it('loads the most recent superseded plan per date, keyed by scheduled_for', async () => {
+  const result = { data: [
+    { id: 'newest', plan_data: { ...planData, title: 'Newer replaced plan' }, scheduled_for: '2026-07-22', updated_at: '2026-07-21T10:00:00Z' },
+    { id: 'oldest', plan_data: { ...planData, title: 'Oldest replaced plan' }, scheduled_for: '2026-07-22', updated_at: '2026-07-20T10:00:00Z' },
+    { id: 'other-date', plan_data: { ...planData, title: 'Different day' }, scheduled_for: '2026-07-23', updated_at: '2026-07-19T10:00:00Z' },
+  ], error: null };
+  const query: Record<string, ReturnType<typeof vi.fn>> & PromiseLike<typeof result> = {} as never;
+  for (const method of ['select', 'eq', 'is', 'order', 'limit']) query[method] = vi.fn(() => query);
+  query.then = (resolve) => Promise.resolve(result).then(resolve);
+  const from = vi.fn(() => query);
+
+  const byDate = await loadSupersededPlansByDate({ from } as unknown as SupabaseClient);
+
+  expect(byDate.get('2026-07-22')).toEqual({ id: 'newest', title: 'Newer replaced plan' });
+  expect(byDate.get('2026-07-23')).toEqual({ id: 'other-date', title: 'Different day' });
+  expect(byDate.size).toBe(2);
+});
+
+it('restores a superseded plan through the owner-scoped RPC, reporting both plan titles', async () => {
+  const rpc = vi.fn().mockResolvedValue({
+    data: { plan: { plan_data: planData }, superseded: { id: '44444444-4444-4444-8444-444444444444', title: 'Bumped plan' } },
+    error: null,
+  });
+  const result = await restoreSupersededPlan({ rpc } as unknown as SupabaseClient, '11111111-1111-4111-8111-111111111111');
+  expect(rpc).toHaveBeenCalledWith('restore_superseded_gym_plan', { p_plan_id: '11111111-1111-4111-8111-111111111111' });
+  expect(result).toEqual({ restoredTitle: 'Upper strength', supersededTitle: 'Bumped plan' });
+});
+
+it('flattens a bulk-accept batch into per-id results, keeping partial failures visible', async () => {
+  const rpc = vi.fn().mockResolvedValue({
+    data: { results: [
+      { id: 'mon', ok: true, result: { plan: {}, superseded: null } },
+      { id: 'wed', ok: true, result: { plan: {}, superseded: { id: 'old-wed', title: 'Old Wednesday' } } },
+      { id: 'fri', ok: false, error: 'gym plan is not awaiting acceptance' },
+    ] },
+    error: null,
+  });
+  const results = await acceptCalendarProposals({ rpc } as unknown as SupabaseClient, ['mon', 'wed', 'fri']);
+  expect(rpc).toHaveBeenCalledWith('accept_gym_workout_plans', { p_plan_ids: ['mon', 'wed', 'fri'] });
+  expect(results).toEqual([
+    { id: 'mon', ok: true, supersededTitle: null },
+    { id: 'wed', ok: true, supersededTitle: 'Old Wednesday' },
+    { id: 'fri', ok: false, error: 'gym plan is not awaiting acceptance' },
+  ]);
+});
+
+it('returns an empty result list when the bulk RPC response has no results array', async () => {
+  const rpc = vi.fn().mockResolvedValue({ data: {}, error: null });
+  const results = await acceptCalendarProposals({ rpc } as unknown as SupabaseClient, ['mon']);
+  expect(results).toEqual([]);
 });

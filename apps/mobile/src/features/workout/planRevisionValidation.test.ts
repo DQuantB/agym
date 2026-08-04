@@ -75,4 +75,38 @@ describe('validatePlanRevision', () => {
     }));
     expect(issues.length).toBe(5);
   });
+
+  it('accepts an exercise with valid alternatives', () => {
+    const issues = validatePlanRevision(plan({
+      exercises: [{
+        client_id: 'a', name: 'Barbell row', sets: [{ reps: 8, weight_kg: 60, rest_seconds: 90 }],
+        alternatives: [{ client_id: 'b', name: 'Lat pulldown' }],
+      }],
+    }));
+    expect(issues).toEqual([]);
+  });
+
+  it('rejects an alternative with a blank name, flagging it by index', () => {
+    const issues = validatePlanRevision(plan({
+      exercises: [{
+        client_id: 'a', name: 'Barbell row', sets: [{ reps: 8, weight_kg: 60, rest_seconds: 90 }],
+        alternatives: [{ client_id: 'b', name: 'Lat pulldown' }, { client_id: 'c', name: '  ' }],
+      }],
+    }));
+    expect(issues).toContainEqual({ path: 'exercises[0].alternatives[1].name', message: expect.any(String) });
+    expect(issues.some((issue) => issue.path === 'exercises[0].alternatives[0].name')).toBe(false);
+  });
+
+  it('rejects more than 4 alternatives', () => {
+    const issues = validatePlanRevision(plan({
+      exercises: [{
+        client_id: 'a', name: 'Barbell row', sets: [{ reps: 8, weight_kg: 60, rest_seconds: 90 }],
+        alternatives: [
+          { client_id: 'b', name: 'Option 1' }, { client_id: 'c', name: 'Option 2' },
+          { client_id: 'd', name: 'Option 3' }, { client_id: 'e', name: 'Option 4' }, { client_id: 'f', name: 'Option 5' },
+        ],
+      }],
+    }));
+    expect(issues).toContainEqual({ path: 'exercises[0].alternatives', message: expect.any(String) });
+  });
 });

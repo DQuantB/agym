@@ -95,3 +95,12 @@ it('lists planned exercises with no performed counterpart, matching by id or nam
 it('returns an empty list when there is no plan', () => {
   expect(plannedOnlyExercises(null, { exercises: [] })).toEqual([]);
 });
+
+it('carries an exercise\'s alternatives through to the matched planned exercise', () => {
+  const withAlternatives: GymPlan = {
+    ...plan,
+    exercises: [{ ...plan.exercises[0], alternatives: [{ client_id: 'incline-bench', name: 'Incline bench press' }] }, ...plan.exercises.slice(1)],
+  };
+  const found = findPlannedExercise(withAlternatives, actualExercise({}));
+  expect(found?.alternatives).toEqual([{ client_id: 'incline-bench', name: 'Incline bench press' }]);
+});

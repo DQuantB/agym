@@ -52,6 +52,7 @@ export function SessionDetailScreen() {
           <View style={styles.exerciseHeaderRow}>
             <Text style={styles.exerciseName}>{exercise.name}</Text>
             {exercise.userAdded ? <Text style={styles.addedChip}>+ ADDED</Text> : null}
+            {exercise.substitutedFrom ? <Text style={styles.addedChip}>↺ SUBSTITUTED FOR {exercise.substitutedFrom.toUpperCase()}</Text> : null}
           </View>
           {exercise.rows.map((row) => (
             <View key={row.ordinal} style={styles.setRow}>

@@ -56,16 +56,20 @@ function searchWords(text: string): string[] {
     .filter((word) => word.length > 0);
 }
 
+export const CATALOGUE_PAGE_SIZE = 30;
+
 export async function searchExerciseCatalogue(
   client: SupabaseClient,
   query: { text: string; bodyPart?: string | null },
-  limit = 30,
-): Promise<CatalogueExercise[]> {
+  page: { index: number; size: number } = { index: 0, size: CATALOGUE_PAGE_SIZE },
+): Promise<{ items: CatalogueExercise[]; total: number }> {
+  const from = page.index * page.size;
   let request = client
     .from('exercise_catalogue')
-    .select('id, name, category, body_part, equipment, muscle_group, secondary_muscles, target, instructions')
+    .select('id, name, category, body_part, equipment, muscle_group, secondary_muscles, target, instructions', { count: 'exact' })
     .order('name', { ascending: true })
-    .limit(limit);
+    .order('id', { ascending: true }) // tiebreaker: name is not unique, so paging by name alone can skip or repeat rows
+    .range(from, from + page.size - 1);
 
   // Each word must match at least one searchable column (its own OR group);
   // calling .or() once per word ANDs the groups together, so "barbell chest"
@@ -76,7 +80,7 @@ export async function searchExerciseCatalogue(
   }
   if (query.bodyPart) request = request.eq('body_part', query.bodyPart);
 
-  const { data, error } = await request;
+  const { data, error, count } = await request;
   if (error) throw new Error(`AGYM could not search the exercise catalogue: ${error.message}`);
-  return (data ?? []).map(fromRow);
+  return { items: (data ?? []).map(fromRow), total: count ?? 0 };
 }

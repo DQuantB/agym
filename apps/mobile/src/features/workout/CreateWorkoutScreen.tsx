@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { NumberField } from '@/components/NumberField';
 import { adjustReps, adjustWeight, formatWeightValue, parseRepsInput, parseWeightInput } from '@/components/numberFieldMath';
 import { StatusCard } from '@/components/Screen';
+import { ExercisePicker } from '@/features/exercises/ExercisePicker';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -35,6 +36,7 @@ export function CreateWorkoutScreen() {
   const [plan, setPlan] = useState<GymPlan>(() => blankPlan(todayLocalDate()));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [pickerIndex, setPickerIndex] = useState<number | null>(null);
   const exerciseCounter = useRef(0);
 
   function mutate(change: (next: GymPlan) => void) {
@@ -89,11 +91,21 @@ export function CreateWorkoutScreen() {
       {plan.exercises.map((exercise, exerciseIndex) => (
         <View key={exercise.client_id} style={styles.card}>
           <Text style={styles.label}>Exercise {exerciseIndex + 1}</Text>
-          <TextInput
-            accessibilityLabel={`Exercise ${exerciseIndex + 1} name`} style={styles.input} editable={!saving}
-            value={exercise.name} placeholder="e.g. Bench press" placeholderTextColor={colors.muted}
-            onChangeText={(name) => mutate((next) => { next.exercises[exerciseIndex].name = name; })}
-          />
+          <View style={styles.nameRow}>
+            <TextInput
+              accessibilityLabel={`Exercise ${exerciseIndex + 1} name`} style={[styles.input, styles.nameInput]} editable={!saving}
+              value={exercise.name} placeholder="e.g. Bench press" placeholderTextColor={colors.muted}
+              onChangeText={(name) => mutate((next) => {
+                next.exercises[exerciseIndex].name = name;
+                delete next.exercises[exerciseIndex].catalogue_exercise_id;
+              })}
+            />
+            <Button
+              label="Search" variant="tertiary" disabled={saving}
+              accessibilityLabel={`Search the exercise catalogue for exercise ${exerciseIndex + 1}`}
+              onPress={() => setPickerIndex(exerciseIndex)}
+            />
+          </View>
           {issueFor(issues, `exercises[${exerciseIndex}].name`) ? <Text style={styles.fieldError}>{issueFor(issues, `exercises[${exerciseIndex}].name`)}</Text> : null}
 
           {exercise.sets.map((set, setIndex) => (
@@ -148,6 +160,21 @@ export function CreateWorkoutScreen() {
         busy={saving} disabled={issues.length > 0 || !dateValid}
         onPress={() => void save()}
       />
+
+      <ExercisePicker
+        visible={pickerIndex !== null}
+        onClose={() => setPickerIndex(null)}
+        onAddManually={() => setPickerIndex(null)}
+        onSelect={(exercise) => {
+          const index = pickerIndex;
+          setPickerIndex(null);
+          if (index == null) return;
+          mutate((next) => {
+            next.exercises[index].name = exercise.name;
+            next.exercises[index].catalogue_exercise_id = exercise.id;
+          });
+        }}
+      />
     </ScrollView>
   );
 }
@@ -160,6 +187,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, gap: spacing.sm, padding: spacing.md },
   set: { borderTopColor: colors.border, borderTopWidth: 1, gap: spacing.sm, paddingTop: spacing.sm },
   fieldsRow: { flexDirection: 'row', gap: spacing.md },
+  nameRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
+  nameInput: { flex: 1 },
   label: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   input: { minHeight: 44, borderColor: colors.border, borderWidth: 1, borderRadius: radius.sm, color: colors.text, paddingHorizontal: spacing.sm },
   fieldError: { color: colors.danger, fontSize: 12, fontWeight: '700' },

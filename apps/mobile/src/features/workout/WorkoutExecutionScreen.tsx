@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { NumberField } from '@/components/NumberField';
 import { adjustReps, adjustWeight, formatWeightValue, parseRepsInput, parseWeightInput } from '@/components/numberFieldMath';
+import { StatusCard } from '@/components/Screen';
 import { ExercisePicker } from '@/features/exercises/ExercisePicker';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, hit, radius, spacing, type } from '@/theme/tokens';
@@ -26,6 +27,13 @@ import { WorkoutProgressBar } from './WorkoutProgressBar';
 
 type Loaded = { planId: string; plan: GymPlan; executionId: string | null };
 
+type LoadState =
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'no_plan' }
+  | { kind: 'completed' }
+  | { kind: 'ready' };
+
 function localDate() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
@@ -37,7 +45,9 @@ export function WorkoutExecutionScreen() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [editor, dispatch] = useReducer(executionEditorReducer, { actualData: { kind: 'gym_workout_execution', schema_version: 1, exercises: [] }, additionalNotes: '' });
   const [session, setSession] = useState<FocusedWorkoutSession>({ exerciseOrder: [], restEndsAt: null });
-  const [message, setMessage] = useState('Loading accepted workout…');
+  const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
+  const [reloadToken, setReloadToken] = useState(0);
+  const [message, setMessage] = useState('');
   const [skipExpanded, setSkipExpanded] = useState(false);
   const [skipReason, setSkipReason] = useState('');
   const [notesExpanded, setNotesExpanded] = useState(false);
@@ -73,18 +83,22 @@ export function WorkoutExecutionScreen() {
   }, [auth.session, loaded]);
 
   useEffect(() => {
+    setLoadState({ kind: 'loading' });
     const client = getSupabaseClient();
-    if (!client || !auth.session) return;
+    if (!client || !auth.session) {
+      setLoadState({ kind: 'error', message: 'This device has no public AGYM data connection yet.' });
+      return;
+    }
     const userId = auth.session.user.id;
     let active = true;
     void loadActiveWorkout(client, localDate()).then(async (remote) => {
       if (!active) return;
       if (!remote) {
-        setMessage('No accepted Gym workout is scheduled for today.');
+        setLoadState({ kind: 'no_plan' });
         return;
       }
       if (remote.execution?.status === 'completed') {
-        setMessage('This workout is already user confirmed and immutable.');
+        setLoadState({ kind: 'completed' });
         return;
       }
       const local = await loadLocalExecutionDraft(userId, remote.planId);
@@ -97,12 +111,12 @@ export function WorkoutExecutionScreen() {
       setSyncState(local?.syncState ?? 'saved_locally');
       setSyncError(local?.lastSyncError ?? null);
 
-      setMessage('');
+      setLoadState({ kind: 'ready' });
     }).catch((error: unknown) => {
-      if (active) setMessage(error instanceof Error ? error.message : 'Could not load workout.');
+      if (active) setLoadState({ kind: 'error', message: error instanceof Error ? error.message : 'Could not load workout.' });
     });
     return () => { active = false; };
-  }, [auth.session]);
+  }, [auth.session, reloadToken]);
 
   useEffect(() => {
     if (!loaded || !auth.session) return;
@@ -172,7 +186,33 @@ export function WorkoutExecutionScreen() {
     }
   }
 
-  if (!loaded) return <View style={styles.screen}><Text style={styles.message}>{message}</Text></View>;
+  if (!loaded) return (
+    <View style={styles.screen}>
+      <View style={styles.statusStack}>
+        {loadState.kind === 'loading' ? (
+          <StatusCard busy title="Loading workout" detail="Checking today's accepted Gym workout and any saved local progress." />
+        ) : null}
+        {loadState.kind === 'error' ? (
+          <>
+            <StatusCard tone="warning" title="Could not load workout" detail={loadState.message} />
+            <Button label="Retry" variant="secondary" fullWidth onPress={() => setReloadToken((token) => token + 1)} />
+          </>
+        ) : null}
+        {loadState.kind === 'no_plan' ? (
+          <>
+            <StatusCard title="No workout today" detail="No accepted Gym workout is scheduled for today." />
+            <Button label="+ Create workout" variant="secondary" fullWidth onPress={() => router.replace({ pathname: '/workout', params: { mode: 'create' } } as never)} />
+          </>
+        ) : null}
+        {loadState.kind === 'completed' ? (
+          <>
+            <StatusCard tone="confirmed" title="✓ Already confirmed" detail="This workout is user confirmed and immutable." />
+            <Button label="View in history" variant="secondary" fullWidth onPress={() => router.replace('/(tabs)/log' as never)} />
+          </>
+        ) : null}
+      </View>
+    </View>
+  );
 
   const current = getCurrentWorkoutSet(editor.actualData, session);
   const progress = computeWorkoutProgress(editor.actualData);
@@ -347,6 +387,7 @@ export function WorkoutExecutionScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, justifyContent: 'center' },
+  statusStack: { gap: spacing.md },
   content: { paddingTop: spacing.sm, paddingBottom: spacing.xl, gap: spacing.md },
   topBar: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   planTitle: { color: colors.muted, flex: 1, fontSize: 13, fontWeight: '700' },

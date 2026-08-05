@@ -46,3 +46,18 @@ export function relativeDayLabel(date: string, today: string): string {
   if (diff < -1 && diff >= -6) return `${Math.abs(diff)} days ago`;
   return formatWeekdayDate(date);
 }
+
+/** Relative age of a timestamp, for cache-staleness lines like "Saved data · updated 2h ago". */
+export function formatUpdatedAgo(isoTimestamp: string, now: Date): string {
+  const then = new Date(isoTimestamp).getTime();
+  if (Number.isNaN(then)) return 'recently';
+  const diffMs = now.getTime() - then;
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `on ${formatDayMonth(isoTimestamp)}`;
+}

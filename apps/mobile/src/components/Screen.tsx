@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing, tone } from '@/theme/tokens';
@@ -33,8 +33,16 @@ export function Screen({ eyebrow, title, children, action, onBack }: Props) {
   );
 }
 
-export function StatusCard({ title, detail, tone: statusTone = 'neutral' }: { title: string; detail: string; tone?: keyof typeof tone }) {
-  return <View style={styles.card}><Text style={[styles.cardTitle, { color: tone[statusTone] }]}>{title}</Text><Text style={styles.detail}>{detail}</Text></View>;
+export function StatusCard({ title, detail, tone: statusTone = 'neutral', busy }: { title: string; detail: string; tone?: keyof typeof tone; busy?: boolean }) {
+  return (
+    <View accessibilityState={{ busy: Boolean(busy) }} style={styles.card}>
+      <View style={styles.titleRow}>
+        {busy ? <ActivityIndicator size="small" color={tone[statusTone]} /> : null}
+        <Text style={[styles.cardTitle, { color: tone[statusTone] }]}>{title}</Text>
+      </View>
+      <Text style={styles.detail}>{detail}</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -47,6 +55,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.orange, fontSize: 12, fontWeight: '700', letterSpacing: 1.5 },
   title: { color: colors.text, fontSize: 34, fontWeight: '700' },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 16, padding: spacing.md, gap: spacing.xs },
-  cardTitle: { fontSize: 15, fontWeight: '700' },
+  titleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
+  cardTitle: { flex: 1, fontSize: 15, fontWeight: '700' },
   detail: { color: colors.muted, fontSize: 14, lineHeight: 20 },
 });

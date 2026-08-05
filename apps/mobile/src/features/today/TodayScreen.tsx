@@ -1,16 +1,21 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { Screen, StatusCard } from '@/components/Screen';
+import { resolveCacheFreshness } from '@/lib/cacheFreshness';
+import { readCacheRow, writeCacheRow } from '@/lib/localCache';
 import { getSupabaseClient } from '@/lib/supabase';
 import { colors, hit, spacing } from '@/theme/tokens';
 
 import { addCalendarDays, buildHomeCalendarDays, weekStart } from './homeSchedule';
 import { loadTodayRemoteData, loadUpcomingActivePlans, type TodayRemoteData } from './todayApi';
+import { parseTodayCache, serializeTodayCache, type TodayCachePayload } from './todayCache';
 import { mapTodayState, type TodayPlan, type TodayState } from './todayState';
+
+const TODAY_CACHE_KEY = 'today';
 
 function todayLocalDate(date = new Date()): string {
   const offset = date.getTimezoneOffset() * 60_000;
@@ -41,35 +46,84 @@ export function TodayScreen() {
   const [selectedDate, setSelectedDate] = useState(date);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cache, setCache] = useState<{ payload: TodayCachePayload; updatedAt: string } | null>(null);
+  const [cacheChecked, setCacheChecked] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
+  // Sticky failure flag for the freshness banner: `error` resets the instant
+  // a retry starts (so the no-cache error card clears immediately), but the
+  // stale-data warning card + Retry button should stay visible through a
+  // retry attempt and only clear on success — otherwise the button would
+  // vanish the moment it's tapped.
+  const [lastRefreshFailed, setLastRefreshFailed] = useState(false);
+  const refreshGeneration = useRef(0);
+  const userId = auth.session?.user.id ?? null;
 
-  useFocusEffect(useCallback(() => {
-    if (!auth.ready || !auth.configured || !auth.session) return undefined;
-    const client = getSupabaseClient();
-    if (!client) return undefined;
+  // Runs once per session (not per focus) — read is what makes the screen
+  // render instantly from disk before any network round trip completes.
+  useEffect(() => {
+    if (!userId) { setCache(null); setCacheChecked(true); return undefined; }
     let active = true;
+    setCacheChecked(false);
+    void readCacheRow(userId, TODAY_CACHE_KEY).then((row) => {
+      if (!active) return;
+      const parsed = row ? parseTodayCache(row.payload, date) : null;
+      setCache(parsed ? { payload: parsed, updatedAt: row!.updatedAt } : null);
+      setCacheChecked(true);
+    });
+    return () => { active = false; };
+  }, [userId, date]);
+
+  const refresh = useCallback(() => {
+    if (!auth.ready || !auth.configured || !auth.session) return;
+    const client = getSupabaseClient();
+    if (!client) return;
+    const generation = ++refreshGeneration.current;
+    const sessionUserId = auth.session.user.id;
     setLoading(true);
     setError(null);
     void Promise.all([
       loadTodayRemoteData(client, date),
       loadUpcomingActivePlans(client, date, calendarThroughDate),
     ])
-      .then(([today, upcoming]) => { if (active) { setRemote(today); setUpcomingPlans(upcoming); } })
-      .catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause.message : 'Unknown data error.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [auth.configured, auth.ready, auth.session, calendarThroughDate, date]));
+      .then(([today, upcoming]) => {
+        if (refreshGeneration.current !== generation) return;
+        setRemote(today);
+        setUpcomingPlans(upcoming);
+        setRefreshedAt(new Date().toISOString());
+        setLastRefreshFailed(false);
+        void writeCacheRow(sessionUserId, TODAY_CACHE_KEY, serializeTodayCache({ date, remote: today, upcomingPlans: upcoming })).catch(() => undefined);
+      })
+      .catch((cause: unknown) => {
+        if (refreshGeneration.current !== generation) return;
+        setError(cause instanceof Error ? cause.message : 'Unknown data error.');
+        setLastRefreshFailed(true);
+      })
+      .finally(() => { if (refreshGeneration.current === generation) setLoading(false); });
+  }, [auth.configured, auth.ready, auth.session, calendarThroughDate, date]);
+
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+
+  const hasCache = cache !== null;
+  const view = refreshedAt || !cache ? remote : cache.payload.remote;
+  const weekPlans = refreshedAt || !cache ? upcomingPlans : cache.payload.upcomingPlans;
+  const freshness = resolveCacheFreshness({
+    cacheUpdatedAt: cache?.updatedAt ?? null,
+    refreshSucceeded: refreshedAt !== null,
+    refreshFailed: lastRefreshFailed,
+    now: new Date(),
+  });
 
   const state = mapTodayState({
     configured: auth.configured,
     authenticated: Boolean(auth.session),
-    loading: !auth.ready || loading,
-    error,
-    activePlan: remote?.activePlan ?? null,
-    execution: remote?.execution ?? null,
-    proposal: remote?.proposal ?? null,
+    loading: (!auth.ready || !cacheChecked || loading) && !hasCache,
+    error: hasCache ? null : error,
+    activePlan: view?.activePlan ?? null,
+    execution: view?.execution ?? null,
+    proposal: view?.proposal ?? null,
   });
   const proposal = 'proposal' in state ? state.proposal : null;
-  const days = buildHomeCalendarDays(weekStart(selectedDate), 7, upcomingPlans);
+  const days = buildHomeCalendarDays(weekStart(selectedDate), 7, weekPlans);
   const selectedPlan = days.find((day) => day.date === selectedDate)?.plan ?? null;
   const selectedCalendarDate = new Date(`${selectedDate}T12:00:00.000Z`);
   const month = selectedCalendarDate.toLocaleDateString(undefined, { month: 'long', timeZone: 'UTC' });
@@ -81,6 +135,13 @@ export function TodayScreen() {
       action={<Button label="+ Log something" variant="tertiary" accessibilityLabel="Log something" onPress={() => router.push('/capture' as never)} />}
     >
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {freshness.kind === 'stale' ? <Text style={styles.staleLine}>Saved data · updated {freshness.label}</Text> : null}
+        {freshness.kind === 'stale_failed' ? (
+          <>
+            <StatusCard tone="warning" title="Showing saved data" detail={`Couldn't refresh. Last updated ${freshness.label}.`} />
+            <Button label="Retry" variant="secondary" fullWidth busy={loading} accessibilityLabel="Retry loading home" onPress={refresh} />
+          </>
+        ) : null}
         {proposal && state.kind !== 'proposal_waiting' ? <StatusCard tone="proposal" title="✧ Agent proposal" detail={`${proposal.title}. Nothing has been applied yet — review it in Plans before it can become scheduled training.`} /> : null}
         <View style={styles.calendarCard}>
           <View style={styles.calendarHeader}><Text style={styles.monthLabel}>{month}</Text><Text style={styles.eventCount}>{plannedInWeek} planned</Text></View>
@@ -109,6 +170,7 @@ export function TodayScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
+  staleLine: { color: colors.muted, fontSize: 12 },
   calendarCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 20, gap: spacing.sm, padding: spacing.md },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   monthLabel: { color: colors.text, fontSize: 20, fontWeight: '700' },

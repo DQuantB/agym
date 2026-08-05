@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/Button';
+import { StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
 import { computeWorkoutProgress, formatVolumeKg } from '@/features/workout/workoutMetrics';
 import { colors, radius, spacing, type } from '@/theme/tokens';
@@ -11,25 +13,53 @@ import type { ConfirmedWorkout } from './confirmedWorkout';
 import { loadConfirmedWorkoutDetail, type RawEvidence } from './logApi';
 import { summarizeSession } from './sessionSummary';
 
+type LoadState = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'missing' } | { kind: 'ready' };
+
 export function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const auth = useAuth();
+  const router = useRouter();
   const [workout, setWorkout] = useState<ConfirmedWorkout | null>(null);
   const [rawEvidence, setRawEvidence] = useState<RawEvidence | null>(null);
-  const [message, setMessage] = useState('Loading session…');
+  const [loadState, setLoadState] = useState<LoadState>({ kind: 'loading' });
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    setLoadState({ kind: 'loading' });
     const client = getSupabaseClient();
-    if (!id || !client || !auth.session) return;
+    if (!id || !client || !auth.session) {
+      setLoadState({ kind: 'error', message: 'This device has no public AGYM data connection yet.' });
+      return;
+    }
     void loadConfirmedWorkoutDetail(client, id).then((value) => {
-      if (!value) { setMessage('This confirmed session is no longer available.'); return; }
+      if (!value) { setLoadState({ kind: 'missing' }); return; }
       setWorkout(value.workout);
       setRawEvidence(value.rawEvidence);
-      setMessage('');
-    }).catch((error: unknown) => setMessage(error instanceof Error ? error.message : 'Could not load this session.'));
-  }, [auth.session, id]);
+      setLoadState({ kind: 'ready' });
+    }).catch((error: unknown) => setLoadState({ kind: 'error', message: error instanceof Error ? error.message : 'Could not load this session.' }));
+  }, [auth.session, id, reloadToken]);
 
-  if (!workout) return <View style={styles.screen}><Text style={styles.message}>{message}</Text></View>;
+  if (!workout) return (
+    <View style={styles.screen}>
+      <View style={styles.statusStack}>
+        {loadState.kind === 'loading' ? (
+          <StatusCard busy title="Loading session" detail="Fetching this confirmed session and its raw evidence." />
+        ) : null}
+        {loadState.kind === 'error' ? (
+          <>
+            <StatusCard tone="warning" title="Session unavailable" detail={loadState.message} />
+            <Button label="Retry" variant="secondary" fullWidth onPress={() => setReloadToken((token) => token + 1)} />
+          </>
+        ) : null}
+        {loadState.kind === 'missing' ? (
+          <>
+            <StatusCard title="Session not available" detail="This confirmed session is no longer available." />
+            <Button label="Back to history" variant="secondary" fullWidth onPress={() => router.back()} />
+          </>
+        ) : null}
+      </View>
+    </View>
+  );
 
   const summary = summarizeSession(workout);
   const card = summary.card;
@@ -96,6 +126,7 @@ export function SessionDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  statusStack: { gap: spacing.md, padding: spacing.lg },
   content: { padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.md },
   confirmed: { color: colors.green, fontSize: 12, fontWeight: '800' },
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },

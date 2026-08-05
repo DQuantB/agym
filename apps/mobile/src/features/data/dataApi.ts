@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { clearAccountLocalExecutionDrafts } from '@/features/workout/localDraftStore';
+import { clearAccountScreenCache } from '@/lib/localCache';
 
 import { deleteAccountAndClearLocalData } from './accountDeletion';
 import { serializeMobileDataExport } from './mobileDataExport';
@@ -82,7 +83,7 @@ export async function deleteAccount(
       const { error } = await client.rpc('delete_my_account');
       if (error) throw new Error(`AGYM could not delete your account: ${error.message}`);
     },
-    clearLocalDrafts: clearAccountLocalExecutionDrafts,
+    clearLocalDrafts: async (id) => { await clearAccountLocalExecutionDrafts(id); await clearAccountScreenCache(id); },
     signOut,
   });
 }

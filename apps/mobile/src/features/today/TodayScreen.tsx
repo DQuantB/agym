@@ -169,7 +169,7 @@ export function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  content: { gap: spacing.md, paddingBottom: spacing.xl + hit.primary },
   staleLine: { color: colors.muted, fontSize: 12 },
   calendarCard: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 20, gap: spacing.sm, padding: spacing.md },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between' },

@@ -6,7 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, hit, spacing } from '@/theme/tokens';
 
 import { grantAgentAuthorization, type AuthorizationAction, type AuthorizationAgent } from './authorizationApi';
 import { loadMyCoachLink, redeemCoachCode, unlinkCoach, type CoachLink } from './coachLinkApi';
@@ -352,7 +352,7 @@ export function DataScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  content: { gap: spacing.md, paddingBottom: spacing.xl + hit.primary },
   sectionHeader: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: spacing.md },
   agentGroup: { gap: spacing.sm },
   agentLabel: { color: colors.text, fontSize: 15, fontWeight: '700' },

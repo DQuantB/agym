@@ -18,6 +18,7 @@ export default function RootLayout() {
             <Stack.Screen name="proposal" />
             <Stack.Screen name="session" />
             <Stack.Screen name="capture" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="feedback" options={{ presentation: 'modal' }} />
             <Stack.Screen name="auth/callback" />
           </Stack>
         </AuthGate>

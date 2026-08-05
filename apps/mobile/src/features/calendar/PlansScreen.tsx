@@ -10,7 +10,7 @@ import { resolveCacheFreshness } from '@/lib/cacheFreshness';
 import { formatWeekdayDate } from '@/lib/dateLabels';
 import { readCacheRow, writeCacheRow } from '@/lib/localCache';
 import { getSupabaseClient } from '@/lib/supabase';
-import { colors, radius, spacing } from '@/theme/tokens';
+import { colors, hit, radius, spacing } from '@/theme/tokens';
 
 import { acceptCalendarProposals, findActivePlanConflicts, loadCalendarPlans, loadSupersededPlansByDate, restoreSupersededPlan, type CalendarPlan, type SupersededPlan } from './calendarApi';
 import { mapCalendarScreenState } from './calendarState';
@@ -317,7 +317,7 @@ export function PlansScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  list: { gap: spacing.sm, paddingBottom: spacing.xl + hit.primary },
   staleLine: { color: colors.muted, fontSize: 12 },
   sectionHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   sectionHeader: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: spacing.md },

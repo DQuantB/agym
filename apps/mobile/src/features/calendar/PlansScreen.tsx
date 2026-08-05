@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -6,13 +6,18 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { DisclosureRow } from '@/components/DisclosureRow';
 import { Screen, StatusCard } from '@/components/Screen';
-import { getSupabaseClient } from '@/lib/supabase';
+import { resolveCacheFreshness } from '@/lib/cacheFreshness';
 import { formatWeekdayDate } from '@/lib/dateLabels';
+import { readCacheRow, writeCacheRow } from '@/lib/localCache';
+import { getSupabaseClient } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 import { acceptCalendarProposals, findActivePlanConflicts, loadCalendarPlans, loadSupersededPlansByDate, restoreSupersededPlan, type CalendarPlan, type SupersededPlan } from './calendarApi';
 import { mapCalendarScreenState } from './calendarState';
 import { buildPlanAgenda, formatProposalBatchConfirmation, summarizeBulkAcceptResults, type ProposalGroup } from './planAgenda';
+import { parsePlansCache, resolvePlansView, serializePlansCache, type ParsedPlansCache } from './plansCache';
+
+const PLANS_CACHE_KEY = 'plans';
 
 function todayLocalDate(): string {
   const now = new Date();
@@ -33,10 +38,33 @@ export function PlansScreen() {
   const [acceptingGroup, setAcceptingGroup] = useState<string | null>(null);
   const [bulkAccepting, setBulkAccepting] = useState(false);
   const [bulkAcceptStatus, setBulkAcceptStatus] = useState<{ tone: 'warning' | 'confirmed'; text: string } | null>(null);
+  const [cache, setCache] = useState<{ payload: ParsedPlansCache; updatedAt: string } | null>(null);
+  const [cacheChecked, setCacheChecked] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
+  // Sticky, unlike `message` which resets the instant a retry starts — keeps
+  // the stale-data warning card + Retry button visible through a retry
+  // attempt instead of it vanishing the moment it's tapped.
+  const [lastRefreshFailed, setLastRefreshFailed] = useState(false);
+  const userId = auth.session?.user.id ?? null;
+
+  // Runs once per session (not per focus) — read is what makes the screen
+  // render instantly from disk before any network round trip completes.
+  useEffect(() => {
+    if (!userId) { setCache(null); setCacheChecked(true); return undefined; }
+    let active = true;
+    setCacheChecked(false);
+    void readCacheRow(userId, PLANS_CACHE_KEY).then((row) => {
+      if (!active) return;
+      const parsed = row ? parsePlansCache(row.payload) : null;
+      setCache(parsed ? { payload: parsed, updatedAt: row!.updatedAt } : null);
+      setCacheChecked(true);
+    });
+    return () => { active = false; };
+  }, [userId]);
 
   const refresh = useCallback(async () => {
     const client = getSupabaseClient();
-    if (!client) { setMessage('This device has no public AGYM data connection yet.'); return; }
+    if (!client) { setMessage('This device has no public AGYM data connection yet.'); setLastRefreshFailed(true); return; }
     setLoading(true);
     setMessage(null);
     try {
@@ -44,12 +72,16 @@ export function PlansScreen() {
       setProposals(plans.proposals);
       setScheduled(plans.scheduled);
       setSupersededByDate(superseded);
+      setRefreshedAt(new Date().toISOString());
+      setLastRefreshFailed(false);
+      if (userId) void writeCacheRow(userId, PLANS_CACHE_KEY, serializePlansCache({ ...plans, supersededByDate: superseded })).catch(() => undefined);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not load calendar plans.');
+      setLastRefreshFailed(true);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useFocusEffect(useCallback(() => {
     if (!auth.ready || !auth.configured || !auth.session) { setLoading(false); return undefined; }
@@ -140,18 +172,30 @@ export function PlansScreen() {
     );
   }
 
+  const hasCache = cache !== null;
+  const refreshed = refreshedAt !== null;
+  const viewProposals = resolvePlansView({ refreshed, live: proposals, cached: cache?.payload.proposals ?? null });
+  const viewScheduled = resolvePlansView({ refreshed, live: scheduled, cached: cache?.payload.scheduled ?? null });
+  const viewSupersededByDate = resolvePlansView({ refreshed, live: supersededByDate, cached: cache?.payload.supersededByDate ?? null });
+  const freshness = resolveCacheFreshness({
+    cacheUpdatedAt: cache?.updatedAt ?? null,
+    refreshSucceeded: refreshed,
+    refreshFailed: lastRefreshFailed,
+    now: new Date(),
+  });
+
   const state = mapCalendarScreenState({
-    configured: auth.configured, authenticated: Boolean(auth.session), loading: !auth.ready || loading,
-    error: message, proposals, scheduled,
+    configured: auth.configured, authenticated: Boolean(auth.session), loading: (!auth.ready || !cacheChecked || loading) && !hasCache,
+    error: hasCache ? null : message, proposals: viewProposals, scheduled: viewScheduled,
   });
 
   if (state.kind === 'unconfigured') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard title="Connections are not configured" detail="Add the public AGYM connection before loading your plans." /></Screen>;
   if (state.kind === 'signed_out') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard title="Sign in required" detail="Sign in to view your owner-scoped plans." /></Screen>;
-  if (state.kind === 'loading') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard title="Loading plans" detail="Checking your agent proposals and accepted training." /></Screen>;
+  if (state.kind === 'loading') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard busy title="Loading plans" detail="Checking your agent proposals and accepted training." /></Screen>;
   if (state.kind === 'error') return <Screen eyebrow="PLANS" title="Agenda"><StatusCard tone="warning" title="Plans unavailable" detail={state.message} /></Screen>;
 
   const today = todayLocalDate();
-  const agenda = buildPlanAgenda({ proposals: state.proposals, scheduled: state.scheduled, today, supersededByDate });
+  const agenda = buildPlanAgenda({ proposals: state.proposals, scheduled: state.scheduled, today, supersededByDate: viewSupersededByDate });
   const upcoming = [...agenda.today, ...agenda.upcoming];
   const totalProposalCount = agenda.proposals.reduce((sum, group) => sum + group.occurrences.length, 0);
 
@@ -161,6 +205,13 @@ export function PlansScreen() {
       action={<Button label="+ Create workout" variant="tertiary" accessibilityLabel="Create a workout without an agent" onPress={() => router.push({ pathname: '/workout', params: { mode: 'create' } } as never)} />}
     >
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {freshness.kind === 'stale' ? <Text style={styles.staleLine}>Saved data · updated {freshness.label}</Text> : null}
+        {freshness.kind === 'stale_failed' ? (
+          <>
+            <StatusCard tone="warning" title="Showing saved data" detail={`Couldn't refresh. Last updated ${freshness.label}.`} />
+            <Button label="Retry" variant="secondary" fullWidth busy={loading} accessibilityLabel="Retry loading plans" onPress={() => void refresh()} />
+          </>
+        ) : null}
         {restoreStatus ? <StatusCard tone={restoreStatus.tone} title="Previous plan" detail={restoreStatus.text} /> : null}
         {agenda.proposals.length ? (
           <>
@@ -267,6 +318,7 @@ export function PlansScreen() {
 
 const styles = StyleSheet.create({
   list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  staleLine: { color: colors.muted, fontSize: 12 },
   sectionHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   sectionHeader: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: spacing.md },
   proposalCard: { backgroundColor: colors.surface, borderColor: colors.orange, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },

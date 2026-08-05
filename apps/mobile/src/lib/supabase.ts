@@ -1,7 +1,7 @@
 import 'react-native-url-polyfill/auto';
 
 import * as SecureStore from 'expo-secure-store';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -36,3 +36,23 @@ export function getSupabaseClient(): SupabaseClient | null {
 }
 
 export const isSupabaseConfigured = () => Boolean(url && key);
+
+/**
+ * Reads the session supabase-js already persisted under `storageKey`,
+ * bypassing the network. Used only as a fallback when `getSession()` fails
+ * with a connectivity error and the SDK hands back `session: null` even
+ * though a session is still on disk (see AuthProvider's bootstrap). Since
+ * this app does not configure `userStorage`, supabase-js stores the full
+ * session object — including `user` — at this single key.
+ */
+export async function readPersistedSession(): Promise<Session | null> {
+  try {
+    const raw = await SecureStore.getItemAsync(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { user?: { id?: unknown } } | null;
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.user?.id !== 'string') return null;
+    return parsed as unknown as Session;
+  } catch {
+    return null;
+  }
+}

@@ -13,10 +13,14 @@ const TITLES: Record<string, string> = { edit: 'Edit workout', create: 'Create w
 export default function WorkoutRoute() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const router = useRouter();
+  // The execution screen owns its own compact top bar instead of ScreenHeader —
+  // every pixel matters mid-set, and gestureEnabled is false for this route
+  // because leaving mid-session is dangerous, which an unguarded back chevron undermines.
+  if (!mode) return <View style={{ flex: 1, backgroundColor: colors.background }}><WorkoutExecutionScreen onExit={() => router.back()} /></View>;
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader onBack={() => router.back()} title={mode ? TITLES[mode] : undefined} />
-      {mode === 'edit' ? <FuturePlanEditorScreen /> : mode === 'create' ? <CreateWorkoutScreen /> : <WorkoutExecutionScreen />}
+      <ScreenHeader onBack={() => router.back()} title={TITLES[mode]} />
+      {mode === 'edit' ? <FuturePlanEditorScreen /> : <CreateWorkoutScreen />}
     </View>
   );
 }

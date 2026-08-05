@@ -7,9 +7,11 @@ export type ExecutionEditorAction =
   | { type: 'set_reps'; exerciseIndex: number; setIndex: number; reps: number }
   | { type: 'toggle_set'; exerciseIndex: number; setIndex: number }
   | { type: 'complete_set'; exerciseIndex: number; setIndex: number }
+  | { type: 'reset_set'; exerciseIndex: number; setIndex: number }
   | { type: 'skip_set'; exerciseIndex: number; setIndex: number; reason: string }
   | { type: 'skip_exercise'; exerciseIndex: number; reason: string }
   | { type: 'add_set'; exerciseIndex: number }
+  | { type: 'delete_set'; exerciseIndex: number; setIndex: number }
   | { type: 'add_exercise' }
   | { type: 'add_catalogue_exercise'; name: string; catalogueExerciseId: string }
   | { type: 'set_exercise_name'; exerciseIndex: number; name: string }
@@ -65,6 +67,13 @@ export function executionEditorReducer(state: ExecutionEditorState, action: Exec
 
   if (action.type === 'add_set') {
     exercise.sets.push({ reps: 1, weight_kg: null, rest_seconds: 120, completed: false, skipped_reason: null, user_added: true });
+  } else if (action.type === 'delete_set') {
+    const set = exercise.sets[action.setIndex];
+    // Only ever deletable if user-added: add_set always pushes, so user-added
+    // sets are a tail suffix and deleting one can't shift a planned set's
+    // positional index (findPlannedSet in plannedReference.ts is index-based).
+    if (!set || !set.user_added || exercise.sets.length <= 1) return state;
+    exercise.sets.splice(action.setIndex, 1);
   } else {
     const set = exercise.sets[action.setIndex];
     if (!set) return state;
@@ -76,6 +85,10 @@ export function executionEditorReducer(state: ExecutionEditorState, action: Exec
     }
     if (action.type === 'complete_set') {
       set.completed = true;
+      set.skipped_reason = null;
+    }
+    if (action.type === 'reset_set') {
+      set.completed = false;
       set.skipped_reason = null;
     }
     if (action.type === 'skip_set') {

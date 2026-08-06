@@ -212,26 +212,27 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 .coach-dash-code-list, .coach-dash-roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .coach-dash-client-row { text-align: left; background: none; border: 1px solid var(--border); border-radius: var(--radius-control); padding: 0.6rem 0.8rem; cursor: pointer; width: 100%; }
 
-.coach-landing { width: min(720px, 100%); margin: 0 auto; padding: clamp(1.5rem, 5vw, 3rem) 1rem 3rem; }
-.coach-landing-hero { padding: 1rem 0 1.5rem; }
-.coach-landing-eyebrow {
-  display: inline-block;
-  margin: 1rem 0 0.75rem;
-  font-weight: 600;
-  color: var(--text-faint);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: 0.72rem;
-}
-.coach-landing-hero h1 { font-size: clamp(1.6rem, 4.5vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 1rem; }
-.coach-landing-lede { color: var(--text-dim); font-size: 1rem; line-height: 1.6; max-width: 62ch; }
-.coach-landing-section { padding: 1.5rem 0; border-top: 1px solid var(--border); }
-.coach-landing-section h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.75rem; }
-.coach-landing-section > p { color: var(--text-dim); line-height: 1.6; max-width: 64ch; }
-.coach-landing-steps { display: grid; gap: 0.6rem; padding-left: 1.25rem; color: var(--text); }
-.coach-landing-steps li { line-height: 1.5; }
-.coach-landing-disclaimer { margin-top: 1rem; font-size: 0.82rem; color: var(--text-faint); }
-.coach-landing-form { display: grid; gap: 0.75rem; max-width: 32rem; margin-top: 1rem; }
-.coach-landing-success { color: var(--text); font-weight: 600; }
-.coach-landing-consent { font-size: 0.78rem; color: var(--text-faint); margin: 0; }
-.coach-landing-footer { padding-top: 1.5rem; border-top: 1px solid var(--border); display: grid; gap: 0.4rem; font-size: 0.78rem; color: var(--text-faint); }
+.coach-landing { width: min(1120px, 100%); margin: 0 auto; padding: 0 1.25rem 3rem; }
+.coach-landing-nav { min-height: 4.75rem; display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid var(--border); }
+.coach-landing-mark { color: var(--text); font-size: 1.1rem; font-weight: 900; letter-spacing: -0.06em; text-decoration: none; }
+.coach-landing-nav p { margin: 0; color: var(--text-faint); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; }
+.coach-landing-nav-link { margin-left: auto; color: var(--text); font-size: 0.76rem; font-weight: 700; text-decoration: none; border-bottom: 1px solid var(--accent); padding-bottom: 0.2rem; }
+.coach-landing-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.8fr); gap: clamp(2rem, 7vw, 6rem); align-items: center; padding: clamp(3rem, 9vw, 7rem) 0; }
+.coach-landing-eyebrow { display: inline-block; margin: 0 0 0.9rem; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.7rem; font-weight: 800; }
+.coach-landing-hero h1, .coach-landing-section h2, .coach-landing-reason h2, .coach-landing-partner h2 { margin: 0; font-weight: 850; letter-spacing: -0.045em; line-height: 0.98; }
+.coach-landing-hero h1 { font-size: clamp(3rem, 7vw, 5.7rem); max-width: 9.5ch; }
+.coach-landing-lede { color: var(--text-dim); font-size: 1.08rem; line-height: 1.6; max-width: 56ch; margin: 1.5rem 0 0; }
+.coach-landing-qualification { color: var(--text); border-left: 2px solid var(--accent); padding-left: 0.8rem; line-height: 1.5; font-size: 0.9rem; max-width: 54ch; }
+.coach-landing-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.8rem; }
+.coach-landing-primary, .coach-landing-secondary { display: inline-flex; align-items: center; gap: 1rem; text-decoration: none; font-size: 0.86rem; font-weight: 800; padding: 0.85rem 1rem; }
+.coach-landing-primary { background: var(--accent); color: var(--bg); }
+.coach-landing-secondary { border: 1px solid var(--border-strong); color: var(--text); }
+.coach-landing-small { color: var(--text-faint); font-size: 0.72rem; margin: 1rem 0 0; }
+.coach-landing-signal { background: #151518; border: 1px solid var(--border-strong); padding: 1.2rem; box-shadow: 12px 12px 0 var(--accent-soft); }
+.signal-label { color: var(--text-faint); letter-spacing: 0.12em; font-size: 0.64rem; font-weight: 800; margin-bottom: 1rem; }
+.signal-plan, .signal-context { display: grid; grid-template-columns: auto 1fr auto; gap: 0.6rem; align-items: baseline; padding: 0.8rem; border: 1px solid var(--border-strong); background: var(--surface-2); font-size: 0.76rem; }
+.signal-plan span { color: var(--accent); font-weight: 800; }.signal-plan em { color: var(--text-faint); font-style: normal; }.signal-fragments { display: grid; gap: 0.45rem; padding: 0.9rem 0.45rem; }.signal-fragments p { margin: 0; width: fit-content; color: var(--text-dim); background: #242329; border-left: 2px solid var(--text-faint); padding: 0.35rem 0.5rem; font-size: 0.76rem; }.signal-arrow { color: var(--accent); font-size: 1.5rem; text-align: center; }.signal-context { grid-template-columns: 1fr; border-color: var(--accent); background: var(--accent-soft); }.signal-context span { color: var(--accent); font-size: 0.64rem; font-weight: 800; letter-spacing: 0.1em; }.signal-context p { margin: 0; color: var(--text-dim); }.signal-caption { color: var(--text-faint); font-size: 0.68rem; margin: 0.9rem 0 0; }
+.coach-landing-reason { border-top: 1px solid var(--border); padding: clamp(3rem, 7vw, 5rem) 0; }.coach-landing-reason h2, .coach-landing-section h2, .coach-landing-partner h2 { font-size: clamp(2rem, 4.5vw, 3.5rem); max-width: 17ch; }.coach-landing-reason-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 2rem; }.coach-landing-reason-grid article { background: var(--bg); padding: 1.3rem; min-height: 11rem; }.coach-landing-reason-grid span { color: var(--accent); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; }.coach-landing-reason-grid p { color: var(--text-dim); line-height: 1.5; font-size: 0.9rem; }
+.coach-landing-section { border-top: 1px solid var(--border); padding: clamp(3rem, 7vw, 5rem) 0; display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr); gap: clamp(2rem, 6vw, 5rem); }.coach-landing-section-heading > p:not(.coach-landing-eyebrow) { color: var(--text-dim); line-height: 1.55; }.coach-landing-steps { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border); }.coach-landing-steps li { display: grid; grid-template-columns: 2.3rem 1fr; gap: 1rem; padding: 1.15rem 0; border-bottom: 1px solid var(--border); }.coach-landing-steps span { color: var(--accent); font-size: 0.7rem; font-weight: 800; }.coach-landing-steps h3 { margin: 0; font-size: 1.05rem; }.coach-landing-steps p { color: var(--text-dim); line-height: 1.5; margin: 0.4rem 0 0; font-size: 0.88rem; }
+.coach-landing-partner { border-top: 1px solid var(--border); padding: clamp(3rem, 7vw, 5rem) 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 0.75fr); gap: clamp(2rem, 8vw, 7rem); }.coach-landing-partner > div > p:not(.coach-landing-eyebrow) { color: var(--text-dim); line-height: 1.6; max-width: 54ch; }.coach-landing-partner ul { padding-left: 1.2rem; color: var(--text-dim); line-height: 1.7; font-size: 0.88rem; }.coach-landing-form-card { align-self: start; border: 1px solid var(--border-strong); background: var(--surface-1); padding: 1.4rem; }.coach-landing-dm-cta { margin: 0; color: var(--text-dim); line-height: 1.65; }.coach-landing-dm-cta strong { color: var(--text); }.coach-landing-form { display: grid; gap: 0.75rem; }.coach-landing-success { color: var(--text); font-weight: 600; line-height: 1.5; }.coach-landing-consent { font-size: 0.75rem; color: var(--text-faint); margin: 0; }.coach-landing-footer { padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-faint); }.coach-landing-footer p { margin: 0; max-width: 48ch; }
+@media (max-width: 720px) { .coach-landing-nav p { display: none; }.coach-landing-nav-link { font-size: 0.7rem; }.coach-landing-hero, .coach-landing-section, .coach-landing-partner { grid-template-columns: 1fr; }.coach-landing-hero { padding: 3.5rem 0; }.coach-landing-hero h1 { font-size: clamp(2.8rem, 14vw, 4.5rem); }.coach-landing-reason-grid { grid-template-columns: 1fr; }.coach-landing-reason-grid article { min-height: auto; }.coach-landing-signal { max-width: 32rem; } }

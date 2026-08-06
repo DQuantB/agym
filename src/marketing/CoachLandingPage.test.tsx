@@ -19,13 +19,13 @@ afterEach(() => {
 });
 
 describe('CoachLandingPage', () => {
-  it('renders the prototype-concept workflow and the value hypothesis, not a live-feature claim', () => {
+  it('renders the plan-versus-actual value proposition and keeps the workflow explicitly conceptual', () => {
     render(<CoachLandingPage />);
 
     expect(screen.getByRole('heading', { name: /plan is not their whole training week/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /prototype concept/i })).toBeInTheDocument();
-    expect(screen.getByText(/nothing described here is live yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/hypothesis we.re actively testing/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /clearer record of the week/i })).toBeInTheDocument();
+    expect(screen.getByText(/prototype concept/i)).toBeInTheDocument();
+    expect(screen.getByText(/when the athlete can preserve and confirm/i)).toBeInTheDocument();
     expect(screen.getByText(/not a medical device/i)).toBeInTheDocument();
   });
 
@@ -35,14 +35,14 @@ describe('CoachLandingPage', () => {
     render(<CoachLandingPage />);
 
     await user.type(screen.getByLabelText(/email address/i), 'coach@example.test');
-    await user.click(screen.getByRole('button', { name: /get early access/i }));
+    await user.click(screen.getByRole('button', { name: /request early access/i }));
 
     await waitFor(() => expect(insert).toHaveBeenCalledWith({
       email: 'coach@example.test',
       coach_name: null,
       note: null,
     }));
-    expect(await screen.findByRole('status')).toHaveTextContent(/we.ll be in touch/i);
+    expect(await screen.findByRole('status')).toHaveTextContent(/you.re on the list/i);
   });
 
   it('shows an error and does not silently succeed when the submission fails', async () => {
@@ -51,7 +51,7 @@ describe('CoachLandingPage', () => {
     render(<CoachLandingPage />);
 
     await user.type(screen.getByLabelText(/email address/i), 'coach@example.test');
-    await user.click(screen.getByRole('button', { name: /get early access/i }));
+    await user.click(screen.getByRole('button', { name: /request early access/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/something went wrong/i);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('CoachLandingPage', () => {
     configured = false;
     render(<CoachLandingPage />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(/early-access requests open shortly/i);
+    expect(screen.getByRole('status')).toHaveTextContent(/reply beta/i);
     expect(screen.queryByLabelText(/email address/i)).not.toBeInTheDocument();
   });
 });

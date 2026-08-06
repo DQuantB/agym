@@ -9,3 +9,4 @@ dist/
 .DS_Store
 # Founder-private coach research queue. Keep real prospect notes and any approved message drafts out of Git.
 docs/marketing/fixtures/coach-prospect-candidates.local.json
+.env*

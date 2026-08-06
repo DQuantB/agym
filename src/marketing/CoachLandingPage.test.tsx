@@ -22,7 +22,7 @@ describe('CoachLandingPage', () => {
   it('renders the prototype-concept workflow and the value hypothesis, not a live-feature claim', () => {
     render(<CoachLandingPage />);
 
-    expect(screen.getByRole('heading', { name: /reconstructing your clients/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /plan is not their whole training week/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /prototype concept/i })).toBeInTheDocument();
     expect(screen.getByText(/nothing described here is live yet/i)).toBeInTheDocument();
     expect(screen.getByText(/hypothesis we.re actively testing/i)).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe('CoachLandingPage', () => {
     configured = false;
     render(<CoachLandingPage />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(/temporarily unavailable/i);
+    expect(screen.getByRole('status')).toHaveTextContent(/early-access requests open shortly/i);
     expect(screen.queryByLabelText(/email address/i)).not.toBeInTheDocument();
   });
 });

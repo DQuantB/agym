@@ -47,8 +47,8 @@ export function CoachLandingPage() {
     <main className="coach-landing">
       <header className="coach-landing-hero">
         <div className="poster-word">AGYM</div>
-        <p className="coach-landing-eyebrow">For independent coaches — early concept, not a live product</p>
-        <h1>Stop reconstructing your clients&rsquo; week from scratch every check-in.</h1>
+        <p className="coach-landing-eyebrow">For independent coaches — private early access</p>
+        <h1>Your clients&rsquo; plan is not their whole training week.</h1>
         <p className="coach-landing-lede">
           AGym is exploring a reviewable context layer between a client&rsquo;s messy self-report and your own
           coaching workflow — so you spend less time piecing a week together and more time deciding what to do
@@ -88,7 +88,10 @@ export function CoachLandingPage() {
         </p>
 
         {!configured && (
-          <p role="status" className="microcopy">Sign-up is temporarily unavailable. Please check back shortly.</p>
+          <p role="status" className="microcopy">
+            Early-access requests open shortly. If you reached this page through Instagram, reply <strong>BETA</strong>
+            to the message or send AGym a DM to get the next step.
+          </p>
         )}
 
         {configured && state === 'success' && (

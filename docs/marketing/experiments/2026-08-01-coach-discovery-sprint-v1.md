@@ -1,6 +1,6 @@
 # Coach Discovery Sprint v1
 
-Status: draft research protocol. Created 2026-08-01. No outreach sent, no interviews conducted, no public content published, no contact data collected, and no evidence recorded at creation.
+Status: active. Created 2026-08-01. Founder has begun sending discovery outreach and approved a public landing page with email capture as of 2026-08-02 (see Boundaries below) — no evidence yet recorded in the ledger.
 
 ## Decision to inform
 
@@ -52,7 +52,8 @@ Follow `../coach-discovery-operator-guide-v1.md` for the public-source scan rubr
 - No automation, mass outreach, scraping, private-group access, or hidden data collection.
 - Do not request identifiable client data. If a coach voluntarily gives an example, ask them to anonymize it; do not commit it to the repository.
 - No prototype claims beyond a clearly labeled future concept.
-- No public promotion, email collection, ads, or spend in this sprint.
+- Founder-approved exception (2026-08-02): a `/coaches` landing page and its "get early access" email capture are permitted as founder-approved public content, since it is a positioning/explainer page only — no live product claims, no coach dashboard, no client data collection. Still no paid ads or spend in this sprint.
+- No other public promotion beyond the approved landing page without a further founder decision.
 
 ## Evidence ledger template
 

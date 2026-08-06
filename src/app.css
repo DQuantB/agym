@@ -211,3 +211,27 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 .coach-dash-error { color: var(--danger, #c0392b); }
 .coach-dash-code-list, .coach-dash-roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .coach-dash-client-row { text-align: left; background: none; border: 1px solid var(--border); border-radius: var(--radius-control); padding: 0.6rem 0.8rem; cursor: pointer; width: 100%; }
+
+.coach-landing { width: min(720px, 100%); margin: 0 auto; padding: clamp(1.5rem, 5vw, 3rem) 1rem 3rem; }
+.coach-landing-hero { padding: 1rem 0 1.5rem; }
+.coach-landing-eyebrow {
+  display: inline-block;
+  margin: 1rem 0 0.75rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+.coach-landing-hero h1 { font-size: clamp(1.6rem, 4.5vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 1rem; }
+.coach-landing-lede { color: var(--text-dim); font-size: 1rem; line-height: 1.6; max-width: 62ch; }
+.coach-landing-section { padding: 1.5rem 0; border-top: 1px solid var(--border); }
+.coach-landing-section h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.75rem; }
+.coach-landing-section > p { color: var(--text-dim); line-height: 1.6; max-width: 64ch; }
+.coach-landing-steps { display: grid; gap: 0.6rem; padding-left: 1.25rem; color: var(--text); }
+.coach-landing-steps li { line-height: 1.5; }
+.coach-landing-disclaimer { margin-top: 1rem; font-size: 0.82rem; color: var(--text-faint); }
+.coach-landing-form { display: grid; gap: 0.75rem; max-width: 32rem; margin-top: 1rem; }
+.coach-landing-success { color: var(--text); font-weight: 600; }
+.coach-landing-consent { font-size: 0.78rem; color: var(--text-faint); margin: 0; }
+.coach-landing-footer { padding-top: 1.5rem; border-top: 1px solid var(--border); display: grid; gap: 0.4rem; font-size: 0.78rem; color: var(--text-faint); }

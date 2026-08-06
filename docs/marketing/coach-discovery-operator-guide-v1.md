@@ -1,6 +1,6 @@
 # Coach Discovery Operator Guide v1
 
-Status: internal operating guide. Created 2026-08-01. Supports `experiments/2026-08-01-coach-discovery-sprint-v1.md`. It does not authorize outreach, public posting, automated collection, or handling identifiable client data.
+Status: internal operating guide. Created 2026-08-01. Supports `experiments/2026-08-01-coach-discovery-sprint-v1.md`. It does not authorize automated collection or handling identifiable client data. As of 2026-08-02 the founder has begun sending discovery outreach; a founder-approved `/coaches` landing page exists as an explainer/early-access page and may be shared once a coach confirms relevant pain, per the sending protocol below — do not lead with it.
 
 ## Objective
 
@@ -140,6 +140,8 @@ That is helpful—thank you. Could you walk me through one recent, anonymized ex
 ```text
 I’m exploring a future workflow concept, not a finished product: preserving a client’s original update while making a reviewable briefing that a coach can use in their own process or alongside their preferred AI tools. The coach would remain responsible for interpretation and any plan change. I’m first trying to learn whether the underlying check-in problem is real.
 ```
+
+If the coach wants something to look at rather than just a description, the `/coaches` page (once live) covers the same concept and is labeled as a prototype concept — only share it after this reply, never as the opener.
 
 ## Sending protocol
 

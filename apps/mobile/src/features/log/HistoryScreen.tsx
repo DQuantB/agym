@@ -8,7 +8,7 @@ import { DisclosureRow } from '@/components/DisclosureRow';
 import { Screen, StatusCard } from '@/components/Screen';
 import { getSupabaseClient } from '@/lib/supabase';
 import { formatWeekdayDate } from '@/lib/dateLabels';
-import { colors, radius, spacing } from '@/theme/tokens';
+import { colors, hit, radius, spacing } from '@/theme/tokens';
 
 import type { ConfirmedWorkout } from './confirmedWorkout';
 import { computeExercisePrs } from './exercisePrs';
@@ -135,7 +135,7 @@ export function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  list: { gap: spacing.sm, paddingBottom: spacing.xl + hit.primary },
   totals: { color: colors.muted, fontSize: 13, fontWeight: '700', marginBottom: spacing.xs },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, gap: spacing.xs, padding: spacing.md },
   cardTopRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },

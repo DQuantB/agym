@@ -2,6 +2,7 @@ import type { ActualData } from './workoutApi';
 
 export type FocusedWorkoutSession = {
   exerciseOrder: string[];
+  focusedExerciseId: string | null;
   restEndsAt: number | null;
 };
 
@@ -10,6 +11,11 @@ export type CurrentWorkoutSet = {
   exerciseIndex: number;
   setIndex: number;
 };
+
+export type WorkoutFocus =
+  | { kind: 'set'; exerciseId: string; exerciseIndex: number; setIndex: number; isManual: boolean }
+  | { kind: 'exercise_done'; exerciseId: string; exerciseIndex: number }
+  | { kind: 'workout_done' };
 
 function isUnfinishedExercise(actualData: ActualData, exerciseId: string): boolean {
   const exercise = actualData.exercises.find((candidate) => candidate.client_id === exerciseId);
@@ -26,11 +32,14 @@ export function repairFocusedWorkoutSession(
     ...savedOrder.filter((id, index) => knownIds.has(id) && savedOrder.indexOf(id) === index),
     ...actualData.exercises.map((exercise) => exercise.client_id).filter((id) => !savedOrder.includes(id)),
   ];
+  const focusedExerciseId = typeof saved?.focusedExerciseId === 'string' && knownIds.has(saved.focusedExerciseId)
+    ? saved.focusedExerciseId
+    : null;
   const restEndsAt = typeof saved?.restEndsAt === 'number' && Number.isFinite(saved.restEndsAt)
     ? saved.restEndsAt
     : null;
 
-  return { exerciseOrder, restEndsAt };
+  return { exerciseOrder, focusedExerciseId, restEndsAt };
 }
 
 export function getCurrentWorkoutSet(
@@ -78,4 +87,51 @@ export function setRestEnd(
   restEndsAt: number | null,
 ): FocusedWorkoutSession {
   return { ...session, restEndsAt };
+}
+
+export function resolveWorkoutFocus(actualData: ActualData, session: FocusedWorkoutSession): WorkoutFocus {
+  const repaired = repairFocusedWorkoutSession(actualData, session);
+  const auto = getCurrentWorkoutSet(actualData, repaired);
+
+  if (!repaired.focusedExerciseId) {
+    return auto ? { kind: 'set', ...auto, isManual: false } : { kind: 'workout_done' };
+  }
+
+  const exerciseIndex = actualData.exercises.findIndex((exercise) => exercise.client_id === repaired.focusedExerciseId);
+  const exercise = actualData.exercises[exerciseIndex];
+  if (!exercise) return auto ? { kind: 'set', ...auto, isManual: false } : { kind: 'workout_done' };
+
+  const setIndex = exercise.sets.findIndex((set) => !set.completed && !set.skipped_reason);
+  if (setIndex < 0) return { kind: 'exercise_done', exerciseId: exercise.client_id, exerciseIndex };
+
+  const isManual = exercise.client_id !== auto?.exerciseId;
+  return { kind: 'set', exerciseId: exercise.client_id, exerciseIndex, setIndex, isManual };
+}
+
+export function focusExercise(session: FocusedWorkoutSession, exerciseId: string): FocusedWorkoutSession {
+  return { ...session, focusedExerciseId: exerciseId };
+}
+
+export function clearWorkoutFocus(session: FocusedWorkoutSession): FocusedWorkoutSession {
+  if (!session.focusedExerciseId) return session;
+  return { ...session, focusedExerciseId: null };
+}
+
+/**
+ * Called with the pre-action actualData (same convention as deferCurrentExercise):
+ * releases the manual override once the set that just settled was the focused
+ * exercise's last pending one, so completing/skipping a forgotten set drops the
+ * user back onto the auto-advance queue instead of stranding them.
+ */
+export function releaseFocusAfterSet(
+  actualData: ActualData,
+  session: FocusedWorkoutSession,
+  setIndex: number,
+): FocusedWorkoutSession {
+  if (!session.focusedExerciseId) return session;
+  const exercise = actualData.exercises.find((candidate) => candidate.client_id === session.focusedExerciseId);
+  if (!exercise) return session;
+  const otherPending = exercise.sets.some((set, index) => index !== setIndex && !set.completed && !set.skipped_reason);
+  if (otherPending) return session;
+  return { ...session, focusedExerciseId: null };
 }

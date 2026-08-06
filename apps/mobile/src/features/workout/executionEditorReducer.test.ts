@@ -49,6 +49,66 @@ it('completes a set without allowing a second action to undo it', () => {
   expect(repeated.actualData.exercises[0].sets[0]).toMatchObject({ completed: true, skipped_reason: null });
 });
 
+it('reset_set returns a completed set to pending, preserving reps and weight', () => {
+  const completed = executionEditorReducer(initial, { type: 'complete_set', exerciseIndex: 0, setIndex: 0 });
+  const reset = executionEditorReducer(completed, { type: 'reset_set', exerciseIndex: 0, setIndex: 0 });
+
+  expect(reset.actualData.exercises[0].sets[0]).toMatchObject({ completed: false, skipped_reason: null, reps: 5, weight_kg: 80 });
+});
+
+it('reset_set clears a skipped_reason', () => {
+  const skipped = executionEditorReducer(initial, { type: 'skip_set', exerciseIndex: 0, setIndex: 0, reason: 'Equipment unavailable' });
+  const reset = executionEditorReducer(skipped, { type: 'reset_set', exerciseIndex: 0, setIndex: 0 });
+
+  expect(reset.actualData.exercises[0].sets[0]).toMatchObject({ completed: false, skipped_reason: null });
+});
+
+it('reset_set on an already-pending set is a no-op', () => {
+  const result = executionEditorReducer(initial, { type: 'reset_set', exerciseIndex: 0, setIndex: 0 });
+  expect(result.actualData.exercises[0].sets[0]).toEqual(initial.actualData.exercises[0].sets[0]);
+});
+
+it('complete, reset, complete re-completes a set, while complete, complete stays idempotent', () => {
+  const completed = executionEditorReducer(initial, { type: 'complete_set', exerciseIndex: 0, setIndex: 0 });
+  const reset = executionEditorReducer(completed, { type: 'reset_set', exerciseIndex: 0, setIndex: 0 });
+  const recompleted = executionEditorReducer(reset, { type: 'complete_set', exerciseIndex: 0, setIndex: 0 });
+  expect(recompleted.actualData.exercises[0].sets[0]).toMatchObject({ completed: true, skipped_reason: null });
+
+  const repeated = executionEditorReducer(completed, { type: 'complete_set', exerciseIndex: 0, setIndex: 0 });
+  expect(repeated.actualData.exercises[0].sets[0]).toMatchObject({ completed: true, skipped_reason: null });
+});
+
+it('delete_set removes a user-added set and leaves the surviving sets intact', () => {
+  const added = executionEditorReducer(initial, { type: 'add_set', exerciseIndex: 0 });
+  const deleted = executionEditorReducer(added, { type: 'delete_set', exerciseIndex: 0, setIndex: 1 });
+
+  expect(deleted.actualData.exercises[0].sets).toEqual(initial.actualData.exercises[0].sets);
+});
+
+it('delete_set refuses a planned (non user_added) set', () => {
+  const result = executionEditorReducer(initial, { type: 'delete_set', exerciseIndex: 0, setIndex: 0 });
+  expect(result).toEqual(initial);
+});
+
+it('delete_set refuses when the exercise has exactly one set', () => {
+  const added = executionEditorReducer(initial, { type: 'add_set', exerciseIndex: 0 });
+  const deletedFirst = executionEditorReducer(added, { type: 'delete_set', exerciseIndex: 0, setIndex: 1 });
+  // Only one set remains (the original planned set) — the added set is already gone.
+  const secondAttempt = executionEditorReducer(deletedFirst, { type: 'delete_set', exerciseIndex: 0, setIndex: 0 });
+  expect(secondAttempt).toEqual(deletedFirst);
+});
+
+it('add_set then delete_set restores the original exercise shape', () => {
+  const added = executionEditorReducer(initial, { type: 'add_set', exerciseIndex: 0 });
+  const deleted = executionEditorReducer(added, { type: 'delete_set', exerciseIndex: 0, setIndex: 1 });
+  expect(deleted.actualData).toEqual(initial.actualData);
+});
+
+it('delete_set with an out-of-range index returns the same state', () => {
+  const result = executionEditorReducer(initial, { type: 'delete_set', exerciseIndex: 0, setIndex: 9 });
+  expect(result).toEqual(initial);
+});
+
 it('skips every set of an exercise with one action, including one already completed', () => {
   const twoSetState: ExecutionEditorState = {
     actualData: {

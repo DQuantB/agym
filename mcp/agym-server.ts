@@ -31,6 +31,20 @@ const listPlansInputSchema = {
   status: planStatusSchema.optional(),
   limit: z.number().int().min(1).max(50).default(20),
 };
+const searchCatalogueInputSchema = {
+  query: z.string().trim().max(200).optional(),
+  body_part: z.string().trim().max(60).optional(),
+  limit: z.number().int().min(1).max(50).default(20),
+};
+
+// Columns a search word may match against. Mirrors the mobile catalogue
+// picker's search (apps/mobile/src/features/exercises/exerciseCatalogueApi.ts)
+// so "barbell" (equipment, not name) or "press bench" (word order) both hit.
+const CATALOGUE_SEARCHABLE_COLUMNS = ['name', 'target', 'muscle_group', 'equipment', 'category', 'body_part'] as const;
+
+function catalogueSearchWords(query: string | undefined): string[] {
+  return (query ?? '').trim().split(/\s+/).filter((word) => word.length > 0);
+}
 
 export interface AgymMcpConfiguration {
   supabaseUrl: string;
@@ -196,9 +210,53 @@ export function registerAgymTools(server: McpServer, client: SupabaseClient, ide
   );
 
   server.registerTool(
+    'search_exercise_catalogue',
+    {
+      description: 'Search the metadata-only exercise catalogue (name, category, body part, equipment, target muscle) to find standardized exercise names before authoring a gym_workout plan with create_proposed_plan. Results are reference data, not user data or a confirmed outcome; matching one does not log or confirm anything.',
+      inputSchema: searchCatalogueInputSchema,
+    },
+    async ({ query, body_part: bodyPart, limit }) => {
+      try {
+        let exercises: unknown[];
+        if (identity.remoteRpc) {
+          const { data, error } = await client.rpc('remote_mcp_search_exercise_catalogue', {
+            p_query: query ?? null,
+            p_body_part: bodyPart ?? null,
+            p_limit: limit,
+          });
+          if (error) throw new Error(`Could not search the remote AGym exercise catalogue: ${error.message}`);
+          const result = ensureRemoteRpcAllowed(data);
+          if (!Array.isArray(result)) throw new Error('Remote AGym exercise catalogue RPC returned an invalid response.');
+          exercises = result;
+        } else {
+          const authorization = await requireAuthorization(client, identity, 'read_context');
+          let catalogueQuery = client.from('exercise_catalogue')
+            .select('id, name, category, body_part, equipment, muscle_group, secondary_muscles, target')
+            .order('name', { ascending: true }).order('id', { ascending: true }).limit(limit);
+          for (const word of catalogueSearchWords(query)) {
+            catalogueQuery = catalogueQuery.or(CATALOGUE_SEARCHABLE_COLUMNS.map((column) => `${column}.ilike.%${word}%`).join(','));
+          }
+          if (bodyPart) catalogueQuery = catalogueQuery.eq('body_part', bodyPart);
+          const { data, error } = await catalogueQuery;
+          if (error) throw new Error(`Could not search the exercise catalogue: ${error.message}`);
+          exercises = data ?? [];
+          await appendAuditLog(client, identity, authorization.id, 'search_exercise_catalogue', { query: query ?? null, body_part: bodyPart ?? null, limit, result_count: exercises.length });
+        }
+        return jsonContent({
+          exercises,
+          query: { query: query ?? null, body_part: bodyPart ?? null, limit },
+          caveat: 'Catalogue results are reference metadata for naming/standardizing plan exercises. Selecting one does not confirm or log anything.',
+        });
+      } catch (error) {
+        return errorContent(error instanceof Error ? error.message : 'AGym exercise catalogue search failed.');
+      }
+    },
+  );
+
+  server.registerTool(
     'create_proposed_plan',
     {
-      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan. The response includes an advisory `conflicts` field noting any other Gym plan already on that date; conflicts are informational only and never block creation. A gym_workout exercise may include an `alternatives` array (each `{client_id, name}`, up to 4) naming other exercises usable for the same slot with the same prescribed sets — use this when more than one exercise would reasonably work (e.g. Barbell row with alternatives Lat pulldown, Seated cable row); the user chooses which to perform at workout time, so do not create separate proposals for each option.',
+      description: 'Create an agent-authored proposed plan after explicit write authorization. This never confirms an outcome or activates a plan. Prefer search_exercise_catalogue first to name each exercise consistently with AGym\'s standardized catalogue rather than an ad hoc description, when a reasonable match exists. The response includes an advisory `conflicts` field noting any other Gym plan already on that date; conflicts are informational only and never block creation. A gym_workout exercise may include an `alternatives` array (each `{client_id, name}`, up to 4) naming other exercises usable for the same slot with the same prescribed sets — use this when more than one exercise would reasonably work (e.g. Barbell row with alternatives Lat pulldown, Seated cable row); the user chooses which to perform at workout time, so do not create separate proposals for each option.',
       inputSchema: planInputSchema,
     },
     async ({ raw_plan_text: rawPlanText, plan_data: planData }) => {

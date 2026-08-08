@@ -14,6 +14,20 @@ interpretation as canonical AGym data. The user-selected LLM in the local MCP
 client interprets this bounded raw/confirmed context and may propose a plan;
 AGym does not call a hosted server-side parser.
 
+## What `search_exercise_catalogue` returns
+
+Searches the metadata-only `exercise_catalogue` reference table (see
+`docs/research/exercise-dataset-evaluation.md`) by free-text query and/or
+`body_part`, returning trimmed rows (`id, name, category, body_part,
+equipment, muscle_group, secondary_muscles, target`) — never the
+`instructions`/`instruction_steps` translation text. Its purpose is to let an
+agent find standardized exercise names before calling `create_proposed_plan`,
+so plans converge on consistent naming instead of ad hoc free text. It is
+reference data, not user data: matching or returning a result does not
+confirm, log, or link anything to the user's plans or history. Gated on the
+same `read_context` grant as `get_context`/`list_plans`, not a separate grant
+type.
+
 ## Authorization and audit
 
 Every call requires an active database `agent_authorizations` row matching:

@@ -44,6 +44,37 @@ States:
 
 ## Activity log
 
+### 2026-08-05 — Instagram week 1 production plan
+
+- Created `instagram-week-1-plan-v1.md`: shot-list-level briefs for seven reels (one per day), three launch posters, one carousel, and seven daily stories.
+- New founder constraints recorded: the AGym page is **faceless** (no founder on camera); discreet gym filming is possible; a separate personal athlete profile is under consideration but out of scope.
+- Reels: R-W1-01 "The note" (community + app), R-W1-02 "The loop, uncut" (flagship one-take demo), R-W1-03 "Things we use to remember our sets" (community, reach-seeking), R-W1-04 "The plan vs the week", R-W1-05 "Coaches — where does it arrive?" (the discovery driver, no link, no pitch), R-W1-06 "Watch me delete all of it", R-W1-07 "The pause".
+- Production model: two pre-launch filming sessions (gym clips G1–G7, screen recordings S1–S6) plus a grid-asset session, so the whole week is shot before launch day.
+- Added filming guardrails: no identifiable third party in frame ever, own footage only (no stock), no physiques, footage treated per Concept B.
+- Recorded honest caution that 7 reels/week is ~3× the editorial plan's floor and only works in week 1 because of the pre-launch buffer; replying to comments is flagged as higher-value than posting volume.
+- Status: production plan, nothing filmed or published. Still blocked on the founder decision required by Coach Discovery Sprint v1 before any public posting.
+- Next question: does the founder approve the channel launch, and does the separate athlete profile get its own plan?
+
+### 2026-08-05 — Instagram editorial plan v1
+
+- Created `instagram-editorial-plan-v1.md` after the founder said coach/client discovery is the current bottleneck and asked for an Instagram editorial plan.
+- Flagged that IG is a **new channel bet**: `advertising-strategy-v1.md` v1.1 demoted Meta and made X/Reddit/Discord/Show HN the engine. The case for IG is that the coach ICP is natively present there, unlike on Reddit or HN.
+- Page has one primary job (start qualified coach conversations) and one secondary job (survive the profile tap after a DM). Follower count is explicitly not a goal.
+- Plan contains: six content pillars weighted 60% coach / 40% athlete; format roles (reels = reach, carousels = saves, posters = identity, stories = the DM bridge); a floor cadence of 2 reels + 1 grid post + 3 story days per week with a 90-minute weekly batch session; a six-week launch sequence; a post bank of 9 reel briefs, 6 carousel briefs, and 5 recurring story formats extending the existing A1–A4/B1–B4 posters; profile/bio/highlights setup; and the IG→DM→ledger discovery loop.
+- Added a week-6 kill/scale rule: fewer than 3 qualified coach conversations → cut to credibility-only; 6 or more → promote to a primary discovery channel and revise the strategy doc.
+- **Blocker recorded:** Coach Discovery Sprint v1 permits no public promotion beyond the approved landing page. Launching the page needs an explicit founder decision logged in the sprint doc first.
+- Status: plan only. Nothing published, produced, or tested. All targets are hypotheses; the coach wedge itself is still unvalidated at zero logged interviews.
+- Next question: does the founder approve the IG channel under the sprint boundaries, and do reels R1/R2 get produced first?
+
+### 2026-08-05 — social design prompt v1 (code-poster production)
+
+- Created `social-design-prompt-v1.md`: a paste-ready prompt for a Claude design session that produces Instagram/social posts as deterministic HTML/SVG code posters plus a caption pack, instead of generated imagery.
+- Rationale: the brand system forbids an image model rendering readable type, logos, UI, or CTAs. Composing the entire poster in code satisfies that rule by construction. `visual-prompts-v1.md` stays the reference for generated background layers; this supersedes it for type-led posters.
+- The prompt carries two labelled audience tracks — Track A (athlete / self-coached AI user, the existing message territory) and Track B (the coach ICP approved 2026-08-01, with a mandatory "Early concept — not a live product" disclosure) — plus the current shipped-capability list (mobile app, hosted backend, remote MCP, coach linking + read-only coach dashboard per ADR 0005) so posts cannot overclaim.
+- Includes a four-part output contract (poster / export note / caption pack / QA block) and a first batch of 8 briefs: A1–A4 and B1–B4.
+- Status: production prompt, internal-ready. No asset has been generated, published, or tested. Everything it produces starts as `draft`.
+- Next question: run A1 and B1 first, review against the QA block, and decide whether the code-poster route replaces generated backgrounds permanently.
+
 ### 2026-08-01 — Coach Discovery operator guide v1
 
 - Founder approved the first ICP: independent online strength/hypertrophy coaches with approximately 10–50 clients and recurring remote client check-ins.

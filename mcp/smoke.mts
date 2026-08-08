@@ -33,7 +33,7 @@ assert.equal(claudeCfg.agentIdentifier, 'claude-code', 'configured agent identif
 const fakeClient = {} as unknown as Parameters<typeof createAgymMcpServer>[0];
 const server = createAgymMcpServer(fakeClient, cfg);
 const registered = Object.keys((server as unknown as { _registeredTools: Record<string, unknown> })._registeredTools ?? {});
-const expected = ['get_context', 'list_plans', 'create_proposed_plan'];
+const expected = ['get_context', 'list_plans', 'search_exercise_catalogue', 'create_proposed_plan'];
 assert.deepEqual(registered.sort(), [...expected].sort(), `tools mismatch: got ${registered.join(',')}`);
 
 console.log('MCP smoke OK: config validation + tools =', registered.sort().join(', '));

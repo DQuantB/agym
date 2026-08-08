@@ -33,6 +33,11 @@ psql(`
     'workout', '{"exercise":"bench press","sets":3,"reps":5,"weight_kg":80}'::jsonb, now());
   insert into public.agent_authorizations (user_id, agent_identifier, action)
   values ('${USER_ID}', 'hermes', 'read_context'), ('${USER_ID}', 'hermes', 'write_proposed_plan');
+  delete from public.exercise_catalogue where source = 'e2e-fixture';
+  insert into public.exercise_catalogue (source, source_id, source_commit, name, category, body_part, equipment, muscle_group, secondary_muscles, target, instructions, instruction_steps)
+  values
+    ('e2e-fixture', '0001', 'e2e', 'Barbell bench press', 'chest', 'chest', 'barbell', 'pectorals', '{"triceps","shoulders"}', 'chest', '{}'::jsonb, '{}'::jsonb),
+    ('e2e-fixture', '0002', 'e2e', 'Barbell row', 'back', 'back', 'barbell', 'lats', '{"biceps"}', 'lats', '{}'::jsonb, '{}'::jsonb);
 `);
 
 const server = createAgymMcpServer(client, cfg);
@@ -95,6 +100,20 @@ assert.equal(ctx.json.raw_notes.length, 1, 'expected 1 raw note');
 assert.equal(ctx.json.raw_notes[0].provenance, 'raw_self_report');
 assert.equal(ctx.json.raw_notes[0].interpretation_status, 'unparsed');
 console.log('1) get_context OK: confirmed=user_confirmed, raw=raw_self_report/unparsed');
+
+// 1b) search_exercise_catalogue finds standardized names by a term matching
+// equipment (not name), and body_part narrows results to just that fixture row.
+const barbellSearch = await call('search_exercise_catalogue', { query: 'barbell' });
+assert.equal(barbellSearch.isError, false, `search_exercise_catalogue errored: ${barbellSearch.text}`);
+assert.ok(barbellSearch.json.exercises.some((e: { name: string }) => e.name === 'Barbell bench press'), 'expected Barbell bench press by equipment term');
+assert.ok(barbellSearch.json.exercises.some((e: { name: string }) => e.name === 'Barbell row'), 'expected Barbell row by equipment term');
+assert.ok(!('instructions' in barbellSearch.json.exercises[0]), 'catalogue search results must not include instruction text');
+
+const backSearch = await call('search_exercise_catalogue', { query: 'barbell', body_part: 'back' });
+assert.equal(backSearch.isError, false, `body_part-filtered search errored: ${backSearch.text}`);
+assert.equal(backSearch.json.exercises.length, 1, 'body_part filter should narrow to the single back fixture');
+assert.equal(backSearch.json.exercises[0].name, 'Barbell row');
+console.log('1b) search_exercise_catalogue OK: equipment-term match + body_part narrowing, no instruction text leaked');
 
 // 2) create_proposed_plan writes a proposed plan via authorized RPC.
 const created = await call('create_proposed_plan', { raw_plan_text: 'Next session: bench 3x5 @ 82.5kg', plan_data: { kind: 'gym_workout', schema_version: 1, scheduled_for: new Date().toISOString().slice(0, 10), title: 'Bench strength', exercises: [{ client_id: 'bench', name: 'Bench press', sets: [{ reps: 5, weight_kg: 82.5, rest_seconds: 180 }] }] } });
@@ -160,7 +179,7 @@ assert.ok(validGym.json.conflicts.reasons.includes('duplicate_proposal'), 'expec
 assert.ok(validGym.json.conflicts.plans.some((p: { id: string }) => p.id === created.json.plan.id), 'conflicting plan should reference the first proposal');
 console.log('5b) conflict advisory OK: severity=notice for a same-day duplicate proposal');
 
-// 6) Audit log grew (get_context + list_plans x2 + create_proposed_plan RPC x2).
+// 6) Audit log grew (get_context + search_exercise_catalogue x2 + list_plans x2 + create_proposed_plan RPC x2).
 const grew = auditCount() - before;
 assert.ok(grew >= 3, `expected >=3 new audit rows, got ${grew}`);
 console.log(`6) audit log OK: +${grew} rows since baseline`);

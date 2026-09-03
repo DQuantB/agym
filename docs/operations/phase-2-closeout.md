@@ -54,7 +54,7 @@ MCP client proof is tracked separately from Phase 2 but confirms that a separate
 
 ## Disposable-account data-rights proof — PASS
 
-The data-rights proof was deliberately run against `gamerdani680@gmail.com`, not the founder's primary AGym account (2026-07-15).
+The data-rights proof was deliberately run against a disposable test address, not the founder's primary AGym account (2026-07-15).
 
 1. An invite was sent to the disposable address and the account signed in to production.
 2. A throwaway log/event was created and confirmed.
